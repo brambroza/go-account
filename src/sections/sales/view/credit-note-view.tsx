@@ -22,8 +22,19 @@ import { useRouter, useParams } from 'src/routes/hooks';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { CreditNoteSchema } from 'src/schemas/accounting/doc-schemas';
-import { todayISO, toSatang, calcDocument, formatThaiDate } from 'src/domain';
 import { uid, outstandingOf, useAccounting, issueCreditNote, useContactLookup } from 'src/store';
+import {
+  subBaht,
+  todayISO,
+  toSatang,
+  periodOf,
+  periodLabel,
+  calcDocument,
+  creditableOf,
+  isTaxDocument,
+  salesDocTitle,
+  formatThaiDate,
+} from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
@@ -31,7 +42,14 @@ import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-import { Money, TotalsSummary, DocLinesEditor } from 'src/sections/shared';
+import {
+  Money,
+  TotalsSummary,
+  ConfirmSummary,
+  DocLinesEditor,
+  LockedDateAlert,
+  preventEnterSubmit,
+} from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
@@ -43,6 +61,7 @@ const REASONS = [
   'ยกเลิกการขายทั้งใบ',
 ];
 
+/** ออกใบลดหนี้อ้างใบกำกับเดิม — ลดได้ถึงยอดใบกำกับหักใบลดหนี้ก่อนหน้า แม้รับชำระแล้ว (ส่วนเกินเป็นเงินรอคืนลูกค้า) */
 export function CreditNoteView() {
   const { id = '' } = useParams();
   const router = useRouter();
@@ -52,6 +71,7 @@ export function CreditNoteView() {
 
   const invoice = data.sales.find((s) => s.id === id && s.kind === 'tax-invoice');
   const outstanding = invoice ? outstandingOf(data, invoice) : 0;
+  const creditable = invoice ? creditableOf(data, invoice) : 0;
 
   const methods = useForm<CreditNoteSchemaType>({
     resolver: zodResolver(CreditNoteSchema),
@@ -62,18 +82,21 @@ export function CreditNoteView() {
     },
   });
 
-  const lines = useWatch({ control: methods.control, name: 'lines' });
+  const [lines, date] = useWatch({ control: methods.control, name: ['lines', 'date'] });
   const totals = useMemo(
     () => (invoice ? calcDocument({ ...invoice, lines: lines ?? [] }) : calcDocument({ lines: [], vatMode: 'none', vatRate: 0 })),
     [invoice, lines]
   );
-  const overLimit = toSatang(totals.total) > toSatang(outstanding);
+  const overLimit = toSatang(totals.total) > toSatang(creditable);
+  // ส่วนที่เกินยอดค้างชำระ (ลูกค้าจ่ายแล้ว) ตั้งเป็นเงินรอคืนลูกค้า — ตรงกับ `issueCreditNote`
+  const toCustomerCredit = toSatang(totals.total) > toSatang(outstanding) ? subBaht(totals.total, outstanding) : 0;
+  const toReceivable = subBaht(totals.total, toCustomerCredit);
 
-  if (!invoice) {
+  if (!invoice || toSatang(creditable) <= 0) {
     return (
       <EmptyContent
         filled
-        title="ไม่พบใบกำกับภาษีที่จะลดหนี้"
+        title={invoice ? `${invoice.docNo} ลดหนี้เต็มจำนวนแล้ว` : 'ไม่พบใบกำกับภาษีที่จะลดหนี้'}
         action={
           <Button component={RouterLink} href={paths.sales.root} variant="contained" sx={{ mt: 3 }}>
             กลับไปหน้ารายการขาย
@@ -83,6 +106,10 @@ export function CreditNoteView() {
       />
     );
   }
+
+  const isTax = isTaxDocument(invoice);
+  const docTitle = salesDocTitle({ kind: 'credit-note', isTaxInvoice: isTax, vatMode: invoice.vatMode });
+  const showVat = isTax && invoice.vatMode !== 'none';
 
   const save = methods.handleSubmit((values) => {
     try {
@@ -106,7 +133,7 @@ export function CreditNoteView() {
   return (
     <>
       <CustomBreadcrumbs
-        heading={`ออกใบลดหนี้ อ้างถึง ${invoice.docNo}`}
+        heading={`ออก${docTitle} อ้างถึง ${invoice.docNo}`}
         links={[
           { name: 'หน้าแรก', href: paths.dashboard },
           { name: 'ขาย', href: paths.sales.root },
@@ -117,7 +144,7 @@ export function CreditNoteView() {
       />
 
       <Form methods={methods}>
-        <Grid container spacing={3}>
+        <Grid container spacing={3} onKeyDown={preventEnterSubmit}>
           <Grid item xs={12} lg={8}>
             <Card>
               <CardHeader
@@ -133,6 +160,7 @@ export function CreditNoteView() {
                     </MenuItem>
                   ))}
                 </Field.Select>
+                <LockedDateAlert date={date} sx={{ gridColumn: { sm: 'span 2' } }} />
               </Box>
             </Card>
 
@@ -146,16 +174,30 @@ export function CreditNoteView() {
 
           <Grid item xs={12} lg={4}>
             <Card sx={{ p: 3 }}>
-              <Stack direction="row" justifyContent="space-between" sx={{ mb: 2 }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  ยอดค้างชำระของใบเดิม
-                </Typography>
-                <Money value={outstanding} />
+              <Stack spacing={1} sx={{ mb: 2 }}>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    ยอดค้างชำระของใบเดิม
+                  </Typography>
+                  <Money value={outstanding} />
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    ลดหนี้ได้อีกไม่เกิน
+                  </Typography>
+                  <Money value={creditable} />
+                </Stack>
               </Stack>
-              <TotalsSummary totals={totals} vatRate={invoice.vatRate} showVat={invoice.vatMode !== 'none'} />
+              <TotalsSummary totals={totals} vatRate={invoice.vatRate} showVat={showVat} />
               {overLimit && (
                 <Alert severity="error" sx={{ mt: 2 }}>
-                  ยอดลดหนี้เกินยอดค้างชำระ — ถ้าลูกค้าจ่ายแล้วต้องคืนเงินแยกต่างหาก
+                  ยอดลดหนี้เกินยอดที่ลดได้ ({creditable.toFixed(2)} บาท = ยอดใบกำกับหักใบลดหนี้ก่อนหน้า)
+                </Alert>
+              )}
+              {!overLimit && toSatang(toCustomerCredit) > 0 && (
+                <Alert severity="info" variant="outlined" sx={{ mt: 2 }}>
+                  ลูกค้าชำระแล้ว — ส่วนที่เกินยอดค้าง <Money value={toCustomerCredit} sx={{ fontWeight: 600 }} /> บาท
+                  จะตั้งเป็นเงินรอคืนลูกค้า แล้วกด &quot;คืนเงินลูกค้า&quot; ที่หน้าเอกสารเมื่อจ่ายคืนจริง
                 </Alert>
               )}
               <Button
@@ -169,7 +211,7 @@ export function CreditNoteView() {
                   if (await methods.trigger()) confirm.onTrue();
                 }}
               >
-                ออกใบลดหนี้
+                ออก{docTitle}
               </Button>
             </Card>
           </Grid>
@@ -179,8 +221,27 @@ export function CreditNoteView() {
       <ConfirmDialog
         open={confirm.value}
         onClose={confirm.onFalse}
-        title="ยืนยันออกใบลดหนี้"
-        content={`ลดยอดลูกหนี้ ${contacts.name(invoice.contactId)} ลง ${totals.total.toFixed(2)} บาท (ภาษีขายลดลง ${totals.vat.toFixed(2)} บาท) ใบลดหนี้ออกแล้วแก้ไขไม่ได้`}
+        title={`ยืนยันออก${docTitle}`}
+        content={
+          <ConfirmSummary
+            rows={[
+              { label: 'ชนิดเอกสาร', value: `${docTitle} อ้างถึง ${invoice.docNo}` },
+              { label: 'ลูกค้า', value: contacts.name(invoice.contactId) },
+              { label: 'วันที่ใบลดหนี้', value: formatThaiDate((date ?? '').slice(0, 10)) },
+              { label: 'มูลค่าที่ลดลง', value: totals.net },
+              { label: `ภาษีขายลดลง ${invoice.vatRate}%`, value: totals.vat, hidden: !showVat },
+              { label: 'รวมลดหนี้', value: totals.total, strong: true },
+              { label: 'ลดยอดลูกหนี้', value: toReceivable },
+              { label: 'ตั้งเป็นเงินรอคืนลูกค้า', value: toCustomerCredit, hidden: toSatang(toCustomerCredit) <= 0 },
+              {
+                label: 'งวดภาษี',
+                value: `ลดภาษีขายเดือน${periodLabel(periodOf((date ?? todayISO()).slice(0, 10)))}`,
+                hidden: !showVat,
+              },
+            ]}
+            note="ใบลดหนี้ออกแล้วแก้ไขหรือลบไม่ได้"
+          />
+        }
         action={
           <LoadingButton variant="contained" color="error" onClick={save}>
             ยืนยัน

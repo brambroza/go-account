@@ -12,24 +12,17 @@ import Typography from '@mui/material/Typography';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
-import { outstandingOf, useAccounting, useContactLookup } from 'src/store';
+import { useAccounting, useContactLookup } from 'src/store';
 import {
-  ACC,
-  arAging,
   sumBaht,
   periodOf,
   todayISO,
-  whtTotals,
-  balanceOf,
+  toSatang,
+  formatBaht,
   periodLabel,
   shiftPeriod,
-  pp30Summary,
-  trialBalance,
-  calcDocument,
-  salesVatReport,
+  dashboardStats,
   filingDueDates,
-  purchaseVatReport,
-  whtPayeesForPeriod,
   formatThaiDateShort,
 } from 'src/domain';
 
@@ -41,41 +34,14 @@ import { Money } from 'src/sections/shared';
 
 type Todo = { title: string; caption: string; href: string; cta: string; tone: 'error' | 'warning' | 'info' };
 
+/** หน้าแรก: ตัวเลขสรุป (จาก `dashboardStats`) งานที่ต้องทำ และกำหนดยื่นภาษี */
 export function DashboardView() {
   const { data } = useAccounting();
   const contacts = useContactLookup();
   const today = todayISO();
   const period = periodOf(today);
 
-  const stats = useMemo(() => {
-    const tb = trialBalance(data.accounts, data.journal, today);
-    const aging = arAging(data.sales, (d) => outstandingOf(data, d), today);
-    const overdue = aging.filter((a) => a.daysOverdue > 0);
-    const unpaidPurchases = data.purchases.filter((p) => !p.paid);
-    const pp30 = pp30Summary(
-      salesVatReport(data.sales, data.contacts, period),
-      purchaseVatReport(data.purchases, data.contacts, period)
-    );
-    const prev = shiftPeriod(period, -1);
-    const whtPrev =
-      whtTotals(whtPayeesForPeriod(data.purchases, data.contacts, prev, 'PND3')).tax +
-      whtTotals(whtPayeesForPeriod(data.purchases, data.contacts, prev, 'PND53')).tax;
-    const etaxWaiting = data.sales.filter((s) => s.etax === 'pending-sign' || s.etax === 'signed');
-    const badContacts = data.contacts.filter((c) => c.kind !== 'vendor' && !c.taxId);
-
-    return {
-      cash: balanceOf(tb, ACC.bank) + balanceOf(tb, ACC.cash),
-      receivable: sumBaht(aging.map((a) => a.outstanding)),
-      overdue,
-      payable: sumBaht(unpaidPurchases.map((p) => calcDocument(p).total)),
-      unpaidPurchases,
-      pp30,
-      whtPrev,
-      etaxWaiting,
-      badContacts,
-      aging,
-    };
-  }, [data, today, period]);
+  const stats = useMemo(() => dashboardStats(data, today), [data, today]);
 
   const due = filingDueDates(period);
   const prevDue = filingDueDates(shiftPeriod(period, -1));
@@ -96,7 +62,7 @@ export function DashboardView() {
       ? [
           {
             title: `ลูกหนี้เกินกำหนด ${stats.overdue.length} ใบ`,
-            caption: `รวม ${sumBaht(stats.overdue.map((o) => o.outstanding)).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท · เก่าสุดเกิน ${stats.overdue[0].daysOverdue} วัน`,
+            caption: `รวม ${formatBaht(sumBaht(stats.overdue.map((o) => o.outstanding)))} บาท · เก่าสุดเกิน ${stats.overdue[0].daysOverdue} วัน`,
             href: paths.sales.root,
             cta: 'ดูรายการ',
             tone: 'error' as const,
@@ -110,6 +76,17 @@ export function DashboardView() {
             caption: 'จ่ายแล้วระบบจะออกเลข 50 ทวิ และเข้า ภ.ง.ด. ให้อัตโนมัติ',
             href: paths.purchases.root,
             cta: 'จ่ายชำระ',
+            tone: 'info' as const,
+          },
+        ]
+      : []),
+    ...(toSatang(stats.customerCredits) > 0
+      ? [
+          {
+            title: `เงินรอคืนลูกค้า ${formatBaht(stats.customerCredits)} บาท`,
+            caption: 'เกิดจากใบลดหนี้หลังลูกค้าชำระแล้ว — บันทึกคืนเงินที่หน้าเอกสารหรือหน้าผู้ติดต่อ',
+            href: paths.contacts,
+            cta: 'ดูรายการ',
             tone: 'info' as const,
           },
         ]
@@ -154,7 +131,7 @@ export function DashboardView() {
         </Box>
         <Stack direction="row" spacing={1}>
           <Button component={RouterLink} href={paths.sales.new} variant="contained" startIcon={<Iconify icon="mingcute:add-line" />}>
-            ออกใบกำกับภาษี
+            {data.company.vatRegistered ? 'ออกใบกำกับภาษี' : 'ออกใบแจ้งหนี้'}
           </Button>
           <Button component={RouterLink} href={paths.purchases.new} variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />}>
             บันทึกค่าใช้จ่าย

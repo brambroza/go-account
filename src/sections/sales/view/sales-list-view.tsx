@@ -17,8 +17,8 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
-import { todayISO, calcDocument, formatThaiDate } from 'src/domain';
 import { outstandingOf, useAccounting, useContactLookup } from 'src/store';
+import { todayISO, calcDocument, isTaxDocument, salesDocTitle, formatThaiDate } from 'src/domain';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -55,6 +55,7 @@ const TABLE_HEAD = [
   { id: 'etax', label: 'e-Tax' },
 ];
 
+/** ทะเบียนเอกสารขาย — ชื่อเอกสารตามสถานะ VAT ของเอกสาร (`salesDocTitle`) */
 export function SalesListView() {
   const router = useRouter();
   const { data } = useAccounting();
@@ -63,6 +64,7 @@ export function SalesListView() {
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const today = todayISO();
+  const { vatRegistered } = data.company;
 
   const rows = useMemo(
     () =>
@@ -117,7 +119,7 @@ export function SalesListView() {
   return (
     <>
       <CustomBreadcrumbs
-        heading="ขาย / ใบกำกับภาษี"
+        heading={vatRegistered ? 'ขาย / ใบกำกับภาษี' : 'ขาย / ใบแจ้งหนี้'}
         links={[{ name: 'หน้าแรก', href: paths.dashboard }, { name: 'ขาย' }]}
         action={
           <Button
@@ -126,7 +128,7 @@ export function SalesListView() {
             variant="contained"
             startIcon={<Iconify icon="mingcute:add-line" />}
           >
-            ออกใบกำกับภาษี
+            {vatRegistered ? 'ออกใบกำกับภาษี' : 'ออกใบแจ้งหนี้'}
           </Button>
         }
         sx={{ mb: { xs: 3, md: 4 } }}
@@ -199,11 +201,9 @@ export function SalesListView() {
                     <Typography variant="subtitle2" component={RouterLink} href={paths.sales.view(r.doc.id)} sx={{ color: 'inherit' }}>
                       {r.docNo}
                     </Typography>
-                    {r.doc.kind === 'credit-note' && (
-                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                        ใบลดหนี้
-                      </Typography>
-                    )}
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                      {salesDocTitle(r.doc)}
+                    </Typography>
                   </TableCell>
                   <TableCell>{formatThaiDate(r.date)}</TableCell>
                   <TableCell sx={{ maxWidth: 260 }}>
@@ -224,7 +224,7 @@ export function SalesListView() {
                     {r.doc.kind === 'tax-invoice' ? <SalesStatusLabel status={r.doc.status} overdue={r.overdue} /> : null}
                   </TableCell>
                   <TableCell>
-                    <ETaxLabel status={r.doc.etax} />
+                    {isTaxDocument(r.doc) ? <ETaxLabel status={r.doc.etax} /> : '-'}
                   </TableCell>
                 </TableRow>
               ))}

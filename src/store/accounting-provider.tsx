@@ -1,73 +1,70 @@
 import type { AccountingData } from 'src/domain';
 
-import { useMemo, useState, useEffect, useContext, useCallback, createContext } from 'react';
+import { useMemo, useState, useEffect, useContext, createContext, useSyncExternalStore } from 'react';
 
-import { localStorageGetItem } from 'src/utils/storage-available';
+import { localStorageAvailable } from 'src/utils/storage-available';
 
 import { buildDemoData } from './seed';
+import { readAccountingJson } from './migrations';
+import { createAccountingStore } from './accounting-store';
+
+import type { LoadResult } from './migrations';
+import type { Mutation } from './accounting-store';
 
 // ----------------------------------------------------------------------
-// ที่เก็บข้อมูลชั่วคราวฝั่ง browser (localStorage) สำหรับต้นแบบ
+// ที่เก็บข้อมูลชั่วคราวฝั่ง browser (localStorage) สำหรับต้นแบบ — ตรรกะอยู่ใน `accounting-store.ts`
 // หน้าจอเรียกผ่าน `useAccounting()` เท่านั้น — ตอนต่อ backend ให้เปลี่ยน `run`
 // เป็นการเรียก API แล้ว refetch โดยที่หน้าจอไม่ต้องแก้
 // ----------------------------------------------------------------------
 
-const STORAGE_KEY = 'go-account:data:v1';
-
-type Mutation<R> = (state: AccountingData) => { state: AccountingData } & R;
-
 export type AccountingContextValue = {
   data: AccountingData;
-  /** รัน action แบบ pure แล้วบันทึกผล — throw ต่อถ้า action ผิดกฎธุรกิจ */
+  /** รัน action แบบ pure บนข้อมูลล่าสุดแล้วบันทึกผล — throw ต่อถ้า action ผิดกฎธุรกิจ */
   run: <R extends object>(mutation: Mutation<R>) => R;
-  /** แทนที่ทั้งก้อน (เช่น update company) */
-  replace: (next: AccountingData) => void;
+  /** แทนที่ทั้งก้อน (กู้คืน backup) — throw ถ้าไม่ผ่าน `validateAccountingData` เว้นแต่ส่ง `force` */
+  replace: (next: AccountingData, options?: { force?: boolean }) => void;
   resetDemo: () => void;
+  /** อ่าน + migrate + ตรวจไฟล์ backup ก่อนกู้คืน (ไม่เปลี่ยนข้อมูล) */
+  readBackup: (text: string) => LoadResult;
+  /** ปัญหาที่พบตอนโหลดข้อมูล */
+  problems: string[];
+  /** เวลา (ms) ที่ข้อมูลถูกโหลดใหม่เพราะแท็บอื่นแก้ไข */
+  externalChangeAt: number | null;
+  storageError: string | null;
 };
 
 const AccountingContext = createContext<AccountingContextValue | undefined>(undefined);
 
-function load(): AccountingData {
-  try {
-    const raw = localStorageGetItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw) as AccountingData;
-      if (parsed?.version === 1) return parsed;
-    }
-  } catch (error) {
-    console.error('อ่านข้อมูลเดิมไม่สำเร็จ สร้างข้อมูลตัวอย่างใหม่', error);
-  }
-  return buildDemoData();
-}
-
 type Props = { children: React.ReactNode };
 
 export function AccountingProvider({ children }: Props) {
-  const [data, setData] = useState<AccountingData>(load);
+  const [store] = useState(() =>
+    createAccountingStore({
+      storage: localStorageAvailable() ? window.localStorage : null,
+      fallback: () => buildDemoData(),
+    })
+  );
+  const snap = useSyncExternalStore(store.subscribe, store.getSnapshot);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch (error) {
-      console.error('บันทึกข้อมูลลงเครื่องไม่สำเร็จ', error);
-    }
-  }, [data]);
+    const onStorage = (event: StorageEvent) => store.handleStorageEvent(event.key, event.newValue);
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [store]);
 
-  const run = useCallback(
-    <R extends object>(mutation: Mutation<R>): R => {
-      // คำนวณจาก state ปัจจุบันแบบ synchronous เพื่อให้ error ส่งกลับไปที่ผู้เรียกได้ทันที
-      const result = mutation(data);
-      setData(result.state);
-      return result;
-    },
-    [data]
+  const value = useMemo<AccountingContextValue>(
+    () => ({
+      data: snap.data,
+      run: store.run,
+      replace: store.replace,
+      resetDemo: store.resetDemo,
+      readBackup: readAccountingJson,
+      problems: snap.problems,
+      externalChangeAt: snap.externalChangeAt,
+      storageError: snap.storageError,
+    }),
+    [snap, store]
   );
-
-  const replace = useCallback((next: AccountingData) => setData(next), []);
-
-  const resetDemo = useCallback(() => setData(buildDemoData()), []);
-
-  const value = useMemo(() => ({ data, run, replace, resetDemo }), [data, run, replace, resetDemo]);
 
   return <AccountingContext.Provider value={value}>{children}</AccountingContext.Provider>;
 }

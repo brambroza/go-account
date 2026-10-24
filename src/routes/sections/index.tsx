@@ -5,6 +5,8 @@ import { DashboardLayout } from 'src/layouts/dashboard';
 
 import { LoadingScreen } from 'src/components/loading-screen';
 
+import { RouteErrorBoundary } from '../components/route-error-boundary';
+
 // ----------------------------------------------------------------------
 
 const DashboardPage = lazy(() => import('src/pages/dashboard'));
@@ -20,7 +22,7 @@ const LedgerPage = lazy(() => import('src/pages/ledger'));
 const SettingsPage = lazy(() => import('src/pages/settings'));
 
 /**
- * ทุกหน้าธุรกิจอยู่ใต้ DashboardLayout
+ * ทุกหน้าธุรกิจอยู่ใต้ DashboardLayout และ RouteErrorBoundary (หน้าพังแล้วเมนูยังใช้ได้)
  * (ยังไม่มี AuthGuard — ต้นแบบนี้เก็บข้อมูลในเบราว์เซอร์; ต่อ backend แล้วค่อยครอบ)
  */
 export function Router() {
@@ -29,9 +31,11 @@ export function Router() {
       path: '/',
       element: (
         <DashboardLayout>
-          <Suspense fallback={<LoadingScreen />}>
-            <Outlet />
-          </Suspense>
+          <RouteErrorBoundary>
+            <Suspense fallback={<LoadingScreen />}>
+              <Outlet />
+            </Suspense>
+          </RouteErrorBoundary>
         </DashboardLayout>
       ),
       children: [

@@ -7,10 +7,13 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 
 import { paths } from 'src/routes/paths';
+
+import { useBoolean } from 'src/hooks/use-boolean';
 
 import { useAccounting } from 'src/store';
 import {
@@ -22,6 +25,7 @@ import {
   pp30Summary,
   salesVatReport,
   filingDueDates,
+  formatThaiDate,
   purchaseVatReport,
   whtPayeesForPeriod,
   formatThaiDateShort,
@@ -37,13 +41,17 @@ import { Money } from 'src/sections/shared';
 import { WhtTab } from './wht-tab';
 import { ETaxTab } from './etax-tab';
 import { VatReportTab } from './vat-tab';
+import { LockPeriodDialog } from './lock-period-dialog';
 
 // ----------------------------------------------------------------------
 
 type TabValue = 'sales' | 'purchase' | 'pp30' | 'pnd3' | 'pnd53' | 'etax';
 
+/** ศูนย์ภาษี: ภ.พ.30, รายงานภาษีซื้อ/ขาย, ภ.ง.ด.3/53, e-Tax และการปิดงวด */
 export function TaxView() {
   const { data } = useAccounting();
+  const lockDialog = useBoolean();
+  const lock = data.company.lockedThrough;
   const [period, setPeriod] = useState<Period>(() => periodOf(todayISO()));
   const [tab, setTab] = useState<TabValue>('pp30');
 
@@ -87,6 +95,22 @@ export function TaxView() {
         }
         sx={{ mb: { xs: 3, md: 4 } }}
       />
+
+      <Alert
+        severity={lock ? 'info' : 'warning'}
+        variant="outlined"
+        sx={{ mb: 3, alignItems: 'center' }}
+        icon={<Iconify icon="solar:lock-keyhole-minimalistic-bold" />}
+        action={
+          <Button color="inherit" size="small" variant="outlined" onClick={lockDialog.onTrue}>
+            ปิดงวด
+          </Button>
+        }
+      >
+        {lock
+          ? `ปิดงวดถึงวันที่ ${formatThaiDate(lock)} — รายการที่ลงวันที่ถึงวันนี้แก้หรือเพิ่มไม่ได้`
+          : 'ยังไม่ได้ปิดงวด — หลังยื่นแบบของเดือนแล้วให้ปิดงวด เพื่อกันการลงรายการย้อนหลังเข้างวดที่ยื่นแล้ว'}
+      </Alert>
 
       <Box sx={{ display: 'grid', gap: 2, mb: 3, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' } }}>
         {cards.map((c) => (
@@ -171,6 +195,8 @@ export function TaxView() {
           {tab === 'etax' && <ETaxTab period={period} />}
         </Box>
       </Card>
+
+      <LockPeriodDialog open={lockDialog.value} onClose={lockDialog.onFalse} />
     </>
   );
 }

@@ -27,6 +27,26 @@ export function sumBaht(values: number[]): number {
   return fromSatang(values.reduce((acc, v) => acc + toSatang(v), 0));
 }
 
+/** ลบเงิน a − b ในหน่วยสตางค์ */
+export function subBaht(a: number, b: number): number {
+  return fromSatang(toSatang(a) - toSatang(b));
+}
+
+/**
+ * แบ่งตามสัดส่วน amount × part ÷ whole ปัดเป็นสตางค์ half-up
+ * คำนวณด้วย BigInt บนสตางค์ เพื่อไม่ให้ผลคูณเกินความแม่นยำของ number
+ */
+export function prorateBaht(amount: number, part: number, whole: number): number {
+  const w = toSatang(whole);
+  if (w === 0) return 0;
+  const product = BigInt(toSatang(amount)) * BigInt(toSatang(part));
+  const negative = product < BigInt(0) !== w < 0;
+  const absProduct = product < BigInt(0) ? -product : product;
+  const absWhole = BigInt(Math.abs(w));
+  const q = (absProduct * BigInt(2) + absWhole) / (absWhole * BigInt(2));
+  return fromSatang(Number(negative ? -q : q));
+}
+
 /** คูณแล้วปัดเป็นสตางค์ทันที เช่น จำนวน × ราคาต่อหน่วย */
 export function mulBaht(a: number, b: number): number {
   return round2(a * b);

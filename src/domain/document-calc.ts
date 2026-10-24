@@ -4,6 +4,9 @@ import type { DocLine, VatMode, DocTotals } from './types';
 
 // ----------------------------------------------------------------------
 
+/** อัตราภาษีมูลค่าเพิ่มที่ใช้ทั้งระบบ (%) — เปลี่ยนอัตราต้องแก้ที่นี่ที่เดียว */
+export const VAT_RATE = 7;
+
 export type CalcInput = {
   lines: Pick<DocLine, 'qty' | 'unitPrice' | 'discount' | 'accountCode'>[];
   vatMode: VatMode;

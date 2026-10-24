@@ -39,6 +39,19 @@ function parts(date: ISODate) {
   return { y, m, d };
 }
 
+/** ช่วงปี ค.ศ. ที่ยอมรับ — ปีนอกช่วงนี้มักเป็น พ.ศ. ที่กรอกผิดช่อง (เช่น 2569-10-24) */
+export const MIN_YEAR = 2000;
+export const MAX_YEAR = 2100;
+
+/** ตรวจว่าเป็นวันที่ ISO `YYYY-MM-DD` (ค.ศ.) ที่มีอยู่จริงและอยู่ในช่วงปีที่สมเหตุสมผล */
+export function isValidISODate(value: unknown): value is ISODate {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const { y, m, d } = parts(value);
+  if (y < MIN_YEAR || y > MAX_YEAR) return false;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
 export function toBE(yearAD: number): number {
   return yearAD + 543;
 }

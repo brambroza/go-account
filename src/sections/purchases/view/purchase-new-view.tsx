@@ -1,7 +1,7 @@
 import type { PurchaseSchemaType } from 'src/schemas/accounting/doc-schemas';
 
-import { useMemo, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import Box from '@mui/material/Box';
@@ -17,23 +17,46 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
+import { useBoolean } from 'src/hooks/use-boolean';
+
 import { PurchaseSchema } from 'src/schemas/accounting/doc-schemas';
-import { ACC, todayISO, calcDocument, WHT_INCOME_TYPES } from 'src/domain';
 import { useAccounting, recordPurchase, useAccountLookup, useContactLookup, DEPOSIT_ACCOUNTS } from 'src/store';
+import {
+  ACC,
+  VAT_RATE,
+  todayISO,
+  periodOf,
+  periodLabel,
+  calcDocument,
+  formatThaiDate,
+  WHT_INCOME_TYPES,
+} from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
+import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-import { newLine, TotalsSummary, DocLinesEditor } from 'src/sections/shared';
+import {
+  newLine,
+  TotalsSummary,
+  ConfirmSummary,
+  DocLinesEditor,
+  LockedDateAlert,
+  preventEnterSubmit,
+} from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
+/** บันทึกซื้อ/ค่าใช้จ่าย (+ จ่ายทันทีได้) — ยืนยันสรุป VAT / หัก ณ ที่จ่าย / ยอดจ่ายก่อนบันทึก */
 export function PurchaseNewView() {
   const router = useRouter();
   const { data, run } = useAccounting();
   const contacts = useContactLookup();
   const accounts = useAccountLookup();
+  const { vatRegistered } = data.company;
+  const confirm = useBoolean();
+  const [pending, setPending] = useState<PurchaseSchemaType | null>(null);
   const vendors = useMemo(() => data.contacts.filter((c) => c.kind !== 'customer'), [data.contacts]);
 
   const methods = useForm<PurchaseSchemaType>({
@@ -56,9 +79,9 @@ export function PurchaseNewView() {
   });
 
   const { control, setValue, handleSubmit, formState } = methods;
-  const [contactId, vatMode, whtRate, whtIncomeType, payNow, lines] = useWatch({
+  const [contactId, date, paidDate, vatMode, whtRate, whtIncomeType, payNow, lines] = useWatch({
     control,
-    name: ['contactId', 'vatMode', 'whtRate', 'whtIncomeType', 'payNow', 'lines'],
+    name: ['contactId', 'date', 'paidDate', 'vatMode', 'whtRate', 'whtIncomeType', 'payNow', 'lines'],
   });
   const vendor = contacts.get(contactId);
 
@@ -69,11 +92,19 @@ export function PurchaseNewView() {
   }, [whtIncomeType, setValue]);
 
   const totals = useMemo(
-    () => calcDocument({ lines: lines ?? [], vatMode: vatMode ?? 'none', vatRate: 7, whtRate: whtRate ?? 0 }),
+    () => calcDocument({ lines: lines ?? [], vatMode: vatMode ?? 'none', vatRate: VAT_RATE, whtRate: whtRate ?? 0 }),
     [lines, vatMode, whtRate]
   );
 
+  // ผ่าน validation แล้วเปิดสรุปให้ยืนยันก่อน
   const onSubmit = handleSubmit((v) => {
+    setPending(v);
+    confirm.onTrue();
+  });
+
+  const save = () => {
+    const v = pending;
+    if (!v) return;
     try {
       const r = run((s) =>
         recordPurchase(s, {
@@ -90,12 +121,23 @@ export function PurchaseNewView() {
           payNow: v.payNow ? { date: (v.paidDate ?? v.date).slice(0, 10), accountCode: v.paymentAccountCode } : undefined,
         })
       );
-      toast.success(`บันทึก ${r.doc.docNo} แล้ว`);
+      confirm.onFalse();
+      toast.success(
+        r.payment
+          ? `บันทึก ${r.doc.docNo} และจ่ายชำระ ${r.payment.docNo}${r.payment.whtCertNo ? ` (50 ทวิ ${r.payment.whtCertNo})` : ''} แล้ว`
+          : `บันทึก ${r.doc.docNo} แล้ว`
+      );
       router.push(paths.purchases.root);
     } catch (error) {
+      confirm.onFalse();
       toast.error(error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ');
     }
-  });
+  };
+
+  const pendingVendor = pending ? contacts.get(pending.contactId) : undefined;
+  const pendingClaim = !!pending && vatRegistered && pending.vatMode !== 'none' && pending.claimVat;
+  const pndForm = pendingVendor?.legalForm === 'individual' ? 'ภ.ง.ด.3' : 'ภ.ง.ด.53';
+  const pendingPaidDate = pending ? (pending.paidDate ?? pending.date).slice(0, 10) : '';
 
   return (
     <>
@@ -110,7 +152,7 @@ export function PurchaseNewView() {
       />
 
       <Form methods={methods} onSubmit={onSubmit}>
-        <Grid container spacing={3}>
+        <Grid container spacing={3} onKeyDown={preventEnterSubmit}>
           <Grid item xs={12} lg={8}>
             <Card>
               <CardHeader title="ผู้ขายและใบกำกับภาษี" />
@@ -131,9 +173,10 @@ export function PurchaseNewView() {
                 </Field.Select>
                 <Field.Switch
                   name="claimVat"
-                  label="ขอคืนภาษีซื้อ (มีใบกำกับเต็มรูป)"
-                  disabled={vatMode === 'none'}
+                  label={vatRegistered ? 'ขอคืนภาษีซื้อ (มีใบกำกับเต็มรูป)' : 'ขอคืนภาษีซื้อไม่ได้ (บริษัทไม่จด VAT)'}
+                  disabled={vatMode === 'none' || !vatRegistered}
                 />
+                <LockedDateAlert date={date} sx={{ gridColumn: { sm: 'span 2' } }} />
               </Box>
             </Card>
 
@@ -187,7 +230,7 @@ export function PurchaseNewView() {
               </Typography>
               <TotalsSummary
                 totals={totals}
-                vatRate={7}
+                vatRate={VAT_RATE}
                 showVat={vatMode !== 'none'}
                 whtRate={whtRate}
                 whtLabel="หัก ณ ที่จ่าย"
@@ -199,6 +242,7 @@ export function PurchaseNewView() {
                 {payNow && (
                   <>
                     <Field.DatePicker name="paidDate" label="วันที่จ่าย" />
+                    <LockedDateAlert date={paidDate} />
                     <Field.Select name="paymentAccountCode" label="จ่ายจากบัญชี" size="small">
                       {DEPOSIT_ACCOUNTS.map((code) => (
                         <MenuItem key={code} value={code}>
@@ -216,6 +260,57 @@ export function PurchaseNewView() {
           </Grid>
         </Grid>
       </Form>
+
+      <ConfirmDialog
+        open={confirm.value}
+        onClose={confirm.onFalse}
+        title="ยืนยันบันทึกซื้อ / ค่าใช้จ่าย"
+        content={
+          pending && (
+            <ConfirmSummary
+              rows={[
+                { label: 'ผู้ขาย', value: contacts.name(pending.contactId) },
+                { label: 'เลขที่ใบกำกับผู้ขาย', value: pending.supplierInvoiceNo.trim() || '-' },
+                { label: 'วันที่เอกสาร', value: formatThaiDate(pending.date.slice(0, 10)) },
+                { label: 'มูลค่าก่อนภาษี', value: totals.net },
+                { label: `ภาษีซื้อ ${VAT_RATE}%`, value: totals.vat, hidden: pending.vatMode === 'none' },
+                {
+                  label: 'ภาษีซื้อ',
+                  value: pendingClaim
+                    ? `ขอคืนในงวด${periodLabel(periodOf(pending.date.slice(0, 10)))}`
+                    : 'ไม่ขอคืน — บันทึกรวมเป็นต้นทุน/ค่าใช้จ่าย',
+                  hidden: pending.vatMode === 'none',
+                },
+                { label: 'รวมทั้งสิ้น', value: totals.total, strong: true },
+                { label: `หัก ณ ที่จ่าย ${pending.whtRate}%`, value: totals.wht, hidden: !(pending.whtRate > 0) },
+                {
+                  label: 'แบบยื่น',
+                  value: pending.payNow
+                    ? `${pndForm} เดือน${periodLabel(periodOf(pendingPaidDate))}`
+                    : `${pndForm} ของเดือนที่จ่ายชำระ`,
+                  hidden: !(pending.whtRate > 0),
+                },
+                {
+                  label: `จ่ายทันที ${formatThaiDate(pendingPaidDate)} จาก ${accounts.name(pending.paymentAccountCode)}`,
+                  value: totals.payable,
+                  strong: true,
+                  hidden: !pending.payNow,
+                },
+              ]}
+              note={
+                pending.payNow
+                  ? 'บันทึกแล้วระบบจะออกเลขเอกสารซื้อ ใบสำคัญจ่าย (PV) และหนังสือรับรอง 50 ทวิ (ถ้ามีหัก) แล้วลงบัญชีทันที แก้ไขไม่ได้'
+                  : 'บันทึกแล้วระบบจะออกเลขเอกสารและลงบัญชีทันที แก้ไขไม่ได้'
+              }
+            />
+          )
+        }
+        action={
+          <LoadingButton variant="contained" onClick={save}>
+            ยืนยันบันทึก
+          </LoadingButton>
+        }
+      />
     </>
   );
 }

@@ -45,6 +45,7 @@ const TABLE_HEAD = [
   { id: '' },
 ];
 
+/** ทะเบียนเอกสารซื้อ — แสดงเลขใบสำคัญจ่าย (PV) และเลข 50 ทวิ ของรายการที่จ่ายแล้ว */
 export function PurchaseListView() {
   const { data } = useAccounting();
   const contacts = useContactLookup();
@@ -146,6 +147,12 @@ export function PurchaseListView() {
                     {p.paidDate && (
                       <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
                         {formatThaiDate(p.paidDate)}
+                        {p.paymentDocNo ? ` · ${p.paymentDocNo}` : ''}
+                      </Typography>
+                    )}
+                    {p.whtCertNo && (
+                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                        50 ทวิ {p.whtCertNo}
                       </Typography>
                     )}
                   </TableCell>

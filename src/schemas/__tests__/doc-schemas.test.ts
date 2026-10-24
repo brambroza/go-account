@@ -1,0 +1,91 @@
+import { ACC } from 'src/domain';
+
+import {
+  monthEndOf,
+  CompanySchema,
+  ContactSchema,
+  PurchaseSchema,
+  makeRefundSchema,
+  makeReceiptSchema,
+  SalesInvoiceSchema,
+  makeLockPeriodSchema,
+  makePayPurchaseSchema,
+} from '../accounting/doc-schemas';
+
+// ----------------------------------------------------------------------
+
+const line = { id: 'l', description: 'สินค้า', qty: 1, unitPrice: 100, discount: 0, accountCode: ACC.sales };
+
+describe('form schemas', () => {
+  it('validates sales invoice dates', () => {
+    const base = { contactId: 'c', date: '2026-10-24', dueDate: '2026-11-23', vatMode: 'exclusive', lines: [line] };
+    expect(SalesInvoiceSchema.safeParse(base).success).toBe(true);
+    expect(SalesInvoiceSchema.safeParse({ ...base, dueDate: '2026-10-01' }).success).toBe(false);
+    expect(SalesInvoiceSchema.safeParse({ ...base, lines: [{ ...line, qty: 0 }] }).success).toBe(false);
+  });
+
+  it('requires income type and supplier invoice number when needed', () => {
+    const base = {
+      contactId: 'v',
+      supplierInvoiceNo: 'A1',
+      date: '2026-10-24',
+      vatMode: 'exclusive',
+      claimVat: true,
+      whtRate: 0,
+      whtIncomeType: '',
+      whtCondition: '1',
+      payNow: false,
+      paymentAccountCode: ACC.bank,
+      lines: [line],
+    };
+    expect(PurchaseSchema.safeParse(base).success).toBe(true);
+    expect(PurchaseSchema.safeParse({ ...base, whtRate: 3 }).success).toBe(false);
+    expect(PurchaseSchema.safeParse({ ...base, supplierInvoiceNo: '' }).success).toBe(false);
+  });
+
+  it('checks tax ids and postcodes', () => {
+    const contact = { code: 'C1', kind: 'customer', legalForm: 'juristic', title: '', name: 'A', creditDays: 0, address: {} };
+    expect(ContactSchema.safeParse({ ...contact, taxId: '1101700230708' }).success).toBe(true);
+    expect(ContactSchema.safeParse({ ...contact, taxId: '1101700230709' }).success).toBe(false);
+    expect(ContactSchema.safeParse({ ...contact, address: { postalCode: '123' } }).success).toBe(false);
+    const company = { name: 'บ', taxId: '1101700230708', branchNo: '00000', vatRegistered: true, address: {} };
+    expect(CompanySchema.safeParse(company).success).toBe(true);
+    expect(CompanySchema.safeParse({ ...company, branchNo: 'HQ' }).success).toBe(false);
+  });
+});
+
+describe('dialog schemas', () => {
+  it('limits receipt amount to outstanding and date to invoice date', () => {
+    const schema = makeReceiptSchema(1070, '2026-10-01');
+    const base = { date: '2026-10-24', amount: 1070, whtRate: 0, whtAmount: 0, depositAccountCode: ACC.bank };
+    expect(schema.safeParse(base).success).toBe(true);
+    expect(schema.safeParse({ ...base, amount: 1070.01 }).success).toBe(false);
+    expect(schema.safeParse({ ...base, amount: 0 }).success).toBe(false);
+    expect(schema.safeParse({ ...base, date: '2026-09-30' }).success).toBe(false);
+    expect(schema.safeParse({ ...base, amount: 30, whtAmount: 30 }).success).toBe(false);
+  });
+
+  it('limits refund to available customer credit', () => {
+    const schema = makeRefundSchema(500);
+    const base = { date: '2026-10-24', amount: 500, accountCode: ACC.bank };
+    expect(schema.safeParse(base).success).toBe(true);
+    expect(schema.safeParse({ ...base, amount: 500.01 }).success).toBe(false);
+  });
+
+  it('pay purchase date not before document date', () => {
+    const schema = makePayPurchaseSchema('2026-10-10');
+    expect(schema.safeParse({ date: '2026-10-10', accountCode: ACC.bank }).success).toBe(true);
+    expect(schema.safeParse({ date: '2026-10-09', accountCode: ACC.bank }).success).toBe(false);
+  });
+
+  it('period lock moves forward only, to month end', () => {
+    expect(monthEndOf('2026-02-10')).toBe('2026-02-28');
+    expect(monthEndOf('2028-02-01')).toBe('2028-02-29');
+    expect(monthEndOf('2026-12-31')).toBe('2026-12-31');
+    const schema = makeLockPeriodSchema('2026-09-30');
+    expect(schema.safeParse({ month: '2026-10-01' }).success).toBe(true);
+    expect(schema.safeParse({ month: '2026-09-01' }).success).toBe(false);
+    expect(makeLockPeriodSchema('2026-09-15').safeParse({ month: '2026-09-01' }).success).toBe(true);
+    expect(makeLockPeriodSchema(undefined).safeParse({ month: '2026-01-01' }).success).toBe(true);
+  });
+});

@@ -16,10 +16,12 @@ import Typography from '@mui/material/Typography';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
+import { useBoolean } from 'src/hooks/use-boolean';
+
 import { downloadText } from 'src/utils/download';
 
-import { useAccounting, setETaxStatus, useContactLookup } from 'src/store';
-import { inPeriod, buildETaxXml, calcDocument, formatThaiDate } from 'src/domain';
+import { useAccounting, useContactLookup } from 'src/store';
+import { inPeriod, buildETaxXml, calcDocument, isTaxDocument, formatThaiDate } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -28,34 +30,38 @@ import { EmptyContent } from 'src/components/empty-content';
 
 import { Money, ETaxLabel } from 'src/sections/shared';
 
+import { MarkUploadedDialog } from './mark-uploaded-dialog';
+
 // ----------------------------------------------------------------------
 
+/** e-Tax ของงวด: ดาวน์โหลด XML ที่รอนำส่ง และบันทึกว่านำส่งแล้ว (ยืนยันก่อน) — เฉพาะเอกสารภาษี */
 export function ETaxTab({ period }: { period: Period }) {
-  const { data, run } = useAccounting();
+  const { data } = useAccounting();
   const contacts = useContactLookup();
+  const markDialog = useBoolean();
 
   const docs = useMemo(
-    () => data.sales.filter((s) => s.etax !== 'not-required' && inPeriod(s.date, period)).sort((a, b) => a.docNo.localeCompare(b.docNo)),
+    () => data.sales.filter((s) => s.etax !== 'not-required' && isTaxDocument(s) && inPeriod(s.date, period)).sort((a, b) => a.docNo.localeCompare(b.docNo)),
     [data.sales, period]
   );
   const waiting = docs.filter((d) => d.etax === 'signed' || d.etax === 'pending-sign');
+  const signed = waiting.filter((d) => d.etax === 'signed');
 
   const downloadAll = () => {
-    waiting.forEach((doc, i) => {
-      const buyer = contacts.get(doc.contactId);
-      if (!buyer) return;
+    const files: { name: string; xml: string }[] = [];
+    const failed: string[] = [];
+    waiting.forEach((doc) => {
       const referenced = doc.refDocId ? data.sales.find((s) => s.id === doc.refDocId) : undefined;
-      // เว้นจังหวะเล็กน้อยให้ browser ยอมดาวน์โหลดหลายไฟล์
-      setTimeout(
-        () => downloadText(`${doc.docNo}.xml`, buildETaxXml({ doc, company: data.company, buyer, referenced }), 'application/xml;charset=utf-8'),
-        i * 300
-      );
+      try {
+        const xml = buildETaxXml({ doc, company: data.company, buyer: contacts.get(doc.contactId), referenced });
+        files.push({ name: `${doc.docNo}.xml`, xml });
+      } catch (error) {
+        failed.push(error instanceof Error ? error.message : doc.docNo);
+      }
     });
-  };
-
-  const markUploaded = () => {
-    run((s) => ({ state: setETaxStatus(s, waiting.filter((d) => d.etax === 'signed').map((d) => d.id), 'uploaded') }));
-    toast.success('บันทึกว่านำส่งแล้ว');
+    // เว้นจังหวะเล็กน้อยให้ browser ยอมดาวน์โหลดหลายไฟล์
+    files.forEach((f, i) => setTimeout(() => downloadText(f.name, f.xml, 'application/xml;charset=utf-8'), i * 300));
+    if (failed.length) toast.error(`สร้าง XML ไม่ได้ ${failed.length} ฉบับ: ${failed.slice(0, 3).join(' · ')}`);
   };
 
   return (
@@ -71,11 +77,11 @@ export function ETaxTab({ period }: { period: Period }) {
         </Button>
         <Button
           variant="contained"
-          disabled={!waiting.some((d) => d.etax === 'signed')}
-          onClick={markUploaded}
+          disabled={!signed.length}
+          onClick={markDialog.onTrue}
           startIcon={<Iconify icon="solar:check-circle-bold" />}
         >
-          ทำเครื่องหมายว่านำส่งแล้ว
+          ทำเครื่องหมายว่านำส่งแล้ว ({signed.length})
         </Button>
       </Stack>
 
@@ -117,6 +123,8 @@ export function ETaxTab({ period }: { period: Period }) {
           <EmptyContent filled title="ไม่มีเอกสาร e-Tax ในงวดนี้" sx={{ py: 6 }} />
         </Box>
       )}
+
+      <MarkUploadedDialog open={markDialog.value} onClose={markDialog.onFalse} docs={signed} />
     </Stack>
   );
 }

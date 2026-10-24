@@ -3,6 +3,7 @@ import type { Period, VatReportRow } from 'src/domain';
 import Box from '@mui/material/Box';
 import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
@@ -12,8 +13,9 @@ import Typography from '@mui/material/Typography';
 
 import { downloadText } from 'src/utils/download';
 
-import { sumBaht, formatTaxId, periodLabel, vatReportCsv, formatThaiDate } from 'src/domain';
+import { sumBaht, formatTaxId, periodLabel, vatReportCsv, formatThaiDate, isValidThaiTaxId } from 'src/domain';
 
+import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
@@ -24,16 +26,28 @@ import { Money } from 'src/sections/shared';
 
 type Props = { rows: VatReportRow[]; period: Period; kind: 'sales' | 'purchase' };
 
+/** ปัญหาของแถวที่ต้องแก้ก่อนยื่น: ไม่มี/ผิดเลขผู้เสียภาษี 13 หลัก หรือสาขาไม่ใช่ 5 หลัก */
+export function vatRowProblem(row: Pick<VatReportRow, 'taxId' | 'branchNo'>): string | null {
+  if (!row.taxId) return 'ไม่มีเลขผู้เสียภาษี';
+  if (!isValidThaiTaxId(row.taxId)) return 'เลขผู้เสียภาษีไม่ถูกต้อง';
+  if (!/^\d{5}$/.test(row.branchNo)) return 'ไม่มีเลขสาขา';
+  return null;
+}
+
+/** รายงานภาษีขาย/ซื้อของงวด — ตรวจทุกแถวว่ามีเลขผู้เสียภาษีและสาขาครบก่อนส่งออก */
 export function VatReportTab({ rows, period, kind }: Props) {
   const title = `${kind === 'sales' ? 'รายงานภาษีขาย' : 'รายงานภาษีซื้อ'} เดือน${periodLabel(period)}`;
   const net = sumBaht(rows.map((r) => r.net));
   const vat = sumBaht(rows.map((r) => r.vat));
+  const problems = rows.map((r) => vatRowProblem(r));
+  const badCount = problems.filter(Boolean).length;
 
   return (
     <Stack spacing={2.5}>
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2}>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          {rows.length} รายการ · ตรวจแล้วทุกแถวมีเลขผู้เสียภาษีและสาขาตามที่ต้องพิมพ์ในรายงาน
+          {rows.length} รายการ
+          {rows.length > 0 && badCount === 0 && ' · ตรวจแล้วทุกแถวมีเลขผู้เสียภาษีและสาขาตามที่ต้องพิมพ์ในรายงาน'}
         </Typography>
         <Button
           variant="outlined"
@@ -50,6 +64,13 @@ export function VatReportTab({ rows, period, kind }: Props) {
           ส่งออก CSV
         </Button>
       </Stack>
+
+      {badCount > 0 && (
+        <Alert severity="warning" variant="outlined">
+          {badCount} แถวไม่มีเลขผู้เสียภาษีหรือสาขาที่ถูกต้อง — รายงานที่ยื่นต้องมีข้อมูลนี้ ตรวจกับเอกสารต้นฉบับ
+          และแก้ข้อมูลลูกค้า/ผู้ขายก่อนออกเอกสารใบถัดไป (เอกสารที่ออกแล้วใช้ข้อมูล ณ วันที่ออก)
+        </Alert>
+      )}
 
       {rows.length ? (
         <Scrollbar>
@@ -84,7 +105,14 @@ export function VatReportTab({ rows, period, kind }: Props) {
                       {r.contactName}
                     </Typography>
                   </TableCell>
-                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{formatTaxId(r.taxId) || '-'}</TableCell>
+                  <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>
+                    {formatTaxId(r.taxId) || '-'}
+                    {problems[i] && (
+                      <Label variant="soft" color="error" sx={{ ml: 1 }}>
+                        {problems[i]}
+                      </Label>
+                    )}
+                  </TableCell>
                   <TableCell>{r.branchNo}</TableCell>
                   <TableCell align="right">
                     <Money value={r.net} signed />

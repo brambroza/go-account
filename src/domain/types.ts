@@ -42,6 +42,27 @@ export type Company = {
   /** รหัสผู้ใช้ e-Filing — ใช้ใน header ของไฟล์ ภ.ง.ด. */
   rdUserId?: string;
   vatRegistered: boolean;
+  /** ปิดงวดถึงวันที่นี้ (รวมวันนั้น) — ห้ามลงรายการที่วันที่ ≤ ค่านี้ เลื่อนได้ทางเดียว (`lockPeriod`) */
+  lockedThrough?: ISODate;
+};
+
+/** ข้อมูลผู้ขาย (บริษัทเรา) ณ วันที่ออกเอกสาร — แก้ข้อมูลบริษัทภายหลังแล้วเอกสารเดิมไม่เปลี่ยน */
+export type CompanySnapshot = Pick<Company, 'name' | 'taxId' | 'branchNo' | 'address' | 'email' | 'phone' | 'vatRegistered'>;
+
+/**
+ * ข้อมูลคู่ค้า ณ วันที่ออกเอกสาร (ชื่อ/เลขผู้เสียภาษี/สาขา/ที่อยู่/ประเภทบุคคล)
+ * รายงาน ภ.พ.30, ภ.ง.ด.3/53 และ XML อ่านจากที่นี่ ไม่อ่านจากผู้ติดต่อปัจจุบัน
+ */
+export type PartySnapshot = {
+  title: string;
+  name: string;
+  lastName?: string;
+  taxId: string;
+  /** 5 หลัก */
+  branchNo: string;
+  address: Address;
+  legalForm: LegalForm;
+  email?: string;
 };
 
 export type ContactKind = 'customer' | 'vendor' | 'both';
@@ -105,6 +126,12 @@ export type SalesDocStatus = 'issued' | 'partial' | 'paid' | 'cancelled';
 export type SalesDoc = {
   id: string;
   kind: SalesDocKind;
+  /**
+   * true = ใบกำกับภาษี / ใบลดหนี้ตาม ม.86/10 (ผู้จด VAT เท่านั้น)
+   * false = ใบแจ้งหนี้ / ใบลดหนี้ธรรมดา (บริษัทไม่จด VAT — ห้ามพิมพ์คำว่า "ใบกำกับภาษี")
+   * ไม่มีค่า = ข้อมูลเก่า ถือว่า true เมื่อ vatMode ≠ none
+   */
+  isTaxInvoice?: boolean;
   docNo: string;
   date: ISODate;
   dueDate: ISODate;
@@ -115,10 +142,19 @@ export type SalesDoc = {
   /** ใบลดหนี้: อ้างถึงใบกำกับเดิม */
   refDocId?: string;
   reason?: string;
+  /** ใบลดหนี้: ส่วนที่เกินยอดค้างชำระ (ลูกค้าจ่ายแล้ว) ตั้งเป็นเงินรอคืนลูกค้า — 0 ถ้าลดลูกหนี้ทั้งหมด */
+  creditToCustomer?: number;
   note?: string;
   status: SalesDocStatus;
   paidAmount: number;
   etax: ETaxStatus;
+  /** วันเวลาที่บันทึกว่านำส่ง e-Tax แล้ว (ISO) */
+  etaxUploadedAt?: string;
+  /** เลขอ้างอิงการนำส่งจากระบบสรรพากร */
+  etaxReference?: string;
+  /** snapshot ผู้ขาย/ผู้ซื้อ ณ วันที่ออก (ข้อมูลเก่าได้ค่าจาก migration) */
+  seller?: CompanySnapshot;
+  buyer?: PartySnapshot;
   journalId: string;
   createdAt: string;
 };
@@ -134,6 +170,8 @@ export type Receipt = {
   /** ลูกค้าหักภาษี ณ ที่จ่ายไว้ */
   whtAmount: number;
   depositAccountCode: string;
+  seller?: CompanySnapshot;
+  buyer?: PartySnapshot;
   journalId: string;
 };
 
@@ -158,14 +196,53 @@ export type PurchaseDoc = {
   paid: boolean;
   paidDate?: ISODate;
   paymentAccountCode?: string;
+  /** เลขที่ใบสำคัญจ่าย (PV) ของการจ่ายชำระ */
+  paymentId?: string;
+  paymentDocNo?: string;
+  /** เลขที่หนังสือรับรองหัก ณ ที่จ่าย (50 ทวิ) — sequence `WT` ของตัวเอง ออกเฉพาะเมื่อมีหัก */
   whtCertNo?: string;
   note?: string;
+  /** snapshot ผู้ขาย ณ วันที่บันทึก */
+  supplier?: PartySnapshot;
   journalId: string;
   paymentJournalId?: string;
   createdAt: string;
 };
 
-export type JournalSource = 'sales' | 'credit-note' | 'receipt' | 'purchase' | 'payment' | 'manual';
+/** ใบสำคัญจ่าย (PV) — เก็บทุกครั้งที่จ่ายชำระเจ้าหนี้ */
+export type Payment = {
+  id: string;
+  docNo: string;
+  date: ISODate;
+  purchaseId: string;
+  contactId: string;
+  /** ยอดตัดเจ้าหนี้ (รวม VAT) */
+  amount: number;
+  /** ภาษีหัก ณ ที่จ่าย */
+  whtAmount: number;
+  /** เงินที่จ่ายออกจริง = amount − whtAmount */
+  netPaid: number;
+  accountCode: string;
+  whtCertNo?: string;
+  payer?: CompanySnapshot;
+  payee?: PartySnapshot;
+  journalId: string;
+};
+
+/** คืนเงินลูกค้าจากยอดเงินรอคืน (เกิดจากใบลดหนี้หลังรับเงินแล้ว) */
+export type CustomerRefund = {
+  id: string;
+  docNo: string;
+  date: ISODate;
+  contactId: string;
+  amount: number;
+  accountCode: string;
+  note?: string;
+  buyer?: PartySnapshot;
+  journalId: string;
+};
+
+export type JournalSource = 'sales' | 'credit-note' | 'receipt' | 'purchase' | 'payment' | 'refund' | 'manual';
 
 export type JournalLine = {
   accountCode: string;
@@ -185,14 +262,19 @@ export type JournalEntry = {
   lines: JournalLine[];
 };
 
+/** เวอร์ชันโครงข้อมูลปัจจุบัน — เปลี่ยนเมื่อไรต้องเพิ่ม migration ใน `store/migrations.ts` */
+export const DATA_VERSION = 2;
+
 export type AccountingData = {
-  version: 1;
+  version: typeof DATA_VERSION;
   company: Company;
   accounts: Account[];
   contacts: Contact[];
   sales: SalesDoc[];
   receipts: Receipt[];
   purchases: PurchaseDoc[];
+  payments: Payment[];
+  refunds: CustomerRefund[];
   journal: JournalEntry[];
   /** เลขที่ล่าสุดต่อ prefix+งวด เช่น { 'IV6910': 43 } */
   sequences: Record<string, number>;

@@ -1,6 +1,7 @@
-import type { AccountingData } from 'src/domain';
+import type { LoadResult } from 'src/store';
 import type { CompanySchemaType } from 'src/schemas/accounting/doc-schemas';
 
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -17,8 +18,6 @@ import { paths } from 'src/routes/paths';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
-import { downloadText } from 'src/utils/download';
-
 import { useAccounting, updateCompany } from 'src/store';
 import { normalizeTaxId, normalizeBranch5 } from 'src/domain';
 import { CompanySchema } from 'src/schemas/accounting/doc-schemas';
@@ -26,14 +25,21 @@ import { CompanySchema } from 'src/schemas/accounting/doc-schemas';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { Form, Field } from 'src/components/hook-form';
-import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+
+import { preventEnterSubmit } from 'src/sections/shared';
+
+import { downloadBackup } from './backup';
+import { RestoreDialog } from './restore-dialog';
+import { ResetDemoDialog } from './reset-demo-dialog';
 
 // ----------------------------------------------------------------------
 
+/** ตั้งค่าบริษัท + สำรอง/กู้คืนข้อมูล (ตรวจไฟล์ก่อนเสมอ) + ล้างเป็นข้อมูลตัวอย่าง (ต้องยืนยัน + สำรองอัตโนมัติ) */
 export function SettingsView() {
-  const { data, run, replace, resetDemo } = useAccounting();
+  const { data, run, readBackup } = useAccounting();
   const confirmReset = useBoolean();
+  const [restoreFile, setRestoreFile] = useState<{ name: string; result: LoadResult } | null>(null);
   const c = data.company;
 
   const methods = useForm<CompanySchemaType>({
@@ -77,19 +83,15 @@ export function SettingsView() {
     toast.success('บันทึกข้อมูลบริษัทแล้ว');
   });
 
-  const exportBackup = () => {
-    downloadText(`go-account-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2), 'application/json');
-  };
-
-  const importBackup = async (file: File | undefined) => {
+  const importBackup = async (input: HTMLInputElement) => {
+    const file = input.files?.[0];
+    // ล้างค่าเพื่อให้เลือกไฟล์เดิมซ้ำได้
+    input.value = '';
     if (!file) return;
     try {
-      const parsed = JSON.parse(await file.text()) as AccountingData;
-      if (parsed?.version !== 1 || !Array.isArray(parsed.journal)) throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
-      replace(parsed);
-      toast.success('กู้คืนข้อมูลแล้ว');
+      setRestoreFile({ name: file.name, result: readBackup(await file.text()) });
     } catch (error) {
-      toast.error(`กู้คืนไม่สำเร็จ: ${error instanceof Error ? error.message : ''} — ใช้ไฟล์ .json ที่ส่งออกจากหน้านี้เท่านั้น`);
+      toast.error(`อ่านไฟล์ไม่ได้: ${error instanceof Error ? error.message : ''}`);
     }
   };
 
@@ -106,7 +108,7 @@ export function SettingsView() {
       <Grid container spacing={3}>
         <Grid item xs={12} lg={8}>
           <Form methods={methods} onSubmit={onSubmit}>
-            <Card>
+            <Card onKeyDown={preventEnterSubmit}>
               <CardHeader title="ข้อมูลบริษัท" subheader="พิมพ์บนใบกำกับภาษี และใช้ใน header ของไฟล์ ภ.ง.ด. / e-Tax" />
               <Box sx={{ p: 3 }}>
                 <Box sx={grid}>
@@ -146,12 +148,12 @@ export function SettingsView() {
           <Card>
             <CardHeader title="ข้อมูลในเครื่องนี้" subheader="ต้นแบบนี้เก็บข้อมูลในเบราว์เซอร์ ยังไม่มีเซิร์ฟเวอร์" />
             <Stack spacing={1.5} sx={{ p: 3 }}>
-              <Button variant="outlined" startIcon={<Iconify icon="solar:download-bold" />} onClick={exportBackup}>
+              <Button variant="outlined" startIcon={<Iconify icon="solar:download-bold" />} onClick={() => downloadBackup(data)}>
                 สำรองข้อมูล (.json)
               </Button>
               <Button variant="outlined" component="label" startIcon={<Iconify icon="solar:upload-bold" />}>
                 กู้คืนจากไฟล์สำรอง
-                <input hidden type="file" accept="application/json,.json" onChange={(e) => importBackup(e.target.files?.[0])} />
+                <input hidden type="file" accept="application/json,.json" onChange={(e) => importBackup(e.currentTarget)} />
               </Button>
               <Button color="error" onClick={confirmReset.onTrue}>
                 ล้างข้อมูลและสร้างข้อมูลตัวอย่างใหม่
@@ -161,25 +163,8 @@ export function SettingsView() {
         </Grid>
       </Grid>
 
-      <ConfirmDialog
-        open={confirmReset.value}
-        onClose={confirmReset.onFalse}
-        title="ล้างข้อมูลทั้งหมด"
-        content="เอกสาร รายการบัญชี และผู้ติดต่อทั้งหมดในเบราว์เซอร์นี้จะถูกลบแล้วแทนด้วยข้อมูลตัวอย่าง ย้อนกลับไม่ได้ — สำรองข้อมูลก่อนถ้ายังต้องใช้"
-        action={
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => {
-              resetDemo();
-              confirmReset.onFalse();
-              toast.success('สร้างข้อมูลตัวอย่างใหม่แล้ว');
-            }}
-          >
-            ล้างข้อมูล
-          </Button>
-        }
-      />
+      <RestoreDialog file={restoreFile} onClose={() => setRestoreFile(null)} />
+      <ResetDemoDialog open={confirmReset.value} onClose={confirmReset.onFalse} />
     </>
   );
 }

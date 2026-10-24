@@ -12,6 +12,8 @@ export const ACC = {
   inventory: '1200',
   equipment: '1500',
   payable: '2110',
+  /** เงินรอคืนลูกค้า — ใบลดหนี้หลังลูกค้าจ่ายเงินแล้ว (หนี้สิน) */
+  customerCredit: '2120',
   outputVat: '2150',
   whtPayable: '2160',
   vatPayable: '2170',
@@ -47,6 +49,13 @@ export const DEFAULT_ACCOUNTS: Account[] = [
   { code: ACC.inventory, name: 'สินค้าคงเหลือ', nameEn: 'Inventory', type: 'asset' },
   { code: ACC.equipment, name: 'อุปกรณ์สำนักงาน', nameEn: 'Office equipment', type: 'asset' },
   { code: ACC.payable, name: 'เจ้าหนี้การค้า', nameEn: 'Accounts payable', type: 'liability', system: true },
+  {
+    code: ACC.customerCredit,
+    name: 'เงินรอคืนลูกค้า (ลดหนี้หลังรับชำระ)',
+    nameEn: 'Customer credits payable',
+    type: 'liability',
+    system: true,
+  },
   { code: ACC.outputVat, name: 'ภาษีขาย', nameEn: 'Output VAT', type: 'liability', system: true },
   {
     code: ACC.whtPayable,
@@ -71,6 +80,25 @@ export const DEFAULT_ACCOUNTS: Account[] = [
   { code: ACC.supplies, name: 'วัสดุสิ้นเปลือง', nameEn: 'Supplies', type: 'expense' },
   { code: ACC.misc, name: 'ค่าใช้จ่ายเบ็ดเตล็ด', nameEn: 'Miscellaneous expense', type: 'expense' },
 ];
+
+/**
+ * บัญชีคุม (control account) ที่มีทะเบียนย่อยรองรับ — ยอดต้องมาจากเอกสารเท่านั้น
+ * รายการปรับปรุงคีย์มือห้ามลงบัญชีเหล่านี้ ไม่อย่างนั้น GL กับทะเบียนลูกหนี้/เจ้าหนี้/ภาษีกระทบยอดไม่ลง
+ * (เงินสด/ธนาคาร/รายได้ เป็น system แต่ไม่ใช่บัญชีคุม จึงคีย์มือได้ เช่น ยอดยกมา ค่าธรรมเนียมธนาคาร)
+ */
+export const CONTROL_ACCOUNTS: readonly string[] = [
+  ACC.receivable,
+  ACC.whtReceivable,
+  ACC.inputVat,
+  ACC.payable,
+  ACC.customerCredit,
+  ACC.outputVat,
+  ACC.whtPayable,
+];
+
+export function isControlAccount(code: string): boolean {
+  return CONTROL_ACCOUNTS.includes(code);
+}
 
 /** ด้านปกติของบัญชี: สินทรัพย์/ค่าใช้จ่าย = เดบิต, ที่เหลือ = เครดิต */
 export function normalSide(type: Account['type']): 'debit' | 'credit' {

@@ -1,6 +1,6 @@
 import { z as zod } from 'zod';
 
-import { isValidThaiTaxId } from 'src/domain';
+import { toSatang, isValidThaiTaxId } from 'src/domain';
 
 // ----------------------------------------------------------------------
 // ทุก field ในฟอร์มต้องอยู่ใน schema — field ที่ไม่ได้ประกาศจะถูก resolver ตัดทิ้งตอน submit
@@ -128,3 +128,86 @@ export const CompanySchema = zod.object({
 });
 
 export type CompanySchemaType = zod.input<typeof CompanySchema>;
+
+// ----------------------------------------------------------------------
+// ฟอร์มใน dialog — ขอบเขตยอดเงิน/วันที่ขึ้นกับเอกสาร จึงสร้าง schema ตามเอกสารที่เปิดอยู่
+// ----------------------------------------------------------------------
+
+const money = (label: string) => zod.number({ invalid_type_error: `กรอก${label}` });
+
+/**
+ * รับชำระใบกำกับ — ยอดรับ 0.01 ถึงยอดค้าง (`outstanding`), วันที่ไม่ก่อนวันที่ใบกำกับ (`minDate`)
+ * ภาษีถูกหัก ณ ที่จ่ายต้องน้อยกว่ายอดรับ
+ */
+export function makeReceiptSchema(outstanding: number, minDate: string) {
+  return zod
+    .object({
+      date: isoDate('วันที่รับเงิน').refine((v) => v >= minDate, { message: 'วันที่รับเงินต้องไม่ก่อนวันที่ใบกำกับ' }),
+      amount: money('ยอดรับชำระ')
+        .refine((v) => toSatang(v) > 0, { message: 'ยอดรับชำระต้องมากกว่า 0' })
+        .refine((v) => toSatang(v) <= toSatang(outstanding), {
+          message: `ยอดรับชำระเกินยอดค้าง (ค้างอยู่ ${outstanding.toFixed(2)} บาท)`,
+        }),
+      whtRate: zod.number().min(0).max(15),
+      whtAmount: money('ภาษีที่ถูกหัก').min(0, { message: 'ภาษีติดลบไม่ได้' }),
+      depositAccountCode: zod.string().min(1, { message: 'เลือกบัญชีรับเงิน' }),
+    })
+    .refine((v) => toSatang(v.whtAmount) < toSatang(v.amount) || toSatang(v.whtAmount) === 0, {
+      message: 'ภาษีถูกหัก ณ ที่จ่ายต้องน้อยกว่ายอดรับชำระ',
+      path: ['whtAmount'],
+    });
+}
+
+export type ReceiptSchemaType = zod.input<ReturnType<typeof makeReceiptSchema>>;
+
+/** จ่ายชำระเอกสารซื้อ — วันที่จ่ายไม่ก่อนวันที่เอกสาร */
+export function makePayPurchaseSchema(minDate: string) {
+  return zod.object({
+    date: isoDate('วันที่จ่าย').refine((v) => v >= minDate, { message: 'วันที่จ่ายต้องไม่ก่อนวันที่เอกสาร' }),
+    accountCode: zod.string().min(1, { message: 'เลือกบัญชีที่จ่าย' }),
+  });
+}
+
+export type PayPurchaseSchemaType = zod.input<ReturnType<typeof makePayPurchaseSchema>>;
+
+/** คืนเงินลูกค้า — ไม่เกินเงินรอคืน (`available`) */
+export function makeRefundSchema(available: number) {
+  return zod.object({
+    date: isoDate('วันที่คืนเงิน'),
+    amount: money('ยอดคืนเงิน')
+      .refine((v) => toSatang(v) > 0, { message: 'ยอดคืนเงินต้องมากกว่า 0' })
+      .refine((v) => toSatang(v) <= toSatang(available), {
+        message: `ยอดคืนเงินเกินยอดรอคืน (คืนได้ ${available.toFixed(2)} บาท)`,
+      }),
+    accountCode: zod.string().min(1, { message: 'เลือกบัญชีที่จ่ายคืน' }),
+    note: zod.string().optional(),
+  });
+}
+
+export type RefundSchemaType = zod.input<ReturnType<typeof makeRefundSchema>>;
+
+/** วันสุดท้ายของเดือนของวันที่ ISO (`2026-02-10` → `2026-02-28`) */
+export function monthEndOf(date: string): string {
+  const y = Number(date.slice(0, 4));
+  const m = Number(date.slice(5, 7));
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return `${date.slice(0, 7)}-${String(last).padStart(2, '0')}`;
+}
+
+/** ปิดงวด — เลือกเดือน (ปิดถึงสิ้นเดือนนั้น) ต้องเลื่อนไปข้างหน้าจากงวดที่ปิดไว้แล้ว (`lockedThrough`) */
+export function makeLockPeriodSchema(lockedThrough: string | undefined) {
+  return zod.object({
+    month: isoDate('เดือนที่ปิด').refine((v) => !lockedThrough || monthEndOf(v) > lockedThrough, {
+      message: 'ต้องเป็นเดือนหลังงวดที่ปิดไว้แล้ว (ปิดงวดย้อนหลังไม่ได้)',
+    }),
+  });
+}
+
+export type LockPeriodSchemaType = zod.input<ReturnType<typeof makeLockPeriodSchema>>;
+
+/** บันทึกว่านำส่ง e-Tax แล้ว — เลขอ้างอิงจากระบบสรรพากร (ไม่บังคับ) */
+export const ETaxUploadSchema = zod.object({
+  reference: zod.string().max(64, { message: 'ไม่เกิน 64 ตัวอักษร' }).optional(),
+});
+
+export type ETaxUploadSchemaType = zod.input<typeof ETaxUploadSchema>;

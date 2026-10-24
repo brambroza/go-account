@@ -21,7 +21,7 @@ import { ContactSchema } from 'src/schemas/accounting/doc-schemas';
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
 
-import { RHFAmountField } from 'src/sections/shared';
+import { RHFAmountField, preventEnterSubmit } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
@@ -97,7 +97,7 @@ export function ContactDialog({ open, onClose, contact, nextCode }: Props) {
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <Form methods={methods} onSubmit={onSubmit}>
         <DialogTitle>{contact ? `แก้ไข ${contact.code}` : 'เพิ่มลูกค้า / ผู้ขาย'}</DialogTitle>
-        <DialogContent>
+        <DialogContent onKeyDown={preventEnterSubmit}>
           <Box sx={{ ...grid, pt: 1 }}>
             <Field.Text name="code" label="รหัส" size="small" />
             <Field.Select name="kind" label="ประเภท" size="small">

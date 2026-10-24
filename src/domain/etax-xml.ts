@@ -1,5 +1,7 @@
 import { formatPlain } from './money';
+import { isTaxDocument } from './sales-doc';
 import { lineAmount, calcDocument } from './document-calc';
+import { resolveParty, partyDisplayName } from './snapshot';
 import { normalizeTaxId, normalizeBranch5 } from './thai-tax-id';
 
 import type { Address, Company, Contact, SalesDoc } from './types';
@@ -82,17 +84,27 @@ function partyXml(
 
 export type ETaxXmlInput = {
   doc: SalesDoc;
+  /** ใช้เมื่อเอกสารไม่มี snapshot ผู้ขาย (`doc.seller`) */
   company: Company;
-  buyer: Contact;
+  /** ใช้เมื่อเอกสารไม่มี snapshot ผู้ซื้อ (`doc.buyer`) */
+  buyer?: Contact;
   /** ใบลดหนี้: ใบกำกับเดิม */
   referenced?: SalesDoc;
   /** เวลาสร้างไฟล์ (ISO) */
   createdAt?: string;
 };
 
+/**
+ * สร้าง XML ของเอกสาร — ผู้ขาย/ผู้ซื้ออ่านจาก snapshot ณ วันออกเอกสาร
+ * throw ถ้าไม่ใช่เอกสารภาษี (บริษัทไม่จด VAT) หรือไม่มีข้อมูลผู้ซื้อ
+ */
 export function buildETaxXml({ doc, company, buyer, referenced, createdAt }: ETaxXmlInput): string {
+  if (!isTaxDocument(doc)) throw new Error(`${doc.docNo} ไม่ใช่ใบกำกับภาษี — ไม่ต้องออก e-Tax`);
+  const party = resolveParty(doc.buyer, buyer);
+  if (!party) throw new Error(`${doc.docNo} ไม่มีข้อมูลผู้ซื้อ`);
+  const seller = doc.seller ?? company;
   const t = calcDocument(doc);
-  const buyerName = [buyer.title, buyer.name, buyer.lastName].filter(Boolean).join(' ');
+  const buyerName = partyDisplayName(party);
   const rate = doc.vatMode === 'none' ? 0 : doc.vatRate;
 
   const lineItems = doc.lines
@@ -135,7 +147,7 @@ export function buildETaxXml({ doc, company, buyer, referenced, createdAt }: ETa
         `${el('Purpose', doc.reason || 'ลดหนี้')}${el('PurposeCode', 'CDNG99')}`
       : '';
 
-  const sellerAddressName = company.name;
+  const sellerAddressName = seller.name;
 
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
@@ -158,19 +170,12 @@ export function buildETaxXml({ doc, company, buyer, referenced, createdAt }: ETa
     partyXml(
       'SellerTradeParty',
       sellerAddressName,
-      company.taxId,
-      company.branchNo,
-      company.address,
-      company.email
+      seller.taxId,
+      seller.branchNo,
+      seller.address,
+      seller.email
     ),
-    partyXml(
-      'BuyerTradeParty',
-      buyerName,
-      buyer.taxId ?? '',
-      buyer.branchNo ?? '',
-      buyer.address,
-      buyer.email
-    ),
+    partyXml('BuyerTradeParty', buyerName, party.taxId, party.branchNo, party.address, party.email),
     referencedXml,
     '</ram:ApplicableHeaderTradeAgreement>',
     '<ram:ApplicableHeaderTradeDelivery/>',

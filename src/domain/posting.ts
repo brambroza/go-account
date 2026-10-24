@@ -1,8 +1,8 @@
 import { ACC } from './chart-of-accounts';
 import { calcDocument } from './document-calc';
-import { round2, sumBaht, toSatang } from './money';
+import { round2, sumBaht, subBaht, toSatang } from './money';
 
-import type { Receipt, SalesDoc, PurchaseDoc, JournalLine, JournalEntry } from './types';
+import type { Receipt, SalesDoc, PurchaseDoc, JournalLine, JournalEntry, CustomerRefund } from './types';
 
 // ----------------------------------------------------------------------
 
@@ -68,13 +68,18 @@ export function postSalesInvoice(doc: SalesDoc, meta: EntryMeta, contactName: st
   };
 }
 
-/** ใบลดหนี้: กลับรายการขาย — Dr รายได้ + Dr ภาษีขาย / Cr ลูกหนี้ */
+/**
+ * ใบลดหนี้: กลับรายการขาย — Dr รายได้ + Dr ภาษีขาย / Cr ลูกหนี้
+ * ส่วนที่ลูกค้าจ่ายมาแล้ว (`creditToCustomer`) Cr เงินรอคืนลูกค้า แทนลูกหนี้ เพื่อไม่ให้ลูกหนี้ติดลบ
+ */
 export function postCreditNote(doc: SalesDoc, meta: EntryMeta, contactName: string): JournalEntry {
   const t = calcDocument(doc);
+  const toCustomer = doc.creditToCustomer ?? 0;
   const lines = finalize([
     ...Object.entries(t.netByAccount).map(([code, amount]) => dr(code, amount)),
     dr(ACC.outputVat, t.vat),
-    cr(ACC.receivable, t.total, contactName),
+    cr(ACC.receivable, subBaht(t.total, toCustomer), contactName),
+    cr(ACC.customerCredit, toCustomer, contactName),
   ]);
   return {
     ...meta,
@@ -95,7 +100,7 @@ export function postReceipt(
   invoiceNo: string
 ): JournalEntry {
   const lines = finalize([
-    dr(receipt.depositAccountCode, receipt.amount - receipt.whtAmount),
+    dr(receipt.depositAccountCode, subBaht(receipt.amount, receipt.whtAmount)),
     dr(ACC.whtReceivable, receipt.whtAmount),
     cr(ACC.receivable, receipt.amount, contactName),
   ]);
@@ -134,18 +139,22 @@ export function postPurchase(doc: PurchaseDoc, meta: EntryMeta, contactName: str
   };
 }
 
-/** จ่ายชำระ: Dr เจ้าหนี้ / Cr ธนาคาร (สุทธิ) + Cr ภาษีหัก ณ ที่จ่ายค้างจ่าย */
+/**
+ * จ่ายชำระ: Dr เจ้าหนี้ / Cr ธนาคาร (สุทธิ) + Cr ภาษีหัก ณ ที่จ่ายค้างจ่าย
+ * `payment` = ใบสำคัญจ่าย (PV) ที่อ้างถึงในสมุดรายวัน — ไม่ส่งมาจะอ้างเลขเอกสารซื้อแทน (ข้อมูลเก่า)
+ */
 export function postPurchasePayment(
   doc: PurchaseDoc,
   meta: EntryMeta,
   contactName: string,
   paymentAccountCode: string,
-  paidDate: string
+  paidDate: string,
+  payment?: { id: string; docNo: string }
 ): JournalEntry {
   const t = calcDocument(doc);
   const lines = finalize([
     dr(ACC.payable, t.total, contactName),
-    cr(paymentAccountCode, t.total - t.wht),
+    cr(paymentAccountCode, subBaht(t.total, t.wht)),
     cr(ACC.whtPayable, t.wht),
   ]);
   return {
@@ -153,8 +162,25 @@ export function postPurchasePayment(
     date: paidDate,
     description: `จ่ายชำระ ${contactName} (${doc.docNo})`,
     source: 'payment',
-    sourceId: doc.id,
-    sourceDocNo: doc.docNo,
+    sourceId: payment?.id ?? doc.id,
+    sourceDocNo: payment?.docNo ?? doc.docNo,
+    lines,
+  };
+}
+
+/** คืนเงินลูกค้า: Dr เงินรอคืนลูกค้า / Cr เงินสด/ธนาคาร */
+export function postCustomerRefund(refund: CustomerRefund, meta: EntryMeta, contactName: string): JournalEntry {
+  const lines = finalize([
+    dr(ACC.customerCredit, refund.amount, contactName),
+    cr(refund.accountCode, refund.amount),
+  ]);
+  return {
+    ...meta,
+    date: refund.date,
+    description: `คืนเงินลูกค้า ${contactName}${refund.note ? ` — ${refund.note}` : ''}`,
+    source: 'refund',
+    sourceId: refund.id,
+    sourceDocNo: refund.docNo,
     lines,
   };
 }

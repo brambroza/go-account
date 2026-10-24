@@ -12,6 +12,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
+import { salesDocTitle } from 'src/domain';
 import { useAccounting, useContactLookup } from 'src/store';
 
 import { Iconify } from 'src/components/iconify';
@@ -46,7 +47,7 @@ export function CommandPalette({ open, onClose }: Props) {
     const docs = data.sales.map((s) => ({
       key: `s-${s.id}`,
       title: `${s.docNo} · ${contacts.name(s.contactId)}`,
-      caption: s.kind === 'credit-note' ? 'ใบลดหนี้' : 'ใบกำกับภาษี',
+      caption: salesDocTitle(s),
       icon: 'solar:bill-list-bold-duotone',
       path: paths.sales.view(s.id),
       haystack: `${s.docNo} ${contacts.name(s.contactId)}`.toLowerCase(),

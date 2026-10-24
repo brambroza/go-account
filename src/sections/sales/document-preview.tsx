@@ -11,7 +11,18 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
 
-import { lineAmount, formatTaxId, branchLabel, calcDocument, formatThaiDate, contactDisplayName } from 'src/domain';
+import {
+  lineAmount,
+  formatTaxId,
+  branchLabel,
+  resolveParty,
+  calcDocument,
+  isTaxDocument,
+  salesDocTitle,
+  formatThaiDate,
+  companySnapshot,
+  partyDisplayName,
+} from 'src/domain';
 
 import { Scrollbar } from 'src/components/scrollbar';
 
@@ -19,6 +30,7 @@ import { Money } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
+/** ที่อยู่บรรทัดเดียวตามลำดับที่พิมพ์บนเอกสาร */
 export function formatAddress(a: Address | undefined): string {
   if (!a) return '';
   return [
@@ -38,27 +50,36 @@ export function formatAddress(a: Address | undefined): string {
 
 type Props = {
   doc: SalesDoc;
+  /** ใช้เฉพาะเมื่อเอกสารไม่มี snapshot ผู้ขาย (ข้อมูลเก่า) */
   company: Company;
-  buyer: Contact | undefined;
+  /** ใช้เฉพาะเมื่อเอกสารไม่มี snapshot ผู้ซื้อ (ข้อมูลเก่า) */
+  contact: Contact | undefined;
   referenced?: SalesDoc;
 };
 
-/** หน้าตาเอกสารสำหรับดูและพิมพ์ — มีองค์ประกอบใบกำกับภาษีเต็มรูปตาม ม.86/4 */
-export function DocumentPreview({ doc, company, buyer, referenced }: Props) {
+/**
+ * หน้าตาเอกสารสำหรับดูและพิมพ์ — มีองค์ประกอบใบกำกับภาษีเต็มรูปตาม ม.86/4
+ * ผู้ขาย/ผู้ซื้ออ่านจาก snapshot ณ วันออกเอกสาร (แก้ข้อมูลบริษัท/ลูกค้าภายหลังแล้วเอกสารเดิมไม่เปลี่ยน)
+ * บริษัทไม่จด VAT พิมพ์เป็น "ใบแจ้งหนี้/ใบเสร็จรับเงิน" ไม่มีบรรทัด VAT
+ */
+export function DocumentPreview({ doc, company, contact, referenced }: Props) {
   const t = calcDocument(doc);
   const isCredit = doc.kind === 'credit-note';
-  const title = isCredit ? 'ใบลดหนี้ / ใบกำกับภาษี' : 'ใบกำกับภาษี / ใบแจ้งหนี้';
+  const title = salesDocTitle(doc);
+  const showVat = isTaxDocument(doc) && doc.vatMode !== 'none';
+  const seller = doc.seller ?? companySnapshot(company);
+  const buyer = resolveParty(doc.buyer, contact);
 
   return (
     <Card sx={{ p: { xs: 3, md: 5 } }} className="print-area">
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2}>
         <Box>
-          <Typography variant="h6">{company.name}</Typography>
+          <Typography variant="h6">{seller.name}</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {formatAddress(company.address)}
+            {formatAddress(seller.address)}
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            เลขประจำตัวผู้เสียภาษี {formatTaxId(company.taxId)} · {branchLabel(company.branchNo)}
+            เลขประจำตัวผู้เสียภาษี {formatTaxId(seller.taxId)} · {branchLabel(seller.branchNo)}
           </Typography>
         </Box>
         <Box sx={{ textAlign: { sm: 'right' } }}>
@@ -76,7 +97,7 @@ export function DocumentPreview({ doc, company, buyer, referenced }: Props) {
           <Typography variant="overline" sx={{ color: 'text.disabled' }}>
             ลูกค้า
           </Typography>
-          <Typography variant="subtitle2">{contactDisplayName(buyer)}</Typography>
+          <Typography variant="subtitle2">{partyDisplayName(buyer)}</Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {formatAddress(buyer?.address)}
           </Typography>
@@ -92,7 +113,8 @@ export function DocumentPreview({ doc, company, buyer, referenced }: Props) {
               อ้างถึง
             </Typography>
             <Typography variant="body2">
-              ใบกำกับภาษีเลขที่ {referenced.docNo} ลงวันที่ {formatThaiDate(referenced.date)}
+              {isTaxDocument(referenced) ? 'ใบกำกับภาษี' : 'ใบแจ้งหนี้'}เลขที่ {referenced.docNo} ลงวันที่{' '}
+              {formatThaiDate(referenced.date)}
             </Typography>
             <Typography variant="body2">มูลค่าเดิม <Money value={calcDocument(referenced).net} /> บาท</Typography>
             <Typography variant="body2">เหตุผล: {doc.reason}</Typography>
@@ -141,7 +163,7 @@ export function DocumentPreview({ doc, company, buyer, referenced }: Props) {
             </Typography>
             <Money value={t.net} />
           </Stack>
-          {doc.vatMode !== 'none' && (
+          {showVat && (
             <Stack direction="row" justifyContent="space-between">
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 ภาษีมูลค่าเพิ่ม {doc.vatRate}%

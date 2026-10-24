@@ -1,6 +1,6 @@
 import { diffDays } from './thai-date';
 import { normalSide } from './chart-of-accounts';
-import { round2, sumBaht, toSatang } from './money';
+import { round2, sumBaht, toSatang, fromSatang } from './money';
 
 import type { Account, ISODate, SalesDoc, JournalEntry } from './types';
 
@@ -43,6 +43,26 @@ export function trialBalance(
       return { account, debit: s.debit, credit: s.credit, balance };
     })
     .filter((r) => toSatang(r.debit) !== 0 || toSatang(r.credit) !== 0);
+}
+
+export type TrialBalanceTotals = {
+  /** ผลรวมยอดคงเหลือด้านเดบิต */
+  debit: number;
+  /** ผลรวมยอดคงเหลือด้านเครดิต */
+  credit: number;
+  balanced: boolean;
+};
+
+/** ยอดรวมท้ายงบทดลอง (แสดงยอดคงเหลือสุทธิแต่ละบัญชีเข้าด้านใดด้านหนึ่ง) */
+export function trialBalanceTotals(rows: TrialBalanceRow[]): TrialBalanceTotals {
+  let debit = 0;
+  let credit = 0;
+  rows.forEach((r) => {
+    const net = toSatang(r.debit) - toSatang(r.credit);
+    if (net > 0) debit += net;
+    else credit -= net;
+  });
+  return { debit: fromSatang(debit), credit: fromSatang(credit), balanced: debit === credit };
 }
 
 export function balanceOf(rows: TrialBalanceRow[], code: string): number {

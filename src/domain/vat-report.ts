@@ -1,7 +1,9 @@
 import { inPeriod } from './thai-date';
 import { round2, sumBaht } from './money';
+import { isTaxDocument } from './sales-doc';
 import { calcDocument } from './document-calc';
 import { normalizeBranch5 } from './thai-tax-id';
+import { resolveParty, partyDisplayName } from './snapshot';
 
 import type { Period } from './thai-date';
 import type { Contact, SalesDoc, PurchaseDoc } from './types';
@@ -25,7 +27,10 @@ export function contactDisplayName(contact: Contact | undefined): string {
   return [contact.title, contact.name, contact.lastName].filter(Boolean).join(' ').trim();
 }
 
-/** รายงานภาษีขาย: ใบกำกับ (+) และใบลดหนี้ (−) ที่ออกในงวด */
+/**
+ * รายงานภาษีขาย: ใบกำกับ (+) และใบลดหนี้ (−) ที่ออกในงวด
+ * ชื่อ/เลขผู้เสียภาษี/สาขา อ่านจาก snapshot ในเอกสาร — `contacts` ใช้เฉพาะเอกสารที่ไม่มี snapshot
+ */
 export function salesVatReport(
   sales: SalesDoc[],
   contacts: Contact[],
@@ -33,19 +38,19 @@ export function salesVatReport(
 ): VatReportRow[] {
   const byId = new Map(contacts.map((c) => [c.id, c]));
   return sales
-    .filter((d) => d.vatMode !== 'none' && inPeriod(d.date, period))
+    .filter((d) => d.vatMode !== 'none' && isTaxDocument(d) && inPeriod(d.date, period))
     .sort((a, b) => (a.date + a.docNo).localeCompare(b.date + b.docNo))
     .map((d) => {
       const t = calcDocument(d);
       const sign = d.kind === 'credit-note' ? -1 : 1;
-      const c = byId.get(d.contactId);
+      const party = resolveParty(d.buyer, byId.get(d.contactId));
       return {
         id: d.id,
         date: d.date,
         docNo: d.docNo,
-        contactName: contactDisplayName(c),
-        taxId: c?.taxId ?? '',
-        branchNo: normalizeBranch5(c?.branchNo),
+        contactName: partyDisplayName(party),
+        taxId: party?.taxId ?? '',
+        branchNo: normalizeBranch5(party?.branchNo),
         net: round2(sign * t.net),
         vat: round2(sign * t.vat),
         kind: d.kind,
@@ -65,14 +70,14 @@ export function purchaseVatReport(
     .sort((a, b) => (a.date + a.docNo).localeCompare(b.date + b.docNo))
     .map((d) => {
       const t = calcDocument(d);
-      const c = byId.get(d.contactId);
+      const party = resolveParty(d.supplier, byId.get(d.contactId));
       return {
         id: d.id,
         date: d.date,
         docNo: d.supplierInvoiceNo || d.docNo,
-        contactName: contactDisplayName(c),
-        taxId: c?.taxId ?? '',
-        branchNo: normalizeBranch5(c?.branchNo),
+        contactName: partyDisplayName(party),
+        taxId: party?.taxId ?? '',
+        branchNo: normalizeBranch5(party?.branchNo),
         net: t.net,
         vat: t.vat,
         kind: 'purchase' as const,
@@ -101,9 +106,18 @@ export function pp30Summary(salesRows: VatReportRow[], purchaseRows: VatReportRo
   };
 }
 
+/**
+ * ช่อง CSV ที่ปลอดภัย: ครอบด้วย " และกัน formula injection
+ * ข้อความที่ขึ้นต้นด้วย = + - @ tab หรือ CR ให้เติม ' นำหน้า เพื่อไม่ให้ Excel/Sheets รันเป็นสูตร
+ */
+export function csvCell(value: string): string {
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
 /** ส่งออกรายงานภาษีเป็น CSV (UTF-8 + BOM เพื่อให้ Excel อ่านภาษาไทยได้) */
 export function vatReportCsv(rows: VatReportRow[], title: string): string {
-  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const esc = csvCell;
   const header = ['ลำดับ', 'วันที่', 'เลขที่เอกสาร', 'ชื่อผู้ซื้อ/ผู้ขาย', 'เลขผู้เสียภาษี', 'สาขา', 'มูลค่า', 'ภาษี'];
   const body = rows.map((r, i) =>
     [

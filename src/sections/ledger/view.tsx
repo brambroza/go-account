@@ -21,12 +21,12 @@ import { useBoolean } from 'src/hooks/use-boolean';
 
 import { useAccounting, useAccountLookup } from 'src/store';
 import {
-  sumBaht,
   todayISO,
   entryTotals,
   trialBalance,
   profitAndLoss,
   formatThaiDate,
+  trialBalanceTotals,
   ACCOUNT_TYPE_LABEL,
 } from 'src/domain';
 
@@ -51,6 +51,7 @@ const SOURCE_LABEL: Record<JournalSource, string> = {
   receipt: 'รับชำระ',
   purchase: 'ซื้อ',
   payment: 'จ่ายชำระ',
+  refund: 'คืนเงินลูกค้า',
   manual: 'ปรับปรุง',
 };
 
@@ -69,6 +70,7 @@ export function LedgerView() {
     [data.journal]
   );
   const tb = useMemo(() => trialBalance(data.accounts, data.journal, to), [data.accounts, data.journal, to]);
+  const tbTotals = useMemo(() => trialBalanceTotals(tb), [tb]);
   const pl = useMemo(() => profitAndLoss(data.accounts, data.journal, from, to), [data.accounts, data.journal, from, to]);
 
   const dateRange = (
@@ -194,10 +196,10 @@ export function LedgerView() {
                         <Typography variant="subtitle2">รวม</Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Money value={sumBaht(tb.map((r) => Math.max(r.debit - r.credit, 0)))} sx={{ fontWeight: 600 }} />
+                        <Money value={tbTotals.debit} sx={{ fontWeight: 600, ...(!tbTotals.balanced && { color: 'error.main' }) }} />
                       </TableCell>
                       <TableCell align="right">
-                        <Money value={sumBaht(tb.map((r) => Math.max(r.credit - r.debit, 0)))} sx={{ fontWeight: 600 }} />
+                        <Money value={tbTotals.credit} sx={{ fontWeight: 600, ...(!tbTotals.balanced && { color: 'error.main' }) }} />
                       </TableCell>
                     </TableRow>
                   </TableBody>
