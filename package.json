@@ -15,7 +15,9 @@
     "fm:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx}\"",
     "fm:fix": "prettier --write \"src/**/*.{js,jsx,ts,tsx}\"",
     "test": "jest --passWithNoTests",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "icons": "node scripts/build-icons.mjs",
+    "build:preview": "tsc && VITE_ROUTER=memory vite build --base=./ --outDir dist-preview"
   },
   "dependencies": {
     "@emotion/cache": "^11.11.0",
@@ -57,6 +59,10 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@iconify-json/eva": "^1.2.3",
+    "@iconify-json/mingcute": "^1.2.8",
+    "@iconify-json/solar": "^1.2.13",
+    "@iconify/utils": "^3.1.7",
     "@types/jest": "^29.5.14",
     "@types/node": "^20.14.2",
     "@types/nprogress": "^0.2.3",

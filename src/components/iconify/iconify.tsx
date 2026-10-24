@@ -1,12 +1,16 @@
 import { forwardRef } from 'react';
-import { Icon, disableCache } from '@iconify/react';
+import { Icon, disableCache, addCollection } from '@iconify/react';
 
 import Box from '@mui/material/Box';
 import NoSsr from '@mui/material/NoSsr';
 
 import { iconifyClasses } from './classes';
+import offlineIcons from './offline-icons.json';
 
 import type { IconifyProps } from './types';
+
+// ไอคอนที่ใช้ในแอปฝังมากับ bundle (สร้างด้วย scripts/build-icons.mjs) — ไม่ต้องดึงจาก API ตอนรัน
+(offlineIcons as unknown as Parameters<typeof addCollection>[0][]).forEach((collection) => addCollection(collection));
 
 // ----------------------------------------------------------------------
 
