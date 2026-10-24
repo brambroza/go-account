@@ -856,7 +856,18 @@ export function addManualJournal(
     }
   });
   const j = takeNumber(state, DOC_PREFIX.journal, input.date);
-  const entry: JournalEntry = buildManualEntry({ id: uid(), docNo: j.docNo }, input.date, input.description, input.lines);
+  let entry: JournalEntry;
+  try {
+    entry = buildManualEntry({ id: uid(), docNo: j.docNo }, input.date, input.description, input.lines);
+  } catch (error) {
+    // C4b: ไม่สมดุลเป็นกติกาที่ผู้ใช้ทำผิดได้ (API รับจากภายนอก) — ไม่ใช่บั๊กของโปรแกรม จึงเป็น BusinessRuleError
+    if (error instanceof UnbalancedEntryError) {
+      throw new BusinessRuleError(
+        `รายการไม่สมดุล: เดบิต ${error.debit.toFixed(2)} ≠ เครดิต ${error.credit.toFixed(2)} (ต่าง ${subBaht(error.debit, error.credit).toFixed(2)})`
+      );
+    }
+    throw error;
+  }
   if (!entry.lines.length) throw new BusinessRuleError('ยอดรวมต้องมากกว่า 0');
   // U9: เครดิตเงินสดย่อยสุทธิเกินยอดคงเหลือไม่ได้ (เหมือนจ่าย/โอนออก) — ธนาคารเบิกเกินบัญชีได้
   Array.from(new Set(entry.lines.map((l) => l.accountCode))).forEach((code) => {

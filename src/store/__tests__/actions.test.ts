@@ -10,7 +10,6 @@ import {
   salesVatReport,
   purchaseVatReport,
   whtPayeesForPeriod,
-  UnbalancedEntryError,
   validateAccountingData,
 } from 'src/domain';
 
@@ -382,7 +381,14 @@ describe('manual journal (A11)', () => {
         { accountCode: ACC.misc, debit: 1, credit: 0 },
         { accountCode: ACC.bank, debit: 0, credit: 2 },
       ])
-    ).toThrow(UnbalancedEntryError);
+    ).toThrow(BusinessRuleError);
+    // C4b: ไม่สมดุล = BusinessRuleError (API ตอบ 422 JOURNAL_UNBALANCED) ไม่ใช่ UnbalancedEntryError ภายใน
+    expect(() =>
+      jv([
+        { accountCode: ACC.misc, debit: 100, credit: 0 },
+        { accountCode: ACC.bank, debit: 0, credit: 99.99 },
+      ])
+    ).toThrow('รายการไม่สมดุล: เดบิต 100.00 ≠ เครดิต 99.99 (ต่าง 0.01)');
   });
 });
 
