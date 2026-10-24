@@ -1,0 +1,123 @@
+import { useMemo, useState } from 'react';
+
+import List from '@mui/material/List';
+import Dialog from '@mui/material/Dialog';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemButton from '@mui/material/ListItemButton';
+import InputAdornment from '@mui/material/InputAdornment';
+
+import { paths } from 'src/routes/paths';
+import { useRouter } from 'src/routes/hooks';
+
+import { useAccounting, useContactLookup } from 'src/store';
+
+import { Iconify } from 'src/components/iconify';
+
+import { NAV, QUICK_ACTIONS } from './config-nav';
+
+// ----------------------------------------------------------------------
+
+type Result = { key: string; title: string; caption?: string; icon: string; path: string };
+
+type Props = { open: boolean; onClose: () => void };
+
+export function CommandPalette({ open, onClose }: Props) {
+  const router = useRouter();
+  const { data } = useAccounting();
+  const contacts = useContactLookup();
+  const [query, setQuery] = useState('');
+  const [cursor, setCursor] = useState(0);
+
+  const results = useMemo<Result[]>(() => {
+    const q = query.trim().toLowerCase();
+    const menus = [...QUICK_ACTIONS, ...NAV.flatMap((s) => s.items)].map((m) => ({
+      key: `m-${m.path}`,
+      title: m.title,
+      caption: 'เมนู',
+      icon: m.icon,
+      path: m.path,
+      haystack: `${m.title} ${m.keywords ?? ''}`.toLowerCase(),
+    }));
+    if (!q) return menus;
+
+    const docs = data.sales.map((s) => ({
+      key: `s-${s.id}`,
+      title: `${s.docNo} · ${contacts.name(s.contactId)}`,
+      caption: s.kind === 'credit-note' ? 'ใบลดหนี้' : 'ใบกำกับภาษี',
+      icon: 'solar:bill-list-bold-duotone',
+      path: paths.sales.view(s.id),
+      haystack: `${s.docNo} ${contacts.name(s.contactId)}`.toLowerCase(),
+    }));
+    const people = data.contacts.map((c) => ({
+      key: `c-${c.id}`,
+      title: contacts.name(c.id),
+      caption: `${c.code}${c.taxId ? ` · ${c.taxId}` : ''}`,
+      icon: 'solar:user-id-bold-duotone',
+      path: `${paths.contacts}?q=${encodeURIComponent(c.code)}`,
+      haystack: `${c.code} ${contacts.name(c.id)} ${c.taxId ?? ''}`.toLowerCase(),
+    }));
+
+    return [...menus, ...docs, ...people].filter((r) => r.haystack.includes(q)).slice(0, 12);
+  }, [query, data.sales, data.contacts, contacts]);
+
+  const go = (r: Result | undefined) => {
+    if (!r) return;
+    router.push(r.path);
+    setQuery('');
+    setCursor(0);
+    onClose();
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" aria-label="ค้นหา">
+      <TextField
+        autoFocus
+        fullWidth
+        value={query}
+        placeholder="ค้นหาเมนู เลขที่เอกสาร ลูกค้า หรือเลขผู้เสียภาษี"
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setCursor(0);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setCursor((c) => Math.min(c + 1, results.length - 1));
+          } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setCursor((c) => Math.max(c - 1, 0));
+          } else if (e.key === 'Enter') {
+            e.preventDefault();
+            go(results[cursor]);
+          }
+        }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
+            </InputAdornment>
+          ),
+        }}
+        sx={{ p: 2, '& fieldset': { border: 'none' } }}
+      />
+      <List sx={{ px: 1, pb: 1, maxHeight: 420, overflowY: 'auto' }}>
+        {results.map((r, i) => (
+          <ListItemButton key={r.key} selected={i === cursor} onClick={() => go(r)} sx={{ borderRadius: 1 }}>
+            <ListItemIcon>
+              <Iconify icon={r.icon} />
+            </ListItemIcon>
+            <ListItemText primary={r.title} secondary={r.caption} primaryTypographyProps={{ typography: 'body2' }} />
+          </ListItemButton>
+        ))}
+        {!results.length && (
+          <Typography variant="body2" sx={{ p: 2, color: 'text.secondary' }}>
+            ไม่พบ “{query}” — ลองค้นด้วยเลขที่เอกสารหรือรหัสลูกค้า
+          </Typography>
+        )}
+      </List>
+    </Dialog>
+  );
+}

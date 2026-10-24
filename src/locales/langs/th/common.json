@@ -1,0 +1,12 @@
+{
+  "demo": {
+    "lang": "ภาษาไทย",
+    "description": "Starter นี้ใช้ theme ชุดเดียวกับ go-crm-24v4 — เปิดเมนูตั้งค่า (ไอคอนเฟือง) เพื่อลอง dark mode สี และฟอนต์",
+    "title": "ตรวจสอบ Theme",
+    "palette": "ชุดสี",
+    "typography": "ตัวอักษร",
+    "components": "คอมโพเนนต์",
+    "form": "ฟอร์ม",
+    "shadows": "เงา"
+  }
+}

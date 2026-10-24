@@ -1,0 +1,207 @@
+import { formatPlain } from './money';
+import { lineAmount, calcDocument } from './document-calc';
+import { normalizeTaxId, normalizeBranch5 } from './thai-tax-id';
+
+import type { Address, Company, Contact, SalesDoc } from './types';
+
+// ----------------------------------------------------------------------
+// สร้าง XML ใบกำกับภาษีอิเล็กทรอนิกส์ตามโครงสร้าง ETDA ขมธอ. 3-2560
+// (TaxInvoice_CrossIndustryInvoice ซึ่งอิง UN/CEFACT CII)
+//
+// ⚠️ ไฟล์ที่ได้จากฟังก์ชันนี้ "ยังไม่ได้ลงลายมือชื่อดิจิทัล"
+// การลงลายมือชื่อ (XAdES) ต้องทำฝั่ง backend ด้วยใบรับรอง CA ของลูกค้าที่เก็บใน KMS/HSM
+// และต้องตรวจกับ XML Schema + ตัวตรวจสอบของ ETDA/กรมสรรพากรก่อนใช้งานจริง
+// ----------------------------------------------------------------------
+
+const NS_RSM = 'urn:etda:uncefact:data:standard:TaxInvoice_CrossIndustryInvoice:2';
+const NS_RAM =
+  'urn:etda:uncefact:data:standard:TaxInvoice_ReusableAggregateBusinessInformationEntity:2';
+
+/** รหัสประเภทเอกสาร ETDA */
+export const ETAX_TYPE_CODE = {
+  'tax-invoice': '388',
+  'credit-note': '81',
+} as const;
+
+const ETAX_TYPE_NAME = {
+  'tax-invoice': 'ใบกำกับภาษี',
+  'credit-note': 'ใบลดหนี้',
+} as const;
+
+export function escapeXml(value: string | number | undefined): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function el(tag: string, value: string | number | undefined, attrs = ''): string {
+  if (value === undefined || value === '') return '';
+  return `<ram:${tag}${attrs ? ` ${attrs}` : ''}>${escapeXml(value)}</ram:${tag}>`;
+}
+
+function addressXml(a: Address): string {
+  const line1 = [a.buildingName, a.roomNo, a.floorNo, a.village].filter(Boolean).join(' ');
+  return [
+    '<ram:PostalTradeAddress>',
+    el('PostcodeCode', a.postalCode),
+    el('LineOne', line1 || undefined),
+    el('StreetName', a.street),
+    el('CityName', a.district),
+    el('CitySubDivisionName', a.subDistrict),
+    el('CountryID', 'TH', 'schemeID="3166-1 alpha-2"'),
+    el('CountrySubDivisionID', a.province),
+    el('BuildingNumber', a.addressNo),
+    '</ram:PostalTradeAddress>',
+  ].join('');
+}
+
+/** TXID = เลขผู้เสียภาษี 13 หลัก + สาขา 5 หลัก */
+function partyXml(
+  tag: 'SellerTradeParty' | 'BuyerTradeParty',
+  name: string,
+  taxId: string,
+  branch: string,
+  address: Address,
+  email?: string
+): string {
+  const txid = `${normalizeTaxId(taxId)}${normalizeBranch5(branch)}`;
+  return [
+    `<ram:${tag}>`,
+    el('Name', name),
+    '<ram:SpecifiedTaxRegistration>',
+    el('ID', txid, 'schemeID="TXID"'),
+    '</ram:SpecifiedTaxRegistration>',
+    email ? `<ram:DefinedTradeContact><ram:EmailURIUniversalCommunication>${el('URIID', email)}</ram:EmailURIUniversalCommunication></ram:DefinedTradeContact>` : '',
+    addressXml(address),
+    `</ram:${tag}>`,
+  ].join('');
+}
+
+export type ETaxXmlInput = {
+  doc: SalesDoc;
+  company: Company;
+  buyer: Contact;
+  /** ใบลดหนี้: ใบกำกับเดิม */
+  referenced?: SalesDoc;
+  /** เวลาสร้างไฟล์ (ISO) */
+  createdAt?: string;
+};
+
+export function buildETaxXml({ doc, company, buyer, referenced, createdAt }: ETaxXmlInput): string {
+  const t = calcDocument(doc);
+  const buyerName = [buyer.title, buyer.name, buyer.lastName].filter(Boolean).join(' ');
+  const rate = doc.vatMode === 'none' ? 0 : doc.vatRate;
+
+  const lineItems = doc.lines
+    .map((line, index) => {
+      const amount = lineAmount(line);
+      return [
+        '<ram:IncludedSupplyChainTradeLineItem>',
+        `<ram:AssociatedDocumentLineDocument>${el('LineID', index + 1)}</ram:AssociatedDocumentLineDocument>`,
+        `<ram:SpecifiedTradeProduct>${el('Name', line.description)}</ram:SpecifiedTradeProduct>`,
+        '<ram:SpecifiedLineTradeAgreement>',
+        `<ram:GrossPriceProductTradePrice>${el('ChargeAmount', formatPlain(line.unitPrice))}</ram:GrossPriceProductTradePrice>`,
+        '</ram:SpecifiedLineTradeAgreement>',
+        `<ram:SpecifiedLineTradeDelivery>${el('BilledQuantity', line.qty, 'unitCode="C62"')}</ram:SpecifiedLineTradeDelivery>`,
+        '<ram:SpecifiedLineTradeSettlement>',
+        `<ram:ApplicableTradeTax>${el('TypeCode', 'VAT')}${el('CalculatedRate', formatPlain(rate))}</ram:ApplicableTradeTax>`,
+        line.discount
+          ? `<ram:SpecifiedTradeAllowanceCharge>${el('ChargeIndicator', 'false')}${el('ActualAmount', formatPlain(line.discount))}</ram:SpecifiedTradeAllowanceCharge>`
+          : '',
+        `<ram:SpecifiedTradeSettlementLineMonetarySummation>${el('NetLineTotalAmount', formatPlain(amount))}</ram:SpecifiedTradeSettlementLineMonetarySummation>`,
+        '</ram:SpecifiedLineTradeSettlement>',
+        '</ram:IncludedSupplyChainTradeLineItem>',
+      ].join('');
+    })
+    .join('');
+
+  const referencedXml =
+    doc.kind === 'credit-note' && referenced
+      ? [
+          '<ram:AdditionalReferencedDocument>',
+          el('IssuerAssignedID', referenced.docNo),
+          el('IssueDateTime', `${referenced.date}T00:00:00`),
+          el('ReferenceTypeCode', ETAX_TYPE_CODE[referenced.kind]),
+          '</ram:AdditionalReferencedDocument>',
+        ].join('')
+      : '';
+
+  const purposeXml =
+    doc.kind === 'credit-note'
+      ? // CDNG99 = ลดหนี้ด้วยเหตุอื่น (สินค้า) — ตรวจรหัสเหตุผลกับตาราง ETDA ก่อนใช้งานจริง
+        `${el('Purpose', doc.reason || 'ลดหนี้')}${el('PurposeCode', 'CDNG99')}`
+      : '';
+
+  const sellerAddressName = company.name;
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    `<rsm:TaxInvoice_CrossIndustryInvoice xmlns:rsm="${NS_RSM}" xmlns:ram="${NS_RAM}">`,
+    '<rsm:ExchangedDocumentContext>',
+    '<ram:GuidelineSpecifiedDocumentContextParameter>',
+    el('ID', 'ER3-2560', 'schemeAgencyID="ETDA" schemeVersionID="v2.0"'),
+    '</ram:GuidelineSpecifiedDocumentContextParameter>',
+    '</rsm:ExchangedDocumentContext>',
+    '<rsm:ExchangedDocument>',
+    el('ID', doc.docNo),
+    el('Name', ETAX_TYPE_NAME[doc.kind]),
+    el('TypeCode', ETAX_TYPE_CODE[doc.kind]),
+    el('IssueDateTime', `${doc.date}T00:00:00`),
+    purposeXml,
+    el('CreationDateTime', createdAt ?? new Date().toISOString().slice(0, 19)),
+    '</rsm:ExchangedDocument>',
+    '<rsm:SupplyChainTradeTransaction>',
+    '<ram:ApplicableHeaderTradeAgreement>',
+    partyXml(
+      'SellerTradeParty',
+      sellerAddressName,
+      company.taxId,
+      company.branchNo,
+      company.address,
+      company.email
+    ),
+    partyXml(
+      'BuyerTradeParty',
+      buyerName,
+      buyer.taxId ?? '',
+      buyer.branchNo ?? '',
+      buyer.address,
+      buyer.email
+    ),
+    referencedXml,
+    '</ram:ApplicableHeaderTradeAgreement>',
+    '<ram:ApplicableHeaderTradeDelivery/>',
+    '<ram:ApplicableHeaderTradeSettlement>',
+    el('InvoiceCurrencyCode', 'THB', 'listID="ISO 4217 3A"'),
+    '<ram:ApplicableTradeTax>',
+    el('TypeCode', 'VAT'),
+    el('CalculatedRate', formatPlain(rate)),
+    el('BasisAmount', formatPlain(t.net)),
+    el('CalculatedAmount', formatPlain(t.vat)),
+    '</ram:ApplicableTradeTax>',
+    `<ram:SpecifiedTradePaymentTerms>${el('DueDateDateTime', `${doc.dueDate}T00:00:00`)}</ram:SpecifiedTradePaymentTerms>`,
+    '<ram:SpecifiedTradeSettlementHeaderMonetarySummation>',
+    el('LineTotalAmount', formatPlain(t.gross)),
+    el('TaxBasisTotalAmount', formatPlain(t.net)),
+    el('TaxTotalAmount', formatPlain(t.vat)),
+    el('GrandTotalAmount', formatPlain(t.total)),
+    '</ram:SpecifiedTradeSettlementHeaderMonetarySummation>',
+    '</ram:ApplicableHeaderTradeSettlement>',
+    lineItems,
+    '</rsm:SupplyChainTradeTransaction>',
+    '</rsm:TaxInvoice_CrossIndustryInvoice>',
+  ].join('\n');
+}
+
+/** ตรวจข้อมูลขั้นต่ำก่อนออก e-Tax: ผู้ซื้อที่จด VAT ต้องมีเลขผู้เสียภาษีและสาขา */
+export function eTaxReadiness(company: Company, buyer: Contact | undefined): string[] {
+  const problems: string[] = [];
+  if (!company.vatRegistered) problems.push('บริษัทยังไม่ได้ตั้งค่าเป็นผู้จดทะเบียน VAT');
+  if (!buyer) problems.push('ไม่พบข้อมูลลูกค้า');
+  if (buyer && !normalizeTaxId(buyer.taxId)) problems.push('ลูกค้ายังไม่มีเลขผู้เสียภาษี');
+  if (buyer && !buyer.address?.province) problems.push('ที่อยู่ลูกค้ายังไม่ครบ (จังหวัด)');
+  return problems;
+}

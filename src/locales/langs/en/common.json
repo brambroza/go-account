@@ -1,0 +1,12 @@
+{
+  "demo": {
+    "lang": "English",
+    "description": "This starter shares the exact theme of go-crm-24v4 — open the settings drawer (gear icon) to try dark mode, presets and fonts.",
+    "title": "Theme check",
+    "palette": "Palette",
+    "typography": "Typography",
+    "components": "Components",
+    "form": "Form",
+    "shadows": "Shadows"
+  }
+}

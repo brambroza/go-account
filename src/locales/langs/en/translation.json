@@ -1,0 +1,13 @@
+{
+  "btncancel": "Cancel",
+  "btnclear": "Clear",
+  "btnsave": "Save",
+  "msgnotfound": "Not found",
+  "txtrowperpage": "Rows per page:",
+  "txtresultsfound": "Results found",
+  "txtsearchfiles": "Search files",
+  "txtdroporselect": "Drop or select file",
+  "txtthroughyourmachine": "through your machine",
+  "txtuploadfile": "Drop files here or click to",
+  "txtwritesomething": "Write something..."
+}

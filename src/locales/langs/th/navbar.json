@@ -1,0 +1,13 @@
+{
+  "app": "ภาพรวม",
+  "job": "งาน",
+  "user": "ผู้ใช้งาน",
+  "travel": "ท่องเที่ยว",
+  "invoice": "Invoice",
+ 
+  "blog": {
+    "title": "Blog",
+    "caption": "Custom keyboard shortcuts."
+  },
+  "subheader": "Sub header"
+}

@@ -1,0 +1,13 @@
+{
+  "btncancel": "ยกเลิก",
+  "btnclear": "ล้าง",
+  "btnsave": "บันทึก",
+  "msgnotfound": "ไม่พบข้อมูล",
+  "txtrowperpage": "จำนวนแถวต่อหน้า :",
+  "txtresultsfound": "ผลการค้นหา",
+  "txtsearchfiles": "ค้นหาไฟล์",
+  "txtdroporselect": "วางหรือเลือกไฟล์",
+  "txtthroughyourmachine": "ผ่านเครื่องของคุณ",
+  "txtuploadfile": "วางไฟล์ที่นี่หรือคลิ๊กเพื่อ",
+  "txtwritesomething": "เขียนอะไรบางอย่าง..."
+}
