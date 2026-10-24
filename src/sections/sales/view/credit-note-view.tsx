@@ -22,7 +22,7 @@ import { useRouter, useParams } from 'src/routes/hooks';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { CreditNoteSchema } from 'src/schemas/accounting/doc-schemas';
-import { uid, outstandingOf, useAccounting, issueDebitNote, issueCreditNote, useContactLookup } from 'src/store';
+import { cmd, uid, outstandingOf, useAccounting, useContactLookup } from 'src/store';
 import {
   sumBaht,
   subBaht,
@@ -80,7 +80,7 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
   const isDebit = mode === 'debit';
   const { id = '' } = useParams();
   const router = useRouter();
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const contacts = useContactLookup();
   const confirm = useBoolean();
 
@@ -151,10 +151,15 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
   const refReceipt = plan?.refReceiptId ? data.receipts.find((r) => r.id === plan.refReceiptId) : undefined;
   const blocked = overLimit || !!planProblem;
 
-  const save = methods.handleSubmit((values) => {
+  const save = methods.handleSubmit(async (values) => {
     try {
-      const input = { invoiceId: invoice.id, date: values.date.slice(0, 10), reason: values.reason.trim(), lines: values.lines };
-      const r = run((s) => (isDebit ? issueDebitNote(s, input) : issueCreditNote(s, input)));
+      const input = {
+        invoiceId: invoice.id,
+        date: values.date.slice(0, 10),
+        reason: values.reason.trim(),
+        lines: values.lines,
+      };
+      const r = await run(isDebit ? cmd.issueDebitNote(input) : cmd.issueCreditNote(input));
       confirm.onFalse();
       toast.success(`ออก${docTitle} ${r.doc.docNo} แล้ว`);
       router.push(paths.sales.view(r.doc.id));
@@ -328,7 +333,7 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
           </Stack>
         }
         action={
-          <LoadingButton variant="contained" color={isDebit ? 'primary' : 'error'} onClick={save}>
+          <LoadingButton variant="contained" color={isDebit ? 'primary' : 'error'} onClick={save} loading={busy}>
             ยืนยัน
           </LoadingButton>
         }

@@ -18,7 +18,7 @@ import { useBoolean } from 'src/hooks/use-boolean';
 
 import { makeRefundSchema } from 'src/schemas/accounting/doc-schemas';
 import { ACC, subBaht, todayISO, formatThaiDate, customerCreditOf } from 'src/domain';
-import { useAccounting, useAccountLookup, useContactLookup, refundCustomerCredit, useCashAccountOptions } from 'src/store';
+import { cmd, useAccounting, useAccountLookup, useContactLookup, useCashAccountOptions } from 'src/store';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
@@ -32,7 +32,7 @@ type Props = { open: boolean; onClose: () => void; contactId: string };
 
 /** คืนเงินลูกค้าจากยอดเงินรอคืน (เกิดจากใบลดหนี้หลังรับเงิน) — จ่ายจากเงินสด/ธนาคาร, ยืนยันก่อนบันทึก */
 export function RefundDialog({ open, onClose, contactId }: Props) {
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const accounts = useAccountLookup();
   const cashAccounts = useCashAccountOptions();
   const contacts = useContactLookup();
@@ -57,11 +57,11 @@ export function RefundDialog({ open, onClose, contactId }: Props) {
     confirm.onTrue();
   });
 
-  const submit = () => {
+  const submit = async () => {
     if (!pending) return;
     try {
-      const r = run((s) =>
-        refundCustomerCredit(s, {
+      const r = await run(
+        cmd.refundCustomerCredit({
           contactId,
           date: pending.date.slice(0, 10),
           amount: pending.amount,
@@ -134,7 +134,7 @@ export function RefundDialog({ open, onClose, contactId }: Props) {
           )
         }
         action={
-          <LoadingButton variant="contained" onClick={submit}>
+          <LoadingButton variant="contained" onClick={submit} loading={busy}>
             ยืนยันคืนเงิน
           </LoadingButton>
         }

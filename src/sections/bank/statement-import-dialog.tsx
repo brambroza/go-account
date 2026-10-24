@@ -22,7 +22,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
-import { useAccounting, addBankStatementLines } from 'src/store';
+import { cmd, useAccounting } from 'src/store';
 import {
   formatThaiDate,
   mapStatementRows,
@@ -64,7 +64,7 @@ const COLUMN_LABEL: Record<ColumnKey, string> = {
  * วันที่ พ.ศ./ค.ศ. และจำนวนเงินมีคอมม่าอ่านได้ (`mapStatementRows`) — นำเข้าไฟล์เดิมซ้ำ รายการที่มีแล้วถูกข้าม
  */
 export function StatementImportDialog({ open, onClose, accountCode, onImported }: Props) {
-  const { run } = useAccounting();
+  const { run, busy } = useAccounting();
   const [fileName, setFileName] = useState('');
   const [bytes, setBytes] = useState<Uint8Array | null>(null);
   const [encoding, setEncoding] = useState<StatementEncoding>('auto');
@@ -127,10 +127,10 @@ export function StatementImportDialog({ open, onClose, accountCode, onImported }
     );
   };
 
-  const doImport = () => {
+  const doImport = async () => {
     if (!result?.rows.length) return;
     try {
-      const r = run((s) => addBankStatementLines(s, { accountCode, lines: result.rows, imported: true }));
+      const r = await run(cmd.addBankStatementLines({ accountCode, lines: result.rows, imported: true }));
       toast.success(`นำเข้า ${r.added} รายการ${r.skipped ? ` (ข้าม ${r.skipped} รายการที่มีอยู่แล้ว)` : ''}`);
       onImported?.(statementEndingBalance(result.rows));
       close();
@@ -256,7 +256,7 @@ export function StatementImportDialog({ open, onClose, accountCode, onImported }
         <Button variant="outlined" color="inherit" onClick={close}>
           ยกเลิก
         </Button>
-        <LoadingButton variant="contained" disabled={!result?.rows.length} onClick={doImport}>
+        <LoadingButton variant="contained" loading={busy} disabled={!result?.rows.length} onClick={doImport}>
           นำเข้า {result?.rows.length ?? 0} รายการ
         </LoadingButton>
       </DialogActions>

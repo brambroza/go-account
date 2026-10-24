@@ -8,7 +8,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 
-import { useAccounting, setETaxStatus } from 'src/store';
+import { cmd, useAccounting } from 'src/store';
 import { ETaxUploadSchema } from 'src/schemas/accounting/doc-schemas';
 
 import { toast } from 'src/components/snackbar';
@@ -31,7 +31,7 @@ type Props = {
  * error จาก `setETaxStatus` (เช่น สถานะย้อนกลับ) แสดงเป็น toast
  */
 export function MarkUploadedDialog({ open, onClose, docs }: Props) {
-  const { run } = useAccounting();
+  const { run, busy } = useAccounting();
   const methods = useForm<ETaxUploadSchemaType>({
     resolver: zodResolver(ETaxUploadSchema),
     defaultValues: { reference: '' },
@@ -42,16 +42,15 @@ export function MarkUploadedDialog({ open, onClose, docs }: Props) {
     if (open) reset({ reference: '' });
   }, [open, reset]);
 
-  const submit = handleSubmit((values) => {
+  const submit = handleSubmit(async (values) => {
     try {
-      run((s) => ({
-        state: setETaxStatus(
-          s,
+      await run(
+        cmd.setETaxStatus(
           docs.map((d) => d.id),
           'uploaded',
           { reference: values.reference }
-        ),
-      }));
+        )
+      );
       toast.success(`บันทึกว่านำส่งสรรพากรแล้ว ${docs.length} ฉบับ`);
       onClose();
     } catch (error) {
@@ -79,7 +78,7 @@ export function MarkUploadedDialog({ open, onClose, docs }: Props) {
         </Form>
       }
       action={
-        <LoadingButton variant="contained" onClick={submit} loading={formState.isSubmitting} disabled={!docs.length}>
+        <LoadingButton variant="contained" onClick={submit} loading={formState.isSubmitting || busy} disabled={!docs.length}>
           ยืนยันนำส่งแล้ว
         </LoadingButton>
       }

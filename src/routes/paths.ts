@@ -44,5 +44,12 @@ export const paths = {
   settings: '/settings',
   /** ยอดยกมาจากระบบเดิม (Express) */
   opening: '/settings/opening',
+  /** ผู้ใช้งานของบริษัท (โหมด api — เจ้าของเท่านั้น) */
+  members: '/settings/members',
+  /** โหมด api: เข้าสู่ระบบ / สมัครบริษัทใหม่ */
+  auth: {
+    login: '/login',
+    signup: '/signup',
+  },
   page404: '/404',
 };

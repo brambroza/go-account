@@ -22,7 +22,7 @@ import { useRouter, useSearchParams } from 'src/routes/hooks';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { SalesInvoiceSchema } from 'src/schemas/accounting/doc-schemas';
-import { uid, useAccounting, issueTaxInvoice, useAccountLookup, useContactLookup, issueFromQuotation } from 'src/store';
+import { cmd, uid, useAccounting, useAccountLookup, useContactLookup } from 'src/store';
 import {
   ACC,
   addDays,
@@ -95,7 +95,7 @@ function QuotationVarianceAlert({ docNo, items, sx }: { docNo: string; items: st
 /** ฟอร์มออกใบกำกับภาษี (บริษัทจด VAT) หรือใบแจ้งหนี้ (ไม่จด VAT) — ยืนยันสรุปยอดก่อนออกเลขที่ */
 export function SalesNewView() {
   const router = useRouter();
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const contacts = useContactLookup();
   const accounts = useAccountLookup();
   const { vatRegistered } = data.company;
@@ -179,7 +179,7 @@ export function SalesNewView() {
     confirm.onTrue();
   });
 
-  const issue = () => {
+  const issue = async () => {
     const values = pending;
     if (!values) return;
     try {
@@ -192,7 +192,7 @@ export function SalesNewView() {
         note: values.note,
         lines: values.lines.map((l) => ({ ...l, description: l.description.trim() })),
       };
-      const result = run((s) => (fromQuotation && quotation ? issueFromQuotation(s, quotation.id, input) : issueTaxInvoice(s, input)));
+      const result = await run(fromQuotation && quotation ? cmd.issueFromQuotation(quotation.id, input) : cmd.issueTaxInvoice(input));
       confirm.onFalse();
       toast.success(`ออก${salesDocTitle(result.doc)} ${result.doc.docNo} แล้ว`);
       router.push(paths.sales.view(result.doc.id));
@@ -372,7 +372,7 @@ export function SalesNewView() {
           )
         }
         action={
-          <LoadingButton variant="contained" onClick={issue}>
+          <LoadingButton variant="contained" onClick={issue} loading={busy}>
             ยืนยันออกเอกสาร
           </LoadingButton>
         }

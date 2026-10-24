@@ -8,6 +8,7 @@ import { Router } from 'src/routes/sections';
 
 import { useScrollToTop } from 'src/hooks/use-scroll-to-top';
 
+import { AuthProvider } from 'src/auth';
 import { AccountingProvider } from 'src/store';
 import { LocalizationProvider } from 'src/locales';
 import { I18nProvider } from 'src/locales/i18n-provider';
@@ -56,9 +57,11 @@ export default function App() {
               <Snackbar />
               <ProgressBar />
               <LazySettingsDrawer />
-              <AccountingProvider>
-                <Router />
-              </AccountingProvider>
+              <AuthProvider>
+                <AccountingProvider>
+                  <Router />
+                </AccountingProvider>
+              </AuthProvider>
             </MotionLazy>
           </ThemeProvider>
         </SettingsProvider>

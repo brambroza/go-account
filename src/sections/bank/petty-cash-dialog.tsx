@@ -20,7 +20,7 @@ import DialogContent from '@mui/material/DialogContent';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { PettyCashExpenseSchema } from 'src/schemas/accounting/doc-schemas';
-import { uid, useAccounting, useAccountLookup, recordPettyCashExpense } from 'src/store';
+import { cmd, uid, useAccounting, useAccountLookup, recordPettyCashExpense } from 'src/store';
 import {
   ACC,
   subBaht,
@@ -54,7 +54,7 @@ const emptyLine = () => ({ id: uid(), description: '', accountCode: ACC.supplies
  * ขอคืนภาษีซื้อได้เมื่อมีใบกำกับเต็มรูปและเลือกผู้ขายที่มีเลขผู้เสียภาษี (ม.82/5) — ไม่ระบุผู้ขาย = ผู้รับเงินทั่วไป
  */
 export function PettyCashDialog({ open, onClose, pettyAccountCode }: Props) {
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const accounts = useAccountLookup();
   const confirm = useBoolean();
   const [pending, setPending] = useState<PettyCashExpenseSchemaType | null>(null);
@@ -133,10 +133,10 @@ export function PettyCashDialog({ open, onClose, pettyAccountCode }: Props) {
   const liveProblem = open && toSatang(totals.total) > 0 && (lines ?? []).every((l) => (l.description ?? '').trim()) ? dryRunProblem(draft) : null;
   const pendingProblem = confirm.value ? dryRunProblem(pending) : null;
 
-  const submit = () => {
+  const submit = async () => {
     if (!pending) return;
     try {
-      const r = run((s) => recordPettyCashExpense(s, toInput(pending)));
+      const r = await run(cmd.recordPettyCashExpense(toInput(pending)));
       confirm.onFalse();
       toast.success(`บันทึกจ่ายเงินสดย่อย ${r.payment?.docNo ?? r.doc.docNo} แล้ว`);
       onClose();
@@ -271,7 +271,7 @@ export function PettyCashDialog({ open, onClose, pettyAccountCode }: Props) {
           )
         }
         action={
-          <LoadingButton variant="contained" onClick={submit} disabled={!!pendingProblem}>
+          <LoadingButton variant="contained" onClick={submit} loading={busy} disabled={!!pendingProblem}>
             ยืนยันจ่าย
           </LoadingButton>
         }

@@ -16,7 +16,7 @@ import DialogContent from '@mui/material/DialogContent';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { TransferSchema } from 'src/schemas/accounting/doc-schemas';
-import { useAccounting, transferFunds, useCashAccountOptions } from 'src/store';
+import { cmd, useAccounting, useCashAccountOptions } from 'src/store';
 import { ACC, todayISO, cashBalanceOf, formatThaiDate, isPettyCashAccount } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
@@ -37,7 +37,7 @@ type Props = {
 
 /** โอนเงินระหว่างบัญชีของบริษัท / เบิกชดเชยเงินสดย่อย — ยืนยันก่อนออกเลข TR และลงบัญชี */
 export function TransferDialog({ open, onClose, defaultFrom = ACC.bank, defaultTo = ACC.cash }: Props) {
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const cashAccounts = useCashAccountOptions();
   const confirm = useBoolean();
   const [pending, setPending] = useState<TransferSchemaType | null>(null);
@@ -58,11 +58,11 @@ export function TransferDialog({ open, onClose, defaultFrom = ACC.bank, defaultT
     confirm.onTrue();
   });
 
-  const submit = () => {
+  const submit = async () => {
     if (!pending) return;
     try {
-      const r = run((s) =>
-        transferFunds(s, {
+      const r = await run(
+        cmd.transferFunds({
           date: pending.date.slice(0, 10),
           fromAccountCode: pending.fromAccountCode,
           toAccountCode: pending.toAccountCode,
@@ -141,7 +141,7 @@ export function TransferDialog({ open, onClose, defaultFrom = ACC.bank, defaultT
           )
         }
         action={
-          <LoadingButton variant="contained" onClick={submit}>
+          <LoadingButton variant="contained" onClick={submit} loading={busy}>
             ยืนยัน
           </LoadingButton>
         }

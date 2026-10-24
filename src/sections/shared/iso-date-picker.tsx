@@ -14,6 +14,7 @@ type Props = {
   /** ISO ค.ศ. `YYYY-MM-DD` (ว่าง = ไม่เลือก) */
   value: string;
   onChange: (iso: string) => void;
+  disabled?: boolean;
   sx?: SxProps<Theme>;
 };
 
@@ -21,10 +22,11 @@ type Props = {
  * ช่องวันที่นอกฟอร์ม (ตัวกรองรายงาน) — แสดงปี พ.ศ. แบบเดียวกับฟอร์ม ค่าเข้า/ออกเป็น ISO ค.ศ.
  * เรียก `onChange` เฉพาะเมื่อวันที่ครบและถูกต้อง (ระหว่างพิมพ์ยังไม่เปลี่ยนรายงาน)
  */
-export function IsoDatePicker({ label, value, onChange, sx }: Props) {
+export function IsoDatePicker({ label, value, onChange, disabled, sx }: Props) {
   return (
     <DatePicker
       label={label}
+      disabled={disabled}
       value={isValidISODate(value) ? dayjs(value) : null}
       onChange={(v) => {
         const iso = v && v.isValid() ? v.format('YYYY-MM-DD') : '';

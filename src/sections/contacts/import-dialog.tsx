@@ -14,7 +14,7 @@ import DialogContent from '@mui/material/DialogContent';
 import { downloadText } from 'src/utils/download';
 
 import { importContactsCsv } from 'src/domain';
-import { useAccounting, importContacts } from 'src/store';
+import { cmd, useAccounting } from 'src/store';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -28,7 +28,7 @@ const TEMPLATE =
 type Props = { open: boolean; onClose: () => void };
 
 export function ImportContactsDialog({ open, onClose }: Props) {
-  const { run } = useAccounting();
+  const { run, busy } = useAccounting();
   const [result, setResult] = useState<ContactImportResult | null>(null);
   const [fileName, setFileName] = useState('');
 
@@ -44,10 +44,10 @@ export function ImportContactsDialog({ open, onClose }: Props) {
     setResult(importContactsCsv(await file.text()));
   };
 
-  const confirm = () => {
+  const confirm = async () => {
     if (!result) return;
     try {
-      const r = run((s) => importContacts(s, result.contacts));
+      const r = await run(cmd.importContacts(result.contacts));
       toast.success(`นำเข้า ${r.added} รายการ${r.skipped ? ` (ข้ามรหัสซ้ำ ${r.skipped})` : ''}`);
       close();
     } catch (error) {
@@ -94,7 +94,7 @@ export function ImportContactsDialog({ open, onClose }: Props) {
         <Button variant="outlined" color="inherit" onClick={close}>
           ยกเลิก
         </Button>
-        <Button variant="contained" disabled={!result?.contacts.length} onClick={confirm}>
+        <Button variant="contained" disabled={!result?.contacts.length || busy} onClick={confirm}>
           นำเข้า
         </Button>
       </DialogActions>

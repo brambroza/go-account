@@ -17,8 +17,8 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import { paths } from 'src/routes/paths';
 import { useParams, useRouter } from 'src/routes/hooks';
 
+import { cmd, useAccounting, useAccountLookup } from 'src/store';
 import { QuotationFormSchema } from 'src/schemas/accounting/doc-schemas';
-import { saveQuotation, useAccounting, useAccountLookup } from 'src/store';
 import { ACC, addDays, VAT_RATE, todayISO, calcDocument, formatThaiDate, isValidISODate } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
@@ -38,7 +38,7 @@ import { newLine, TotalsSummary, DocLinesEditor, RHFAmountField, formKeyHandler 
 export function QuotationFormView() {
   const { id } = useParams();
   const router = useRouter();
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const accounts = useAccountLookup();
   const { vatRegistered } = data.company;
   const vatRate = vatRegistered ? VAT_RATE : 0;
@@ -77,10 +77,10 @@ export function QuotationFormView() {
   const iso = date?.slice(0, 10);
   const validUntil = isValidISODate(iso) && Number.isInteger(validDays) ? addDays(iso, validDays ?? 0) : undefined;
 
-  const onSubmit = handleSubmit((v) => {
+  const onSubmit = handleSubmit(async (v) => {
     try {
-      const r = run((s) =>
-        saveQuotation(s, {
+      const r = await run(
+        cmd.saveQuotation({
           id: editing?.id,
           date: v.date.slice(0, 10),
           validDays: v.validDays,
@@ -174,7 +174,7 @@ export function QuotationFormView() {
               </Typography>
               <TotalsSummary totals={totals} vatRate={vatRate} showVat={vatRegistered && vatMode !== 'none'} />
               <Stack spacing={1} sx={{ mt: 3 }}>
-                <LoadingButton type="submit" variant="contained" size="large" loading={isSubmitting}>
+                <LoadingButton type="submit" variant="contained" size="large" loading={isSubmitting || busy}>
                   {editing ? 'บันทึกการแก้ไข' : 'บันทึกใบเสนอราคา'}
                 </LoadingButton>
                 <Alert severity="info" variant="outlined">

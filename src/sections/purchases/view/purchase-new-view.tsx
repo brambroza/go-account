@@ -20,7 +20,7 @@ import { useRouter } from 'src/routes/hooks';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { PurchaseSchema } from 'src/schemas/accounting/doc-schemas';
-import { useAccounting, recordPurchase, useAccountLookup, useContactLookup, useCashAccountOptions } from 'src/store';
+import { cmd, useAccounting, useAccountLookup, useContactLookup, useCashAccountOptions } from 'src/store';
 import {
   ACC,
   VAT_RATE,
@@ -60,7 +60,7 @@ import {
 /** บันทึกซื้อ/ค่าใช้จ่าย (+ จ่ายทันทีได้) — ยืนยันสรุป VAT / หัก ณ ที่จ่าย / ยอดจ่ายก่อนบันทึก */
 export function PurchaseNewView() {
   const router = useRouter();
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const contacts = useContactLookup();
   const accounts = useAccountLookup();
   const cashAccounts = useCashAccountOptions();
@@ -137,12 +137,12 @@ export function PurchaseNewView() {
     confirm.onTrue();
   });
 
-  const save = () => {
+  const save = async () => {
     const v = pending;
     if (!v) return;
     try {
-      const r = run((s) =>
-        recordPurchase(s, {
+      const r = await run(
+        cmd.recordPurchase({
           contactId: v.contactId,
           supplierInvoiceNo: v.supplierInvoiceNo.trim(),
           supplierInvoiceDate: v.supplierInvoiceDate ? v.supplierInvoiceDate.slice(0, 10) : undefined,
@@ -384,7 +384,7 @@ export function PurchaseNewView() {
           )
         }
         action={
-          <LoadingButton variant="contained" onClick={save}>
+          <LoadingButton variant="contained" onClick={save} loading={busy}>
             ยืนยันบันทึก
           </LoadingButton>
         }

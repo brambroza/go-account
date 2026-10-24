@@ -18,7 +18,7 @@ import { useBoolean } from 'src/hooks/use-boolean';
 
 import { makeSupplierRefundSchema } from 'src/schemas/accounting/doc-schemas';
 import { ACC, subBaht, todayISO, formatThaiDate, supplierRefundDueOf } from 'src/domain';
-import { useAccounting, useAccountLookup, useContactLookup, receiveSupplierRefund, useCashAccountOptions } from 'src/store';
+import { cmd, useAccounting, useAccountLookup, useContactLookup, useCashAccountOptions } from 'src/store';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
@@ -35,7 +35,7 @@ type Props = { open: boolean; onClose: () => void; contactId: string };
  * กติกา (ยอดคงค้าง ณ วันที่รับ, บัญชีรับเงิน, งวดปิด) ตรวจที่ `receiveSupplierRefund` — ยืนยันสรุปก่อนบันทึก
  */
 export function SupplierRefundDialog({ open, onClose, contactId }: Props) {
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const accounts = useAccountLookup();
   const cashAccounts = useCashAccountOptions();
   const contacts = useContactLookup();
@@ -58,11 +58,11 @@ export function SupplierRefundDialog({ open, onClose, contactId }: Props) {
     confirm.onTrue();
   });
 
-  const submit = () => {
+  const submit = async () => {
     if (!pending) return;
     try {
-      const r = run((s) =>
-        receiveSupplierRefund(s, {
+      const r = await run(
+        cmd.receiveSupplierRefund({
           contactId,
           date: pending.date.slice(0, 10),
           amount: pending.amount,
@@ -135,7 +135,7 @@ export function SupplierRefundDialog({ open, onClose, contactId }: Props) {
           )
         }
         action={
-          <LoadingButton variant="contained" onClick={submit}>
+          <LoadingButton variant="contained" onClick={submit} loading={busy}>
             ยืนยันรับเงินคืน
           </LoadingButton>
         }

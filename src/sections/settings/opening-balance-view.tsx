@@ -27,8 +27,8 @@ import { useRouter } from 'src/routes/hooks';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
+import { cmd, useAccounting, useContactLookup } from 'src/store';
 import { OpeningBalanceFormSchema } from 'src/schemas/accounting/doc-schemas';
-import { useAccounting, useContactLookup, setOpeningBalances } from 'src/store';
 import {
   ACC,
   sumBaht,
@@ -118,7 +118,7 @@ function WhtRateSync({ index }: { index: number }) {
  */
 export function OpeningBalanceView() {
   const router = useRouter();
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const contacts = useContactLookup();
   const confirm = useBoolean();
   const blocked = openingBlockedReason(data);
@@ -159,11 +159,11 @@ export function OpeningBalanceView() {
 
   const onReview = handleSubmit(() => confirm.onTrue());
 
-  const submit = () => {
+  const submit = async () => {
     const v = methods.getValues();
     try {
-      run((s) =>
-        setOpeningBalances(s, {
+      await run(
+        cmd.setOpeningBalances({
           date: v.date.slice(0, 10),
           lines: v.lines,
           vatCredit: v.vatCredit,
@@ -553,7 +553,7 @@ export function OpeningBalanceView() {
           />
         }
         action={
-          <LoadingButton variant="contained" onClick={submit}>
+          <LoadingButton variant="contained" onClick={submit} loading={busy}>
             ยืนยันบันทึก
           </LoadingButton>
         }

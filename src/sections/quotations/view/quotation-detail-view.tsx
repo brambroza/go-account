@@ -16,7 +16,8 @@ import { paths } from 'src/routes/paths';
 import { useParams } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
-import { useAccounting, useContactLookup, setQuotationStatus } from 'src/store';
+import { usePermissions } from 'src/auth';
+import { cmd, useAccounting, useContactLookup } from 'src/store';
 import {
   todayISO,
   salesDocTitle,
@@ -45,7 +46,8 @@ const STATUS_ACTIONS: QuotationStatus[] = ['draft', 'sent', 'accepted', 'rejecte
 /** รายละเอียดใบเสนอราคา: ตัวอย่างพิมพ์, เปลี่ยนสถานะ, แก้ไข, ออกเอกสารขาย (คัดลอกรายการ) */
 export function QuotationDetailView() {
   const { id = '' } = useParams();
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
+  const { canWrite } = usePermissions();
   const contacts = useContactLookup();
   const statusMenu = usePopover();
   const q = data.quotations.find((x) => x.id === id);
@@ -71,10 +73,10 @@ export function QuotationDetailView() {
   const convertProblem = quotationConvertProblem(q, today);
   const totals = quotationTotals(q);
 
-  const changeStatus = (next: QuotationStatus) => {
+  const changeStatus = async (next: QuotationStatus) => {
     statusMenu.onClose();
     try {
-      run((s) => ({ state: setQuotationStatus(s, q.id, next) }));
+      await run(cmd.setQuotationStatus(q.id, next));
       toast.success(`${q.docNo}: ${QUOTATION_STATUS_LABEL[next]}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ');
@@ -95,12 +97,12 @@ export function QuotationDetailView() {
             <Button variant="outlined" startIcon={<Iconify icon="solar:printer-minimalistic-bold" />} onClick={() => window.print()}>
               พิมพ์
             </Button>
-            {!converted && (
+            {canWrite && !converted && (
               <Button component={RouterLink} href={paths.quotations.edit(q.id)} variant="outlined" startIcon={<Iconify icon="solar:pen-bold" />}>
                 แก้ไข
               </Button>
             )}
-            {!converted && (
+            {canWrite && !converted && (
               <Tooltip title={convertProblem ?? ''}>
                 <span>
                   <Button
@@ -171,7 +173,7 @@ export function QuotationDetailView() {
       <CustomPopover open={statusMenu.open} anchorEl={statusMenu.anchorEl} onClose={statusMenu.onClose}>
         <MenuList>
           {STATUS_ACTIONS.map((s) => (
-            <MenuItem key={s} selected={q.status === s} onClick={() => changeStatus(s)}>
+            <MenuItem key={s} selected={q.status === s} disabled={busy} onClick={() => changeStatus(s)}>
               {QUOTATION_STATUS_LABEL[s]}
             </MenuItem>
           ))}

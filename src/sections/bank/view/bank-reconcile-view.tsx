@@ -29,7 +29,8 @@ import { useParams, useRouter } from 'src/routes/hooks';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
-import { unmatchBank, useAccounting, autoMatchBank, matchBankItems, updateBankAccount, deleteBankStatementLines } from 'src/store';
+import { cmd, useAccounting } from 'src/store';
+import { CanWrite, usePermissions } from 'src/auth';
 import {
   sumBaht,
   todayISO,
@@ -66,7 +67,8 @@ import { StatementImportDialog } from '../statement-import-dialog';
 export function BankReconcileView() {
   const { code = '' } = useParams();
   const router = useRouter();
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
+  const { canWrite } = usePermissions();
   const importDialog = useBoolean();
   const lineDialog = useBoolean();
   const [asOf, setAsOf] = useState(todayISO());
@@ -111,9 +113,10 @@ export function BankReconcileView() {
     );
   }
 
-  const act = (fn: () => string) => {
+  const act = async (fn: () => Promise<string>) => {
+    if (busy) return;
     try {
-      toast.success(fn());
+      toast.success(await fn());
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ');
     }
@@ -122,8 +125,14 @@ export function BankReconcileView() {
   const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
 
   const matchSelected = () =>
-    act(() => {
-      run((s) => matchBankItems(s, { accountCode: code, statementLineIds: pickedLines, journalIds: pickedJournal }));
+    act(async () => {
+      await run(
+        cmd.matchBankItems({
+          accountCode: code,
+          statementLineIds: pickedLines,
+          journalIds: pickedJournal,
+        })
+      );
       setPickedLines([]);
       setPickedJournal([]);
       return 'จับคู่แล้ว';
@@ -135,19 +144,21 @@ export function BankReconcileView() {
         <Label variant="soft" color="success">
           {match.auto ? 'จับคู่อัตโนมัติ' : 'จับคู่แล้ว'}
         </Label>
-        <Tooltip title="ยกเลิกการจับคู่">
-          <IconButton
-            size="small"
-            onClick={() =>
-              act(() => {
-                run((s) => ({ state: unmatchBank(s, match.id) }));
-                return 'ยกเลิกการจับคู่แล้ว';
-              })
-            }
-          >
-            <Iconify icon="solar:link-broken-bold" width={16} />
-          </IconButton>
-        </Tooltip>
+        {canWrite && (
+          <Tooltip title="ยกเลิกการจับคู่">
+            <IconButton
+              size="small"
+              onClick={() =>
+                act(async () => {
+                  await run(cmd.unmatchBank(match.id));
+                  return 'ยกเลิกการจับคู่แล้ว';
+                })
+              }
+            >
+              <Iconify icon="solar:link-broken-bold" width={16} />
+            </IconButton>
+          </Tooltip>
+        )}
       </Stack>
     ) : null;
 
@@ -171,12 +182,14 @@ export function BankReconcileView() {
                 ))}
               </TextField>
             )}
-            <Button variant="outlined" startIcon={<Iconify icon="solar:upload-bold" />} onClick={importDialog.onTrue}>
-              นำเข้า statement (CSV)
-            </Button>
-            <Button variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />} onClick={lineDialog.onTrue}>
-              เพิ่มรายการเอง
-            </Button>
+            <CanWrite>
+              <Button variant="outlined" startIcon={<Iconify icon="solar:upload-bold" />} onClick={importDialog.onTrue}>
+                นำเข้า statement (CSV)
+              </Button>
+              <Button variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />} onClick={lineDialog.onTrue}>
+                เพิ่มรายการเอง
+              </Button>
+            </CanWrite>
           </Stack>
         }
         sx={{ mb: { xs: 3, md: 4 } }}
@@ -201,10 +214,11 @@ export function BankReconcileView() {
             />
             <IsoDatePicker
               label="เริ่มกระทบยอดตั้งแต่ (จำไว้ต่อบัญชี)"
+              disabled={!canWrite}
               value={from ?? ''}
               onChange={(iso) =>
-                act(() => {
-                  run((s) => ({ state: updateBankAccount(s, code, { reconcileFrom: iso }) }));
+                act(async () => {
+                  await run(cmd.updateBankAccount(code, { reconcileFrom: iso }));
                   return 'บันทึกวันที่เริ่มกระทบยอดแล้ว';
                 })
               }
@@ -241,32 +255,44 @@ export function BankReconcileView() {
         </Stack>
       </Card>
 
-      <Card sx={{ mb: 3, p: 2 }}>
-        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
-          <TextField select size="small" label="ช่วงวันที่จับคู่อัตโนมัติ" value={windowDays} onChange={(e) => setWindowDays(Number(e.target.value))} sx={{ minWidth: 200 }}>
-            {[0, 1, 3, 5, 7].map((d) => (
-              <MenuItem key={d} value={d}>
-                {d === 0 ? 'วันเดียวกัน' : `± ${d} วัน`}
-              </MenuItem>
-            ))}
-          </TextField>
-          <Button
-            variant="contained"
-            startIcon={<Iconify icon="solar:magic-stick-3-bold" />}
-            onClick={() => act(() => `จับคู่อัตโนมัติ ${run((s) => autoMatchBank(s, code, windowDays)).matched} คู่`)}
-          >
-            จับคู่อัตโนมัติ (ยอดเท่ากัน)
-          </Button>
-          <Box sx={{ flexGrow: 1 }} />
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            เลือก statement <Money value={lineSum} /> · สมุดบัญชี <Money value={bookSum} />
-          </Typography>
-          <Button variant="outlined" disabled={!canMatch} onClick={matchSelected} startIcon={<Iconify icon="solar:link-bold" />}>
-            จับคู่รายการที่เลือก
-          </Button>
-          <FormControlLabel control={<Checkbox checked={showMatched} onChange={(e) => setShowMatched(e.target.checked)} />} label="แสดงที่จับคู่แล้ว" />
-        </Stack>
-      </Card>
+      {canWrite && (
+        <Card sx={{ mb: 3, p: 2 }}>
+          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ md: 'center' }}>
+            <TextField
+              select
+              size="small"
+              label="ช่วงวันที่จับคู่อัตโนมัติ"
+              value={windowDays}
+              onChange={(e) => setWindowDays(Number(e.target.value))}
+              sx={{ minWidth: 200 }}
+            >
+              {[0, 1, 3, 5, 7].map((d) => (
+                <MenuItem key={d} value={d}>
+                  {d === 0 ? 'วันเดียวกัน' : `± ${d} วัน`}
+                </MenuItem>
+              ))}
+            </TextField>
+            <Button
+              variant="contained"
+              startIcon={<Iconify icon="solar:magic-stick-3-bold" />}
+              onClick={() => act(async () => `จับคู่อัตโนมัติ ${(await run(cmd.autoMatchBank(code, windowDays))).matched} คู่`)}
+            >
+              จับคู่อัตโนมัติ (ยอดเท่ากัน)
+            </Button>
+            <Box sx={{ flexGrow: 1 }} />
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              เลือก statement <Money value={lineSum} /> · สมุดบัญชี <Money value={bookSum} />
+            </Typography>
+            <Button variant="outlined" disabled={!canMatch || busy} onClick={matchSelected} startIcon={<Iconify icon="solar:link-bold" />}>
+              จับคู่รายการที่เลือก
+            </Button>
+            <FormControlLabel
+              control={<Checkbox checked={showMatched} onChange={(e) => setShowMatched(e.target.checked)} />}
+              label="แสดงที่จับคู่แล้ว"
+            />
+          </Stack>
+        </Card>
+      )}
 
       <Grid container spacing={3}>
         <Grid item xs={12} lg={6}>
@@ -277,11 +303,14 @@ export function BankReconcileView() {
               picked={pickedLines}
               onPick={(id) => setPickedLines((p) => toggle(p, id))}
               matchLabel={matchLabel}
-              onDelete={(id) =>
-                act(() => {
-                  run((s) => ({ state: deleteBankStatementLines(s, [id]) }));
-                  return 'ลบรายการ statement แล้ว';
-                })
+              onDelete={
+                canWrite
+                  ? (id) =>
+                      act(async () => {
+                        await run(cmd.deleteBankStatementLines([id]));
+                        return 'ลบรายการ statement แล้ว';
+                      })
+                  : undefined
               }
               empty="ยังไม่มี statement — นำเข้าไฟล์ CSV หรือเพิ่มรายการเอง"
             />

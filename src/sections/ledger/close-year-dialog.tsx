@@ -16,7 +16,7 @@ import DialogContent from '@mui/material/DialogContent';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
-import { closeYear, useAccounting } from 'src/store';
+import { cmd, useAccounting } from 'src/store';
 import { CloseYearSchema } from 'src/schemas/accounting/doc-schemas';
 import {
   ACC,
@@ -43,7 +43,7 @@ type Props = { open: boolean; onClose: () => void };
  * (ต้องปิดงวดถึงวันสิ้นปีแล้ว, ปีละครั้ง, ปีถัดไปต่อกัน 12 เดือน)
  */
 export function CloseYearDialog({ open, onClose }: Props) {
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const confirm = useBoolean();
   const suggested = suggestedFiscalYearEnd(data) ?? '';
   const methods = useForm<CloseYearSchemaType>({
@@ -68,9 +68,9 @@ export function CloseYearDialog({ open, onClose }: Props) {
     confirm.onTrue();
   });
 
-  const submit = () => {
+  const submit = async () => {
     try {
-      const r = run((s) => closeYear(s, fye));
+      const r = await run(cmd.closeYear(fye));
       confirm.onFalse();
       toast.success(r.already ? `ปีที่สิ้นสุด ${formatThaiDate(fye)} ปิดบัญชีไว้แล้ว` : `ปิดบัญชีสิ้นปี ${formatThaiDate(fye)} แล้ว`);
       onClose();
@@ -148,7 +148,7 @@ export function CloseYearDialog({ open, onClose }: Props) {
           )
         }
         action={
-          <LoadingButton variant="contained" color="warning" onClick={submit}>
+          <LoadingButton variant="contained" color="warning" onClick={submit} loading={busy}>
             ยืนยันปิดบัญชี
           </LoadingButton>
         }

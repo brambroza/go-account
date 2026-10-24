@@ -24,7 +24,7 @@ import { useRouter, useParams } from 'src/routes/hooks';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { SupplierCreditNoteSchema } from 'src/schemas/accounting/doc-schemas';
-import { uid, useAccounting, useAccountLookup, useContactLookup, recordSupplierCreditNote } from 'src/store';
+import { cmd, uid, useAccounting, useAccountLookup, useContactLookup, recordSupplierCreditNote } from 'src/store';
 import {
   ACC,
   subBaht,
@@ -65,7 +65,7 @@ type FormLine = SupplierCreditNoteSchemaType['lines'][number];
 export function SupplierCreditNoteView() {
   const { id = '' } = useParams();
   const router = useRouter();
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const contacts = useContactLookup();
   const accounts = useAccountLookup();
   const confirm = useBoolean();
@@ -185,10 +185,10 @@ export function SupplierCreditNoteView() {
   };
   const vatMonth = isValidISODate(dateIso) ? periodLabel(periodOf(dateIso)) : '-';
 
-  const save = methods.handleSubmit((values) => {
+  const save = methods.handleSubmit(async (values) => {
     try {
-      const r = run((s) =>
-        recordSupplierCreditNote(s, {
+      const r = await run(
+        cmd.recordSupplierCreditNote({
           purchaseId: purchase.id,
           supplierCreditNoteNo: values.supplierCreditNoteNo,
           supplierCreditNoteDate: values.supplierCreditNoteDate.slice(0, 10),
@@ -385,7 +385,7 @@ export function SupplierCreditNoteView() {
           </Stack>
         }
         action={
-          <LoadingButton variant="contained" color="error" onClick={save}>
+          <LoadingButton variant="contained" color="error" onClick={save} loading={busy}>
             ยืนยัน
           </LoadingButton>
         }

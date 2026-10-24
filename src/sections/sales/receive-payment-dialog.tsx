@@ -19,7 +19,7 @@ import DialogContent from '@mui/material/DialogContent';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { makeReceiptSchema } from 'src/schemas/accounting/doc-schemas';
-import { outstandingOf, useAccounting, receivePayment, useAccountLookup, useCashAccountOptions } from 'src/store';
+import { cmd, outstandingOf, useAccounting, useAccountLookup, useCashAccountOptions } from 'src/store';
 import {
   ACC,
   subBaht,
@@ -57,7 +57,7 @@ type Props = { open: boolean; onClose: () => void; invoice: SalesDoc };
 
 /** รับชำระใบกำกับ (บางส่วนได้) + ภาษีที่ลูกค้าหัก ณ ที่จ่าย — ยืนยันสรุปก่อนบันทึก */
 export function ReceivePaymentDialog({ open, onClose, invoice }: Props) {
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const accounts = useAccountLookup();
   const cashAccounts = useCashAccountOptions();
   const outstanding = outstandingOf(data, invoice);
@@ -123,11 +123,11 @@ export function ReceivePaymentDialog({ open, onClose, invoice }: Props) {
     confirm.onTrue();
   });
 
-  const submit = () => {
+  const submit = async () => {
     if (!pending) return;
     try {
-      const r = run((s) =>
-        receivePayment(s, {
+      const r = await run(
+        cmd.receivePayment({
           invoiceId: invoice.id,
           date: pending.date.slice(0, 10),
           amount: pending.amount,
@@ -238,7 +238,7 @@ export function ReceivePaymentDialog({ open, onClose, invoice }: Props) {
           )
         }
         action={
-          <LoadingButton variant="contained" onClick={submit}>
+          <LoadingButton variant="contained" onClick={submit} loading={busy}>
             ยืนยันรับชำระ
           </LoadingButton>
         }

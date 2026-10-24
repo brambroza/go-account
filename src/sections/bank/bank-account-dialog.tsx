@@ -14,9 +14,9 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 
+import { cmd, useAccounting } from 'src/store';
 import { nextBankAccountCode } from 'src/domain';
 import { BankAccountFormSchema } from 'src/schemas/accounting/doc-schemas';
-import { useAccounting, addBankAccount, updateBankAccount } from 'src/store';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
@@ -29,7 +29,7 @@ type Props = { open: boolean; onClose: () => void; editing?: BankAccount | null 
 
 /** เพิ่มบัญชีธนาคาร (ผังบัญชี 1121–1129) / เงินสดย่อย (1112–1119) หรือแก้ชื่อธนาคาร เลขที่บัญชี สาขา */
 export function BankAccountDialog({ open, onClose, editing }: Props) {
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const defaults = (): BankAccountFormSchemaType => ({
     kind: editing?.kind ?? 'bank',
     bankName: editing?.bankName ?? '',
@@ -45,13 +45,26 @@ export function BankAccountDialog({ open, onClose, editing }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing]);
 
-  const onSubmit = methods.handleSubmit((v) => {
+  const onSubmit = methods.handleSubmit(async (v) => {
     try {
       if (editing) {
-        run((s) => ({ state: updateBankAccount(s, editing.accountCode, { bankName: v.bankName, accountNo: v.accountNo, branch: v.branch ?? '' }) }));
+        await run(
+          cmd.updateBankAccount(editing.accountCode, {
+            bankName: v.bankName,
+            accountNo: v.accountNo,
+            branch: v.branch ?? '',
+          })
+        );
         toast.success(`บันทึกบัญชี ${editing.accountCode} แล้ว`);
       } else {
-        const r = run((s) => addBankAccount(s, { kind: v.kind, bankName: v.bankName, accountNo: v.accountNo, branch: v.branch }));
+        const r = await run(
+          cmd.addBankAccount({
+            kind: v.kind,
+            bankName: v.bankName,
+            accountNo: v.accountNo,
+            branch: v.branch,
+          })
+        );
         toast.success(`เพิ่มบัญชี ${r.bank.accountCode} ในผังบัญชีแล้ว`);
       }
       onClose();
@@ -99,7 +112,7 @@ export function BankAccountDialog({ open, onClose, editing }: Props) {
           <Button variant="outlined" color="inherit" onClick={onClose}>
             ยกเลิก
           </Button>
-          <LoadingButton type="submit" variant="contained" disabled={!code}>
+          <LoadingButton type="submit" variant="contained" loading={busy} disabled={!code}>
             บันทึก
           </LoadingButton>
         </DialogActions>

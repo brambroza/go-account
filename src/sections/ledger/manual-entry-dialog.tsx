@@ -17,8 +17,8 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
+import { cmd, useAccounting } from 'src/store';
 import { sumBaht, todayISO, toSatang } from 'src/domain';
-import { useAccounting, addManualJournal } from 'src/store';
 import { PICKER_DATE_FORMAT } from 'src/locales/buddhist-era';
 
 import { toast } from 'src/components/snackbar';
@@ -34,7 +34,7 @@ type Props = { open: boolean; onClose: () => void };
 
 /** รายการปรับปรุง (JV) คีย์มือ — เดบิตต้องเท่าเครดิต, ห้ามลงบัญชีคุม (ตรวจที่ action) */
 export function ManualEntryDialog({ open, onClose }: Props) {
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const [date, setDate] = useState(todayISO());
   const [description, setDescription] = useState('');
   const [lines, setLines] = useState<JournalLine[]>([empty(), empty()]);
@@ -47,10 +47,10 @@ export function ManualEntryDialog({ open, onClose }: Props) {
   const update = (i: number, patch: Partial<JournalLine>) =>
     setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
 
-  const submit = () => {
+  const submit = async () => {
     try {
-      const r = run((s) =>
-        addManualJournal(s, {
+      const r = await run(
+        cmd.addManualJournal({
           date,
           description: description.trim(),
           lines: lines.filter((l) => l.accountCode && (l.debit || l.credit)),
@@ -160,7 +160,7 @@ export function ManualEntryDialog({ open, onClose }: Props) {
         <Button variant="outlined" color="inherit" onClick={onClose}>
           ยกเลิก
         </Button>
-        <Button variant="contained" onClick={submit} disabled={!valid}>
+        <Button variant="contained" onClick={submit} disabled={!valid || busy}>
           บันทึก
         </Button>
       </DialogActions>

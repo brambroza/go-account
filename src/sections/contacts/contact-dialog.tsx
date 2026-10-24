@@ -15,7 +15,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 
-import { saveContact, useAccounting } from 'src/store';
+import { cmd, useAccounting } from 'src/store';
 import { ContactSchema } from 'src/schemas/accounting/doc-schemas';
 import {
   normalizeTaxId,
@@ -76,7 +76,7 @@ function toForm(c: Contact | null | undefined, nextCode: string, defaults: { kin
 
 /** เพิ่ม/แก้ผู้ติดต่อ — รหัสใหม่ = ค่าสูงสุดของรหัสประเภทเดียวกัน + 1 (C = ลูกค้า, V = ผู้ขาย) */
 export function ContactDialog({ open, onClose, contact, defaultKind, defaultName, onSaved }: Props) {
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const codeFor = (kind: ContactKind) => nextContactCode(data.contacts, contactCodePrefix(kind));
   const initial = () => toForm(contact, codeFor(defaultKind ?? 'customer'), { kind: defaultKind, name: defaultName });
   const methods = useForm<ContactSchemaType>({ resolver: zodResolver(ContactSchema), defaultValues: initial() });
@@ -122,11 +122,11 @@ export function ContactDialog({ open, onClose, contact, defaultKind, defaultName
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind]);
 
-  const onSubmit = methods.handleSubmit((v) => {
+  const onSubmit = methods.handleSubmit(async (v) => {
     const clean = (s?: string) => (s && s.trim() ? s.trim() : undefined);
     try {
-      const saved = run((s) =>
-        saveContact(s, {
+      const saved = await run(
+        cmd.saveContact({
           id: v.id,
           code: v.code.trim(),
           kind: v.kind,
@@ -219,7 +219,7 @@ export function ContactDialog({ open, onClose, contact, defaultKind, defaultName
           <Button variant="outlined" color="inherit" onClick={onClose}>
             ยกเลิก
           </Button>
-          <Button type="submit" variant="contained">
+          <Button type="submit" variant="contained" disabled={busy}>
             บันทึก
           </Button>
         </DialogActions>

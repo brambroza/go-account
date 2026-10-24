@@ -18,7 +18,7 @@ import DialogContent from '@mui/material/DialogContent';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { makePayPurchaseSchema } from 'src/schemas/accounting/doc-schemas';
-import { payPurchase, useAccounting, useAccountLookup, useContactLookup, useCashAccountOptions } from 'src/store';
+import { cmd, useAccounting, useAccountLookup, useContactLookup, useCashAccountOptions } from 'src/store';
 import {
   ACC,
   toSatang,
@@ -49,7 +49,7 @@ type Props = { open: boolean; onClose: () => void; doc: PurchaseDoc | null };
  * หัก ณ ที่จ่ายตามสัดส่วนยอดที่จ่าย คำนวณโดย `planPurchasePayment` (กฎเดียวกับ action) ยืนยันสรุปก่อนบันทึก
  */
 export function PayPurchaseDialog({ open, onClose, doc }: Props) {
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const accounts = useAccountLookup();
   const cashAccounts = useCashAccountOptions();
   const contacts = useContactLookup();
@@ -86,11 +86,11 @@ export function PayPurchaseDialog({ open, onClose, doc }: Props) {
     confirm.onTrue();
   });
 
-  const submit = () => {
+  const submit = async () => {
     if (!pending) return;
     try {
-      const r = run((s) =>
-        payPurchase(s, {
+      const r = await run(
+        cmd.payPurchase({
           purchaseId: doc.id,
           date: pending.date.slice(0, 10),
           accountCode: pending.accountCode,
@@ -195,7 +195,7 @@ export function PayPurchaseDialog({ open, onClose, doc }: Props) {
           )
         }
         action={
-          <LoadingButton variant="contained" onClick={submit}>
+          <LoadingButton variant="contained" onClick={submit} loading={busy}>
             ยืนยันจ่ายชำระ
           </LoadingButton>
         }

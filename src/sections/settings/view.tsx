@@ -19,7 +19,8 @@ import { RouterLink } from 'src/routes/components';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
-import { useAccounting, updateCompany } from 'src/store';
+import { cmd, useAccounting } from 'src/store';
+import { CanWrite, usePermissions } from 'src/auth';
 import { normalizeTaxId, normalizeBranch5 } from 'src/domain';
 import { CompanySchema } from 'src/schemas/accounting/doc-schemas';
 
@@ -38,7 +39,8 @@ import { ResetDemoDialog } from './reset-demo-dialog';
 
 /** ตั้งค่าบริษัท + สำรอง/กู้คืนข้อมูล (ตรวจไฟล์ก่อนเสมอ) + ล้างเป็นข้อมูลตัวอย่าง (ต้องยืนยัน + สำรองอัตโนมัติ) */
 export function SettingsView() {
-  const { data, run, readBackup } = useAccounting();
+  const { data, run, busy, readBackup, canUseLocalTools } = useAccounting();
+  const { isOwner } = usePermissions();
   const confirmReset = useBoolean();
   const confirmEmpty = useBoolean();
   const [restoreFile, setRestoreFile] = useState<{ name: string; result: LoadResult } | null>(null);
@@ -68,11 +70,11 @@ export function SettingsView() {
     },
   });
 
-  const onSubmit = methods.handleSubmit((v) => {
+  const onSubmit = methods.handleSubmit(async (v) => {
     const clean = (s?: string) => (s && s.trim() ? s.trim() : undefined);
     try {
-      run((s) => ({
-        state: updateCompany(s, {
+      await run(
+        cmd.updateCompany({
           name: v.name.trim(),
           taxId: normalizeTaxId(v.taxId),
           branchNo: normalizeBranch5(v.branchNo),
@@ -81,8 +83,8 @@ export function SettingsView() {
           email: clean(v.email),
           phone: clean(v.phone),
           address: Object.fromEntries(Object.entries(v.address).map(([k, val]) => [k, clean(val)])),
-        }),
-      }));
+        })
+      );
       toast.success('บันทึกข้อมูลบริษัทแล้ว');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ');
@@ -157,65 +159,66 @@ export function SettingsView() {
                   <Field.Text name="address.province" label="จังหวัด" size="small" />
                   <Field.Text name="address.postalCode" label="รหัสไปรษณีย์" size="small" />
                 </Box>
-                <Stack alignItems="flex-end" sx={{ mt: 3 }}>
-                  <LoadingButton type="submit" variant="contained">
-                    บันทึก
-                  </LoadingButton>
-                </Stack>
+                {isOwner ? (
+                  <Stack alignItems="flex-end" sx={{ mt: 3 }}>
+                    <LoadingButton type="submit" variant="contained" loading={busy}>
+                      บันทึก
+                    </LoadingButton>
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" sx={{ mt: 3, color: 'text.secondary' }}>
+                    แก้ข้อมูลบริษัทได้เฉพาะเจ้าของบริษัท
+                  </Typography>
+                )}
               </Box>
             </Card>
           </Form>
         </Grid>
 
         <Grid item xs={12} lg={4}>
-          <Card>
-            <CardHeader
-              title="ข้อมูลในเครื่องนี้"
-              subheader="ต้นแบบนี้เก็บข้อมูลในเบราว์เซอร์ ยังไม่มีเซิร์ฟเวอร์"
-            />
-            <Stack spacing={1.5} sx={{ p: 3 }}>
-              <Button
-                variant="outlined"
-                startIcon={<Iconify icon="solar:download-bold" />}
-                onClick={() => downloadBackup(data)}
-              >
-                สำรองข้อมูล (.json)
-              </Button>
-              <Button
-                variant="outlined"
-                component="label"
-                startIcon={<Iconify icon="solar:upload-bold" />}
-              >
-                กู้คืนจากไฟล์สำรอง
-                <input
-                  hidden
-                  type="file"
-                  accept="application/json,.json"
-                  onChange={(e) => importBackup(e.currentTarget)}
-                />
-              </Button>
-              <Button color="error" onClick={confirmReset.onTrue}>
-                ล้างข้อมูลและสร้างข้อมูลตัวอย่างใหม่
-              </Button>
-            </Stack>
-          </Card>
+          {canUseLocalTools && (
+            <Card>
+              <CardHeader title="ข้อมูลในเครื่องนี้" subheader="ต้นแบบนี้เก็บข้อมูลในเบราว์เซอร์ ยังไม่มีเซิร์ฟเวอร์" />
+              <Stack spacing={1.5} sx={{ p: 3 }}>
+                <Button variant="outlined" startIcon={<Iconify icon="solar:download-bold" />} onClick={() => downloadBackup(data)}>
+                  สำรองข้อมูล (.json)
+                </Button>
+                <Button variant="outlined" component="label" startIcon={<Iconify icon="solar:upload-bold" />}>
+                  กู้คืนจากไฟล์สำรอง
+                  <input hidden type="file" accept="application/json,.json" onChange={(e) => importBackup(e.currentTarget)} />
+                </Button>
+                <Button color="error" onClick={confirmReset.onTrue}>
+                  ล้างข้อมูลและสร้างข้อมูลตัวอย่างใหม่
+                </Button>
+              </Stack>
+            </Card>
+          )}
 
-          <Card sx={{ mt: 3 }}>
-            <CardHeader title="ย้ายจากระบบเดิม (Express)" subheader="ยอดยกมา: บัญชีแยกประเภท ลูกหนี้/เจ้าหนี้คงค้างรายใบ ภาษีชำระเกิน" />
-            <Stack spacing={1.5} sx={{ p: 3 }}>
-              <Button
-                variant="outlined"
-                component={RouterLink}
-                href={paths.opening}
-                startIcon={<Iconify icon="solar:import-bold" />}
-              >
-                {data.openingBalance ? 'ดู / แก้ยอดยกมา' : 'บันทึกยอดยกมา'}
-              </Button>
-              <Button color="error" onClick={confirmEmpty.onTrue}>
-                ล้างเอกสารทั้งหมดเพื่อเริ่มยกยอด
-              </Button>
-            </Stack>
-          </Card>
+          <CanWrite>
+            <Card sx={{ mt: canUseLocalTools ? 3 : 0 }}>
+              <CardHeader title="ย้ายจากระบบเดิม (Express)" subheader="ยอดยกมา: บัญชีแยกประเภท ลูกหนี้/เจ้าหนี้คงค้างรายใบ ภาษีชำระเกิน" />
+              <Stack spacing={1.5} sx={{ p: 3 }}>
+                <Button variant="outlined" component={RouterLink} href={paths.opening} startIcon={<Iconify icon="solar:import-bold" />}>
+                  {data.openingBalance ? 'ดู / แก้ยอดยกมา' : 'บันทึกยอดยกมา'}
+                </Button>
+                {canUseLocalTools && (
+                  <Button color="error" onClick={confirmEmpty.onTrue}>
+                    ล้างเอกสารทั้งหมดเพื่อเริ่มยกยอด
+                  </Button>
+                )}
+              </Stack>
+            </Card>
+          </CanWrite>
+          {isOwner && !canUseLocalTools && (
+            <Card sx={{ mt: 3 }}>
+              <CardHeader title="ผู้ใช้งานของบริษัท" subheader="เชิญพนักงานบัญชี / ผู้ดูอย่างเดียว เปลี่ยนบทบาท หรือนำออก" />
+              <Stack spacing={1.5} sx={{ p: 3 }}>
+                <Button variant="outlined" component={RouterLink} href={paths.members} startIcon={<Iconify icon="solar:users-group-rounded-bold" />}>
+                  จัดการผู้ใช้งาน
+                </Button>
+              </Stack>
+            </Card>
+          )}
         </Grid>
       </Grid>
 

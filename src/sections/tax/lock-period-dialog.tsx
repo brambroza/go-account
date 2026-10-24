@@ -16,7 +16,7 @@ import DialogContent from '@mui/material/DialogContent';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
-import { lockPeriod, useAccounting } from 'src/store';
+import { cmd, lockPeriod, useAccounting } from 'src/store';
 import { monthEndOf, makeLockPeriodSchema } from 'src/schemas/accounting/doc-schemas';
 import {
   addDays,
@@ -54,7 +54,7 @@ function suggestedMonth(lockedThrough: string | undefined): string {
  * หลังปิด ทุกรายการที่ลงวันที่ ≤ วันปิดงวดจะถูกปฏิเสธ
  */
 export function LockPeriodDialog({ open, onClose }: Props) {
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const current = data.company.lockedThrough;
   const confirm = useBoolean();
   const [through, setThrough] = useState<string | null>(null);
@@ -92,10 +92,10 @@ export function LockPeriodDialog({ open, onClose }: Props) {
     confirm.onTrue();
   });
 
-  const submit = () => {
+  const submit = async () => {
     if (!through) return;
     try {
-      run((s) => ({ state: lockPeriod(s, through) }));
+      await run(cmd.lockPeriod(through));
       confirm.onFalse();
       toast.success(`ปิดงวดถึงวันที่ ${formatThaiDate(through)} แล้ว`);
       onClose();
@@ -174,7 +174,7 @@ export function LockPeriodDialog({ open, onClose }: Props) {
           )
         }
         action={
-          <LoadingButton variant="contained" color="warning" onClick={submit}>
+          <LoadingButton variant="contained" color="warning" onClick={submit} loading={busy}>
             ยืนยันปิดงวด
           </LoadingButton>
         }
