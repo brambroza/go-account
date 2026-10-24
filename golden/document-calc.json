@@ -1,0 +1,6558 @@
+{
+  "file": "document-calc.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 208,
+  "vectors": [
+    {
+      "name": "lineAmount/simple",
+      "input": {
+        "line": {
+          "accountCode": "4100",
+          "discount": 0,
+          "qty": 2,
+          "unitPrice": 100
+        }
+      },
+      "output": 200
+    },
+    {
+      "name": "lineAmount/discount",
+      "input": {
+        "line": {
+          "accountCode": "4100",
+          "discount": 10,
+          "qty": 3,
+          "unitPrice": 99.99
+        }
+      },
+      "output": 289.97
+    },
+    {
+      "name": "lineAmount/fractional-qty",
+      "input": {
+        "line": {
+          "accountCode": "4100",
+          "discount": 0,
+          "qty": 0.333,
+          "unitPrice": 3
+        }
+      },
+      "output": 1
+    },
+    {
+      "name": "lineAmount/half-satang",
+      "input": {
+        "line": {
+          "accountCode": "4100",
+          "discount": 0,
+          "qty": 3,
+          "unitPrice": 0.335
+        }
+      },
+      "output": 1.01
+    },
+    {
+      "name": "lineAmount/discount-more-than-amount",
+      "input": {
+        "line": {
+          "accountCode": "4100",
+          "discount": 80,
+          "qty": 1,
+          "unitPrice": 50
+        }
+      },
+      "output": -30
+    },
+    {
+      "name": "lineAmount/zero-qty",
+      "input": {
+        "line": {
+          "accountCode": "4100",
+          "discount": 0,
+          "qty": 0,
+          "unitPrice": 100
+        }
+      },
+      "output": 0
+    },
+    {
+      "name": "lineAmount/negative-price",
+      "input": {
+        "line": {
+          "accountCode": "4100",
+          "discount": 0,
+          "qty": 1,
+          "unitPrice": -100
+        }
+      },
+      "output": -100
+    },
+    {
+      "name": "lineAmount/discount-odd",
+      "input": {
+        "line": {
+          "accountCode": "4100",
+          "discount": 0.005,
+          "qty": 1,
+          "unitPrice": 10
+        }
+      },
+      "output": 10
+    },
+    {
+      "name": "calcDocument/exclusive-basic",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1000
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": {
+        "gross": 1000,
+        "net": 1000,
+        "netByAccount": {
+          "4100": 1000
+        },
+        "payable": 1070,
+        "total": 1070,
+        "vat": 70,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/exclusive-basic",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1000
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        1000
+      ]
+    },
+    {
+      "name": "calcDocument/inclusive-basic",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1070
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": {
+        "gross": 1070,
+        "net": 1000,
+        "netByAccount": {
+          "4100": 1000
+        },
+        "payable": 1070,
+        "total": 1070,
+        "vat": 70,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/inclusive-basic",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1070
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        1000
+      ]
+    },
+    {
+      "name": "calcDocument/none-basic",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1000
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": {
+        "gross": 1000,
+        "net": 1000,
+        "netByAccount": {
+          "4100": 1000
+        },
+        "payable": 1000,
+        "total": 1000,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/none-basic",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1000
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        1000
+      ]
+    },
+    {
+      "name": "calcDocument/exclusive-wht3",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 10000
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 10000,
+        "net": 10000,
+        "netByAccount": {
+          "4100": 10000
+        },
+        "payable": 10400,
+        "total": 10700,
+        "vat": 700,
+        "wht": 300
+      }
+    },
+    {
+      "name": "lineNetAmounts/exclusive-wht3",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 10000
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        10000
+      ]
+    },
+    {
+      "name": "calcDocument/inclusive-wht3",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 10700
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 10700,
+        "net": 10000,
+        "netByAccount": {
+          "4100": 10000
+        },
+        "payable": 10400,
+        "total": 10700,
+        "vat": 700,
+        "wht": 300
+      }
+    },
+    {
+      "name": "lineNetAmounts/inclusive-wht3",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 10700
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        10000
+      ]
+    },
+    {
+      "name": "calcDocument/inclusive-odd-satang",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 100
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": {
+        "gross": 100,
+        "net": 93.46,
+        "netByAccount": {
+          "4100": 93.46
+        },
+        "payable": 100,
+        "total": 100,
+        "vat": 6.54,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/inclusive-odd-satang",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 100
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        93.46
+      ]
+    },
+    {
+      "name": "calcDocument/inclusive-one-satang",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.01
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": {
+        "gross": 0.01,
+        "net": 0.01,
+        "netByAccount": {
+          "4100": 0.01
+        },
+        "payable": 0.01,
+        "total": 0.01,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/inclusive-one-satang",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.01
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        0.01
+      ]
+    },
+    {
+      "name": "calcDocument/inclusive-multiline-allocation",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 33.33
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 33.33
+          },
+          {
+            "accountCode": "4120",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 33.34
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": {
+        "gross": 100,
+        "net": 93.46,
+        "netByAccount": {
+          "4100": 31.15,
+          "4110": 31.15,
+          "4120": 31.16
+        },
+        "payable": 100,
+        "total": 100,
+        "vat": 6.54,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/inclusive-multiline-allocation",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 33.33
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 33.33
+          },
+          {
+            "accountCode": "4120",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 33.34
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        31.15,
+        31.15,
+        31.16
+      ]
+    },
+    {
+      "name": "calcDocument/inclusive-same-account-merge",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 0.335
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 99.99
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 0.01
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": {
+        "gross": 101.02,
+        "net": 94.41,
+        "netByAccount": {
+          "4100": 0.96,
+          "4110": 93.45
+        },
+        "payable": 101.02,
+        "total": 101.02,
+        "vat": 6.61,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/inclusive-same-account-merge",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 0.335
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 99.99
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 0.01
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        0.94,
+        93.45,
+        0.02
+      ]
+    },
+    {
+      "name": "calcDocument/exclusive-discounts",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 75,
+            "qty": 10,
+            "unitPrice": 150
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0.5,
+            "qty": 2,
+            "unitPrice": 1999.5
+          },
+          {
+            "accountCode": "4100",
+            "discount": 33.33,
+            "qty": 1,
+            "unitPrice": 333.33
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": {
+        "gross": 5723.5,
+        "net": 5723.5,
+        "netByAccount": {
+          "4100": 5723.5
+        },
+        "payable": 6124.15,
+        "total": 6124.15,
+        "vat": 400.65,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/exclusive-discounts",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 75,
+            "qty": 10,
+            "unitPrice": 150
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0.5,
+            "qty": 2,
+            "unitPrice": 1999.5
+          },
+          {
+            "accountCode": "4100",
+            "discount": 33.33,
+            "qty": 1,
+            "unitPrice": 333.33
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        1425,
+        3998.5,
+        300
+      ]
+    },
+    {
+      "name": "calcDocument/exclusive-rate0",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 500
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0
+      },
+      "output": {
+        "gross": 500,
+        "net": 500,
+        "netByAccount": {
+          "4100": 500
+        },
+        "payable": 500,
+        "total": 500,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/exclusive-rate0",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 500
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0
+      },
+      "output": [
+        500
+      ]
+    },
+    {
+      "name": "calcDocument/inclusive-rate0",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 500
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0
+      },
+      "output": {
+        "gross": 500,
+        "net": 500,
+        "netByAccount": {
+          "4100": 500
+        },
+        "payable": 500,
+        "total": 500,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/inclusive-rate0",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 500
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0
+      },
+      "output": [
+        500
+      ]
+    },
+    {
+      "name": "calcDocument/inclusive-rate10",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1234.56
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 0.99
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10
+      },
+      "output": {
+        "gross": 1236.54,
+        "net": 1124.13,
+        "netByAccount": {
+          "4100": 1124.13
+        },
+        "payable": 1236.54,
+        "total": 1236.54,
+        "vat": 112.41,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/inclusive-rate10",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1234.56
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 0.99
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10
+      },
+      "output": [
+        1122.33,
+        1.8
+      ]
+    },
+    {
+      "name": "calcDocument/empty",
+      "input": {
+        "lines": [],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": {
+        "gross": 0,
+        "net": 0,
+        "netByAccount": {},
+        "payable": 0,
+        "total": 0,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/empty",
+      "input": {
+        "lines": [],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": []
+    },
+    {
+      "name": "calcDocument/zero-gross",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 100
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": -100
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": {
+        "gross": 0,
+        "net": 0,
+        "netByAccount": {},
+        "payable": 0,
+        "total": 0,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/zero-gross",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 100
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": -100
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "calcDocument/negative-line-inclusive",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1000
+          },
+          {
+            "accountCode": "4190",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": -100.01
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": {
+        "gross": 899.99,
+        "net": 841.11,
+        "netByAccount": {
+          "4100": 934.58,
+          "4190": -93.47
+        },
+        "payable": 899.99,
+        "total": 899.99,
+        "vat": 58.88,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/negative-line-inclusive",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1000
+          },
+          {
+            "accountCode": "4190",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": -100.01
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        934.58,
+        -93.47
+      ]
+    },
+    {
+      "name": "calcDocument/credit-note-negative",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": -1070
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": -1070,
+        "net": -1000,
+        "netByAccount": {
+          "4100": -1000
+        },
+        "payable": -1040,
+        "total": -1070,
+        "vat": -70,
+        "wht": -30
+      }
+    },
+    {
+      "name": "lineNetAmounts/credit-note-negative",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": -1070
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        -1000
+      ]
+    },
+    {
+      "name": "calcDocument/exclusive-half-vat",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.5
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": {
+        "gross": 0.5,
+        "net": 0.5,
+        "netByAccount": {
+          "4100": 0.5
+        },
+        "payable": 0.54,
+        "total": 0.54,
+        "vat": 0.04,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/exclusive-half-vat",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.5
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        0.5
+      ]
+    },
+    {
+      "name": "calcDocument/none-wht5",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 15000
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 180000,
+        "net": 180000,
+        "netByAccount": {
+          "4100": 180000
+        },
+        "payable": 171000,
+        "total": 180000,
+        "vat": 0,
+        "wht": 9000
+      }
+    },
+    {
+      "name": "lineNetAmounts/none-wht5",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 15000
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        180000
+      ]
+    },
+    {
+      "name": "calcDocument/large-inclusive",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 9876543.21
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 1234567.89
+          },
+          {
+            "accountCode": "4120",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 999999.99
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 14080246.88,
+        "net": 13159109.23,
+        "netByAccount": {
+          "4100": 9230414.21,
+          "4110": 3461405.3,
+          "4120": 467289.72
+        },
+        "payable": 13685473.6,
+        "total": 14080246.88,
+        "vat": 921137.65,
+        "wht": 394773.28
+      }
+    },
+    {
+      "name": "lineNetAmounts/large-inclusive",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 9876543.21
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 1234567.89
+          },
+          {
+            "accountCode": "4120",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 999999.99
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        9230414.21,
+        3461405.3,
+        467289.72
+      ]
+    },
+    {
+      "name": "calcDocument/random-000",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0.43,
+            "qty": 1.5,
+            "unitPrice": 5.695
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 312.375
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 156.215
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 372.51,
+        "net": 372.51,
+        "netByAccount": {
+          "4100": 52.02,
+          "4110": 312.38,
+          "5100": 8.11
+        },
+        "payable": 398.59,
+        "total": 398.59,
+        "vat": 26.08,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-000",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0.43,
+            "qty": 1.5,
+            "unitPrice": 5.695
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 312.375
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 156.215
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        8.11,
+        312.38,
+        52.02
+      ]
+    },
+    {
+      "name": "calcDocument/random-001",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 200.88
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 0.76
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 5926.085
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.115
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 346.57
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 5969.58,
+        "net": 5969.58,
+        "netByAccount": {
+          "4110": 76,
+          "5100": 2963.04,
+          "SVC": 2930.54
+        },
+        "payable": 5909.88,
+        "total": 5969.58,
+        "vat": 0,
+        "wht": 59.7
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-001",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 200.88
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 0.76
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 5926.085
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.115
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 346.57
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0
+      },
+      "output": [
+        2410.56,
+        76,
+        2963.04,
+        0.12,
+        519.86
+      ]
+    },
+    {
+      "name": "calcDocument/random-002",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 16472.345
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 0.81
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.15
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 0.51
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 0.65
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 164735.07,
+        "net": 164735.07,
+        "netByAccount": {
+          "4100": 1.13,
+          "4110": 10.49,
+          "5100": 164723.45
+        },
+        "payable": 168029.77,
+        "total": 176266.52,
+        "vat": 11531.45,
+        "wht": 8236.75
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-002",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 16472.345
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 0.81
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.15
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 0.51
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 0.65
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        164723.45,
+        9.72,
+        0.15,
+        0.77,
+        0.98
+      ]
+    },
+    {
+      "name": "calcDocument/random-003",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 104.81
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 6936.21
+          },
+          {
+            "accountCode": "5100",
+            "discount": 2.89,
+            "qty": 7,
+            "unitPrice": 8.25
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 364.53
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 0.545
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 119982.02,
+        "net": 119982.02,
+        "netByAccount": {
+          "4100": 36453,
+          "4110": 83238.34,
+          "5100": 290.68
+        },
+        "payable": 119982.02,
+        "total": 119982.02,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-003",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 104.81
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 6936.21
+          },
+          {
+            "accountCode": "5100",
+            "discount": 2.89,
+            "qty": 7,
+            "unitPrice": 8.25
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 364.53
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 0.545
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0
+      },
+      "output": [
+        235.82,
+        83234.52,
+        54.86,
+        36453,
+        3.82
+      ]
+    },
+    {
+      "name": "calcDocument/random-004",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 5.38,
+            "qty": 3,
+            "unitPrice": 5.385
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 10.78,
+        "net": 10.78,
+        "netByAccount": {
+          "5100": 10.78
+        },
+        "payable": 10.24,
+        "total": 10.78,
+        "vat": 0,
+        "wht": 0.54
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-004",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 5.38,
+            "qty": 3,
+            "unitPrice": 5.385
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        10.78
+      ]
+    },
+    {
+      "name": "calcDocument/random-005",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 7299.975
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 0.19
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 21901.83,
+        "net": 20469,
+        "netByAccount": {
+          "4100": 20467.22,
+          "4110": 1.78
+        },
+        "payable": 21901.83,
+        "total": 21901.83,
+        "vat": 1432.83,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-005",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 7299.975
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 0.19
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        20467.22,
+        1.78
+      ]
+    },
+    {
+      "name": "calcDocument/random-006",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 3187.405
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 442.295
+          },
+          {
+            "accountCode": "4100",
+            "discount": 26.13,
+            "qty": 2,
+            "unitPrice": 39.23
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 8391.73
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 146044,
+        "net": 136489.72,
+        "netByAccount": {
+          "4100": 48.91,
+          "5100": 991.97,
+          "SVC": 135448.84
+        },
+        "payable": 141949.31,
+        "total": 146044,
+        "vat": 9554.28,
+        "wht": 4094.69
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-006",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 3187.405
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 442.295
+          },
+          {
+            "accountCode": "4100",
+            "discount": 26.13,
+            "qty": 2,
+            "unitPrice": 39.23
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 8391.73
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        991.97,
+        41335.98,
+        48.91,
+        94112.86
+      ]
+    },
+    {
+      "name": "calcDocument/random-007",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 2825.67
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.555
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 19780.25,
+        "net": 19780.25,
+        "netByAccount": {
+          "4110": 19779.69,
+          "SVC": 0.56
+        },
+        "payable": 19780.25,
+        "total": 19780.25,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-007",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 2825.67
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.555
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0
+      },
+      "output": [
+        19779.69,
+        0.56
+      ]
+    },
+    {
+      "name": "calcDocument/random-008",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 54
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 54,
+        "net": 54,
+        "netByAccount": {
+          "SVC": 54
+        },
+        "payable": 54,
+        "total": 54,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-008",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 54
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        54
+      ]
+    },
+    {
+      "name": "calcDocument/random-009",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 13779.26
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 10,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 4588.49,
+        "net": 4588.49,
+        "netByAccount": {
+          "4100": 4588.49
+        },
+        "payable": 4588.49,
+        "total": 4588.49,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-009",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 13779.26
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 10
+      },
+      "output": [
+        4588.49
+      ]
+    },
+    {
+      "name": "calcDocument/random-010",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.31
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 3.84,
+            "qty": 10,
+            "unitPrice": 3.84
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 34.66,
+        "net": 34.66,
+        "netByAccount": {
+          "SVC": 34.66
+        },
+        "payable": 34.31,
+        "total": 34.66,
+        "vat": 0,
+        "wht": 0.35
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-010",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.31
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 3.84,
+            "qty": 10,
+            "unitPrice": 3.84
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0
+      },
+      "output": [
+        0.1,
+        34.56
+      ]
+    },
+    {
+      "name": "calcDocument/random-011",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 6730.755
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 5.42
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.16
+          },
+          {
+            "accountCode": "5100",
+            "discount": 59.1,
+            "qty": 1.5,
+            "unitPrice": 394
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 20778.42,
+        "net": 20778.42,
+        "netByAccount": {
+          "4100": 0.05,
+          "4110": 20246.47,
+          "5100": 531.9
+        },
+        "payable": 20778.42,
+        "total": 20778.42,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-011",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 6730.755
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 5.42
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.16
+          },
+          {
+            "accountCode": "5100",
+            "discount": 59.1,
+            "qty": 1.5,
+            "unitPrice": 394
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0
+      },
+      "output": [
+        20192.27,
+        54.2,
+        0.05,
+        531.9
+      ]
+    },
+    {
+      "name": "calcDocument/random-012",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 9.23
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 424
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 327.57
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.835
+          },
+          {
+            "accountCode": "4100",
+            "discount": 2372.1,
+            "qty": 7,
+            "unitPrice": 3388.71
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 23871.72,
+        "net": 23871.72,
+        "netByAccount": {
+          "4100": 21676.44,
+          "4110": 1272,
+          "5100": 923,
+          "SVC": 0.28
+        },
+        "payable": 23155.57,
+        "total": 23871.72,
+        "vat": 0,
+        "wht": 716.15
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-012",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 9.23
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 424
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 327.57
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.835
+          },
+          {
+            "accountCode": "4100",
+            "discount": 2372.1,
+            "qty": 7,
+            "unitPrice": 3388.71
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0
+      },
+      "output": [
+        923,
+        1272,
+        327.57,
+        0.28,
+        21348.87
+      ]
+    },
+    {
+      "name": "calcDocument/random-013",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 0.62
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 18.055
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 27.39,
+        "net": 27.39,
+        "netByAccount": {
+          "4110": 27.08,
+          "5100": 0.31
+        },
+        "payable": 26.02,
+        "total": 27.39,
+        "vat": 0,
+        "wht": 1.37
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-013",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 0.62
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 18.055
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0
+      },
+      "output": [
+        0.31,
+        27.08
+      ]
+    },
+    {
+      "name": "calcDocument/random-014",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 478.885
+          },
+          {
+            "accountCode": "4110",
+            "discount": 776.43,
+            "qty": 1,
+            "unitPrice": 15528.525
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 342.65
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 49176.57,
+        "net": 49176.57,
+        "netByAccount": {
+          "4110": 14752.1,
+          "5100": 34265,
+          "SVC": 159.47
+        },
+        "payable": 47701.27,
+        "total": 49176.57,
+        "vat": 0,
+        "wht": 1475.3
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-014",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 478.885
+          },
+          {
+            "accountCode": "4110",
+            "discount": 776.43,
+            "qty": 1,
+            "unitPrice": 15528.525
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 342.65
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0
+      },
+      "output": [
+        159.47,
+        14752.1,
+        34265
+      ]
+    },
+    {
+      "name": "calcDocument/random-015",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 8956.9
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 20153.03,
+        "net": 20153.03,
+        "netByAccount": {
+          "5100": 20153.03
+        },
+        "payable": 21563.74,
+        "total": 21563.74,
+        "vat": 1410.71,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-015",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 8956.9
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        20153.03
+      ]
+    },
+    {
+      "name": "calcDocument/random-016",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 100.39,
+            "qty": 2.25,
+            "unitPrice": 446.185
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 10,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 903.53,
+        "net": 903.53,
+        "netByAccount": {
+          "4110": 903.53
+        },
+        "payable": 993.88,
+        "total": 993.88,
+        "vat": 90.35,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-016",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 100.39,
+            "qty": 2.25,
+            "unitPrice": 446.185
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 10
+      },
+      "output": [
+        903.53
+      ]
+    },
+    {
+      "name": "calcDocument/random-017",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 8.445
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 2.81,
+        "net": 2.81,
+        "netByAccount": {
+          "5100": 2.81
+        },
+        "payable": 2.81,
+        "total": 2.81,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-017",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 8.445
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        2.81
+      ]
+    },
+    {
+      "name": "calcDocument/random-018",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 412.68
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 214.705
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 15226.84
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 19836.73,
+        "net": 19836.73,
+        "netByAccount": {
+          "4110": 19353.64,
+          "5100": 483.09
+        },
+        "payable": 19836.73,
+        "total": 19836.73,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-018",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 412.68
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 214.705
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 15226.84
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0
+      },
+      "output": [
+        4126.8,
+        483.09,
+        15226.84
+      ]
+    },
+    {
+      "name": "calcDocument/random-019",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0.84,
+            "qty": 7,
+            "unitPrice": 0.36
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0.14,
+            "qty": 0.5,
+            "unitPrice": 5.44
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 4.26,
+        "net": 4.26,
+        "netByAccount": {
+          "4110": 2.58,
+          "5100": 1.68
+        },
+        "payable": 4.35,
+        "total": 4.56,
+        "vat": 0.3,
+        "wht": 0.21
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-019",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0.84,
+            "qty": 7,
+            "unitPrice": 0.36
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0.14,
+            "qty": 0.5,
+            "unitPrice": 5.44
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        1.68,
+        2.58
+      ]
+    },
+    {
+      "name": "calcDocument/random-020",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 0.49
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.345
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 0.49
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 2.07,
+        "net": 2.07,
+        "netByAccount": {
+          "5100": 0.6,
+          "SVC": 1.47
+        },
+        "payable": 2.05,
+        "total": 2.07,
+        "vat": 0,
+        "wht": 0.02
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-020",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 0.49
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.345
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 0.49
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0
+      },
+      "output": [
+        0.25,
+        0.35,
+        1.47
+      ]
+    },
+    {
+      "name": "calcDocument/random-021",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 6.4,
+            "qty": 0.333,
+            "unitPrice": 192.11
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 0.885
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 5.33
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 18802.58
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 6332.81,
+        "net": 6332.81,
+        "netByAccount": {
+          "4100": 6261.26,
+          "5100": 13.98,
+          "SVC": 57.57
+        },
+        "payable": 6016.17,
+        "total": 6332.81,
+        "vat": 0,
+        "wht": 316.64
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-021",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 6.4,
+            "qty": 0.333,
+            "unitPrice": 192.11
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 0.885
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 5.33
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 18802.58
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0
+      },
+      "output": [
+        57.57,
+        1.99,
+        11.99,
+        6261.26
+      ]
+    },
+    {
+      "name": "calcDocument/random-022",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 4.85,
+            "qty": 2,
+            "unitPrice": 48.525
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 0.05
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 5.875
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 338.405
+          },
+          {
+            "accountCode": "5100",
+            "discount": 7.33,
+            "qty": 100,
+            "unitPrice": 0.22
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 1456.13,
+        "net": 1456.13,
+        "netByAccount": {
+          "4110": 92.2,
+          "5100": 602.52,
+          "SVC": 761.41
+        },
+        "payable": 1514.38,
+        "total": 1558.06,
+        "vat": 101.93,
+        "wht": 43.68
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-022",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 4.85,
+            "qty": 2,
+            "unitPrice": 48.525
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 0.05
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 5.875
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 338.405
+          },
+          {
+            "accountCode": "5100",
+            "discount": 7.33,
+            "qty": 100,
+            "unitPrice": 0.22
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        92.2,
+        0.35,
+        587.5,
+        761.41,
+        14.67
+      ]
+    },
+    {
+      "name": "calcDocument/random-023",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 7.3
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 76.07
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 19445.19
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 2718.69,
+            "qty": 1,
+            "unitPrice": 8164.23
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 10,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 142367.94,
+        "net": 142367.94,
+        "netByAccount": {
+          "4110": 136116.33,
+          "5100": 730,
+          "SVC": 5521.61
+        },
+        "payable": 156604.73,
+        "total": 156604.73,
+        "vat": 14236.79,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-023",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 7.3
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 76.07
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 19445.19
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 2718.69,
+            "qty": 1,
+            "unitPrice": 8164.23
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 10
+      },
+      "output": [
+        730,
+        76.07,
+        136116.33,
+        5445.54
+      ]
+    },
+    {
+      "name": "calcDocument/random-024",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 9.09
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 10,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 13.64,
+        "net": 13.64,
+        "netByAccount": {
+          "4110": 13.64
+        },
+        "payable": 13.5,
+        "total": 13.64,
+        "vat": 0,
+        "wht": 0.14
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-024",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 9.09
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 10
+      },
+      "output": [
+        13.64
+      ]
+    },
+    {
+      "name": "calcDocument/random-025",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 67.91,
+            "qty": 7,
+            "unitPrice": 194.02
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 4.65
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.89
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 1305.07,
+        "net": 1219.69,
+        "netByAccount": {
+          "4110": 0.83,
+          "SVC": 1218.86
+        },
+        "payable": 1268.48,
+        "total": 1305.07,
+        "vat": 85.38,
+        "wht": 36.59
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-025",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 67.91,
+            "qty": 7,
+            "unitPrice": 194.02
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 4.65
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.89
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        1205.82,
+        13.04,
+        0.83
+      ]
+    },
+    {
+      "name": "calcDocument/random-026",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 6.255
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 16522.86
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 1653.91
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 198831.33,
+        "net": 198831.33,
+        "netByAccount": {
+          "4110": 550.75,
+          "5100": 198280.58
+        },
+        "payable": 202807.95,
+        "total": 212749.52,
+        "vat": 13918.19,
+        "wht": 9941.57
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-026",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 6.255
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 16522.86
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 1653.91
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        6.26,
+        198274.32,
+        550.75
+      ]
+    },
+    {
+      "name": "calcDocument/random-027",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 882.04,
+            "qty": 3,
+            "unitPrice": 882.92
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 1766.72,
+        "net": 1651.14,
+        "netByAccount": {
+          "SVC": 1651.14
+        },
+        "payable": 1766.72,
+        "total": 1766.72,
+        "vat": 115.58,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-027",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 882.04,
+            "qty": 3,
+            "unitPrice": 882.92
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        1651.14
+      ]
+    },
+    {
+      "name": "calcDocument/random-028",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0.24,
+            "qty": 1,
+            "unitPrice": 0.71
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 10,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 0.47,
+        "net": 0.47,
+        "netByAccount": {
+          "5100": 0.47
+        },
+        "payable": 0.5,
+        "total": 0.52,
+        "vat": 0.05,
+        "wht": 0.02
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-028",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0.24,
+            "qty": 1,
+            "unitPrice": 0.71
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 10
+      },
+      "output": [
+        0.47
+      ]
+    },
+    {
+      "name": "calcDocument/random-029",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 14345.58
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 14345.58,
+        "net": 14345.58,
+        "netByAccount": {
+          "SVC": 14345.58
+        },
+        "payable": 13915.21,
+        "total": 14345.58,
+        "vat": 0,
+        "wht": 430.37
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-029",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 14345.58
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0
+      },
+      "output": [
+        14345.58
+      ]
+    },
+    {
+      "name": "calcDocument/random-030",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 58018.76,
+            "qty": 12,
+            "unitPrice": 14519.21
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 116211.76,
+        "net": 108609.12,
+        "netByAccount": {
+          "5100": 108609.12
+        },
+        "payable": 116211.76,
+        "total": 116211.76,
+        "vat": 7602.64,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-030",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 58018.76,
+            "qty": 12,
+            "unitPrice": 14519.21
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        108609.12
+      ]
+    },
+    {
+      "name": "calcDocument/random-031",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0.01,
+            "qty": 0.333,
+            "unitPrice": 0.06
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 0.01,
+        "net": 0.01,
+        "netByAccount": {
+          "4110": 0.01
+        },
+        "payable": 0.01,
+        "total": 0.01,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-031",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0.01,
+            "qty": 0.333,
+            "unitPrice": 0.06
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        0.01
+      ]
+    },
+    {
+      "name": "calcDocument/random-032",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0.59,
+            "qty": 12,
+            "unitPrice": 0.98
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 8.93
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 100.47,
+        "net": 100.47,
+        "netByAccount": {
+          "4110": 11.17,
+          "5100": 89.3
+        },
+        "payable": 100.47,
+        "total": 100.47,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-032",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0.59,
+            "qty": 12,
+            "unitPrice": 0.98
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 8.93
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0
+      },
+      "output": [
+        11.17,
+        89.3
+      ]
+    },
+    {
+      "name": "calcDocument/random-033",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 0.06
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 1.315
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 138.08
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 1660.31,
+        "net": 1660.31,
+        "netByAccount": {
+          "4100": 1659.59,
+          "4110": 0.72
+        },
+        "payable": 1660.31,
+        "total": 1660.31,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-033",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 0.06
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 1.315
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 138.08
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0
+      },
+      "output": [
+        0.72,
+        2.63,
+        1656.96
+      ]
+    },
+    {
+      "name": "calcDocument/random-034",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0.38,
+            "qty": 12,
+            "unitPrice": 0.63
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 5.31
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 538.18,
+        "net": 538.18,
+        "netByAccount": {
+          "4110": 531,
+          "SVC": 7.18
+        },
+        "payable": 538.18,
+        "total": 538.18,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-034",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0.38,
+            "qty": 12,
+            "unitPrice": 0.63
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 5.31
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0
+      },
+      "output": [
+        7.18,
+        531
+      ]
+    },
+    {
+      "name": "calcDocument/random-035",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 0.965
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0.45,
+            "qty": 0.5,
+            "unitPrice": 8.93
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 0.11
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 15.73
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 10,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 58.74,
+        "net": 58.74,
+        "netByAccount": {
+          "4100": 6.76,
+          "SVC": 51.98
+        },
+        "payable": 58.74,
+        "total": 58.74,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-035",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 0.965
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0.45,
+            "qty": 0.5,
+            "unitPrice": 8.93
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 0.11
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 15.73
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 10
+      },
+      "output": [
+        6.76,
+        4.02,
+        0.77,
+        47.19
+      ]
+    },
+    {
+      "name": "calcDocument/random-036",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 2.8
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 0.84
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 10,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 288.4,
+        "net": 288.4,
+        "netByAccount": {
+          "4100": 8.4,
+          "SVC": 280
+        },
+        "payable": 314.36,
+        "total": 317.24,
+        "vat": 28.84,
+        "wht": 2.88
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-036",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 2.8
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 0.84
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 10
+      },
+      "output": [
+        280,
+        8.4
+      ]
+    },
+    {
+      "name": "calcDocument/random-037",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0.19,
+            "qty": 2.25,
+            "unitPrice": 0.86
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 0.255
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0.09,
+            "qty": 0.5,
+            "unitPrice": 0.51
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 4.47,
+        "net": 4.47,
+        "netByAccount": {
+          "4100": 1.75,
+          "5100": 0.17,
+          "SVC": 2.55
+        },
+        "payable": 4.78,
+        "total": 4.78,
+        "vat": 0.31,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-037",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0.19,
+            "qty": 2.25,
+            "unitPrice": 0.86
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 0.255
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0.09,
+            "qty": 0.5,
+            "unitPrice": 0.51
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        1.75,
+        2.55,
+        0.17
+      ]
+    },
+    {
+      "name": "calcDocument/random-038",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 12428.98
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.715
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 27965.93,
+        "net": 27965.93,
+        "netByAccount": {
+          "4100": 27965.21,
+          "5100": 0.72
+        },
+        "payable": 27965.93,
+        "total": 27965.93,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-038",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 12428.98
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.715
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0
+      },
+      "output": [
+        27965.21,
+        0.72
+      ]
+    },
+    {
+      "name": "calcDocument/random-039",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 1.78
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 6.505
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 16019.48
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0.06,
+            "qty": 1,
+            "unitPrice": 0.56
+          },
+          {
+            "accountCode": "5100",
+            "discount": 1976.55,
+            "qty": 2,
+            "unitPrice": 19765.455
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 42895.53,
+        "net": 38995.94,
+        "netByAccount": {
+          "4100": 3.65,
+          "5100": 34140.78,
+          "SVC": 4851.51
+        },
+        "payable": 40945.73,
+        "total": 42895.53,
+        "vat": 3899.59,
+        "wht": 1949.8
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-039",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 1.78
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 6.505
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 16019.48
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0.06,
+            "qty": 1,
+            "unitPrice": 0.56
+          },
+          {
+            "accountCode": "5100",
+            "discount": 1976.55,
+            "qty": 2,
+            "unitPrice": 19765.455
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10
+      },
+      "output": [
+        3.65,
+        1.97,
+        4849.54,
+        0.45,
+        34140.33
+      ]
+    },
+    {
+      "name": "calcDocument/random-040",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 5.065
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 6.025
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0.03,
+            "qty": 1.5,
+            "unitPrice": 0.37
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 29.29,
+        "net": 26.63,
+        "netByAccount": {
+          "4100": 12.81,
+          "5100": 13.82
+        },
+        "payable": 29.02,
+        "total": 29.29,
+        "vat": 2.66,
+        "wht": 0.27
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-040",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 5.065
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 6.025
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0.03,
+            "qty": 1.5,
+            "unitPrice": 0.37
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10
+      },
+      "output": [
+        13.82,
+        12.33,
+        0.48
+      ]
+    },
+    {
+      "name": "calcDocument/random-041",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 1.68
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 0.315
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 36.35,
+            "qty": 100,
+            "unitPrice": 7.27
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 7.25
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 1.55,
+            "qty": 100,
+            "unitPrice": 0.155
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 716.16,
+        "net": 669.31,
+        "netByAccount": {
+          "4100": 4.03,
+          "4110": 6.78,
+          "SVC": 658.5
+        },
+        "payable": 716.16,
+        "total": 716.16,
+        "vat": 46.85,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-041",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 1.68
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 0.315
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 36.35,
+            "qty": 100,
+            "unitPrice": 7.27
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 7.25
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 1.55,
+            "qty": 100,
+            "unitPrice": 0.155
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        3.14,
+        0.89,
+        645.47,
+        6.78,
+        13.03
+      ]
+    },
+    {
+      "name": "calcDocument/random-042",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 91.9
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 15007.685
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 2073.21
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 7254.57,
+        "net": 7254.57,
+        "netByAccount": {
+          "4100": 4997.56,
+          "5100": 2073.21,
+          "SVC": 183.8
+        },
+        "payable": 7254.57,
+        "total": 7254.57,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-042",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 91.9
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 15007.685
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 2073.21
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0
+      },
+      "output": [
+        183.8,
+        4997.56,
+        2073.21
+      ]
+    },
+    {
+      "name": "calcDocument/random-043",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0.31,
+            "qty": 1.5,
+            "unitPrice": 0.625
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 0.355
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 3.12,
+        "net": 3.12,
+        "netByAccount": {
+          "4100": 0.63,
+          "4110": 2.49
+        },
+        "payable": 2.96,
+        "total": 3.12,
+        "vat": 0,
+        "wht": 0.16
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-043",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0.31,
+            "qty": 1.5,
+            "unitPrice": 0.625
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 0.355
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0
+      },
+      "output": [
+        0.63,
+        2.49
+      ]
+    },
+    {
+      "name": "calcDocument/random-044",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.93
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 473.09
+          },
+          {
+            "accountCode": "4110",
+            "discount": 380.03,
+            "qty": 3,
+            "unitPrice": 380.405
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 122.775
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 10,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 1602.92,
+        "net": 1602.92,
+        "netByAccount": {
+          "4110": 761.19,
+          "5100": 368.33,
+          "SVC": 473.4
+        },
+        "payable": 1602.92,
+        "total": 1602.92,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-044",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.93
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 473.09
+          },
+          {
+            "accountCode": "4110",
+            "discount": 380.03,
+            "qty": 3,
+            "unitPrice": 380.405
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 122.775
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 10
+      },
+      "output": [
+        0.31,
+        473.09,
+        761.19,
+        368.33
+      ]
+    },
+    {
+      "name": "calcDocument/random-045",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 6.31
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 13013.1
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 8.63
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1036.995
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 157201.68,
+        "net": 157201.68,
+        "netByAccount": {
+          "4100": 1037,
+          "4110": 4.32,
+          "5100": 3.16,
+          "SVC": 156157.2
+        },
+        "payable": 155629.66,
+        "total": 157201.68,
+        "vat": 0,
+        "wht": 1572.02
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-045",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 6.31
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 13013.1
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 8.63
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1036.995
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        3.16,
+        156157.2,
+        4.32,
+        1037
+      ]
+    },
+    {
+      "name": "calcDocument/random-046",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 14981.6
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 4988.87,
+        "net": 4988.87,
+        "netByAccount": {
+          "4110": 4988.87
+        },
+        "payable": 4988.87,
+        "total": 4988.87,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-046",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 14981.6
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0
+      },
+      "output": [
+        4988.87
+      ]
+    },
+    {
+      "name": "calcDocument/random-047",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 4.62
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 14505.995
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 4.325
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 0.64
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 7277.34,
+        "net": 7277.34,
+        "netByAccount": {
+          "4100": 10.4,
+          "4110": 12.98,
+          "5100": 7253,
+          "SVC": 0.96
+        },
+        "payable": 7204.57,
+        "total": 7277.34,
+        "vat": 0,
+        "wht": 72.77
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-047",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 4.62
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 14505.995
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 3,
+            "unitPrice": 4.325
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 0.64
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        10.4,
+        7253,
+        12.98,
+        0.96
+      ]
+    },
+    {
+      "name": "calcDocument/random-048",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 96.975
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 32.29,
+        "net": 32.29,
+        "netByAccount": {
+          "5100": 32.29
+        },
+        "payable": 33.58,
+        "total": 34.55,
+        "vat": 2.26,
+        "wht": 0.97
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-048",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 96.975
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        32.29
+      ]
+    },
+    {
+      "name": "calcDocument/random-049",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 0.75
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 439.11
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 267.46
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 3429.46,
+        "net": 3429.46,
+        "netByAccount": {
+          "4110": 3429.08,
+          "5100": 0.38
+        },
+        "payable": 3566.64,
+        "total": 3669.52,
+        "vat": 240.06,
+        "wht": 102.88
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-049",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 0.75
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 439.11
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 267.46
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        0.38,
+        219.56,
+        3209.52
+      ]
+    },
+    {
+      "name": "calcDocument/random-050",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 8.48
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 0.905
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 13120.01
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 5649.33
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 578072.54,
+        "net": 578072.54,
+        "netByAccount": {
+          "4100": 564952.08,
+          "4110": 13120.01,
+          "5100": 0.45
+        },
+        "payable": 618537.62,
+        "total": 618537.62,
+        "vat": 40465.08,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-050",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 8.48
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 0.905
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 13120.01
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 5649.33
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        19.08,
+        0.45,
+        13120.01,
+        564933
+      ]
+    },
+    {
+      "name": "calcDocument/random-051",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 445.035
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0.25,
+            "qty": 1,
+            "unitPrice": 5.08
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 227.35,
+        "net": 227.35,
+        "netByAccount": {
+          "4110": 4.83,
+          "SVC": 222.52
+        },
+        "payable": 227.35,
+        "total": 227.35,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-051",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 445.035
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0.25,
+            "qty": 1,
+            "unitPrice": 5.08
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        222.52,
+        4.83
+      ]
+    },
+    {
+      "name": "calcDocument/random-052",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 3900.22,
+            "qty": 3,
+            "unitPrice": 13000.72
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 4171.42,
+            "qty": 12,
+            "unitPrice": 3476.18
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 72644.68,
+        "net": 72644.68,
+        "netByAccount": {
+          "SVC": 72644.68
+        },
+        "payable": 70465.34,
+        "total": 72644.68,
+        "vat": 0,
+        "wht": 2179.34
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-052",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 3900.22,
+            "qty": 3,
+            "unitPrice": 13000.72
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 4171.42,
+            "qty": 12,
+            "unitPrice": 3476.18
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 0
+      },
+      "output": [
+        35101.94,
+        37542.74
+      ]
+    },
+    {
+      "name": "calcDocument/random-053",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 725.3,
+            "qty": 0.5,
+            "unitPrice": 14506
+          },
+          {
+            "accountCode": "4100",
+            "discount": 62.7,
+            "qty": 1.5,
+            "unitPrice": 417.99
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 7091.99,
+        "net": 7091.99,
+        "netByAccount": {
+          "4100": 564.29,
+          "5100": 6527.7
+        },
+        "payable": 6737.39,
+        "total": 7091.99,
+        "vat": 0,
+        "wht": 354.6
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-053",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 725.3,
+            "qty": 0.5,
+            "unitPrice": 14506
+          },
+          {
+            "accountCode": "4100",
+            "discount": 62.7,
+            "qty": 1.5,
+            "unitPrice": 417.99
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0
+      },
+      "output": [
+        6527.7,
+        564.29
+      ]
+    },
+    {
+      "name": "calcDocument/random-054",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 15765.515
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 189186.18,
+        "net": 189186.18,
+        "netByAccount": {
+          "4110": 189186.18
+        },
+        "payable": 196753.62,
+        "total": 202429.21,
+        "vat": 13243.03,
+        "wht": 5675.59
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-054",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 15765.515
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        189186.18
+      ]
+    },
+    {
+      "name": "calcDocument/random-055",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 232.47,
+            "qty": 3,
+            "unitPrice": 232.7
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 0.31
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 5136.17,
+            "qty": 3,
+            "unitPrice": 5141.31
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0.18,
+            "qty": 0.333,
+            "unitPrice": 1.62
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 10755.92,
+        "net": 10052.26,
+        "netByAccount": {
+          "4100": 0.33,
+          "4110": 437.2,
+          "SVC": 9614.73
+        },
+        "payable": 10655.4,
+        "total": 10755.92,
+        "vat": 703.66,
+        "wht": 100.52
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-055",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 232.47,
+            "qty": 3,
+            "unitPrice": 232.7
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 7,
+            "unitPrice": 0.31
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 5136.17,
+            "qty": 3,
+            "unitPrice": 5141.31
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0.18,
+            "qty": 0.333,
+            "unitPrice": 1.62
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        435.17,
+        2.03,
+        9614.73,
+        0.33
+      ]
+    },
+    {
+      "name": "calcDocument/random-056",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.2
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 0.2,
+        "net": 0.19,
+        "netByAccount": {
+          "4100": 0.19
+        },
+        "payable": 0.2,
+        "total": 0.2,
+        "vat": 0.01,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-056",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.2
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        0.19
+      ]
+    },
+    {
+      "name": "calcDocument/random-057",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.55
+          },
+          {
+            "accountCode": "4110",
+            "discount": 15.5,
+            "qty": 100,
+            "unitPrice": 3.1
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0.08,
+            "qty": 3,
+            "unitPrice": 0.54
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 4630.495
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 7242.33,
+        "net": 7242.33,
+        "netByAccount": {
+          "4110": 294.5,
+          "5100": 2.09,
+          "SVC": 6945.74
+        },
+        "payable": 7169.91,
+        "total": 7242.33,
+        "vat": 0,
+        "wht": 72.42
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-057",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.55
+          },
+          {
+            "accountCode": "4110",
+            "discount": 15.5,
+            "qty": 100,
+            "unitPrice": 3.1
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0.08,
+            "qty": 3,
+            "unitPrice": 0.54
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 4630.495
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        0.55,
+        294.5,
+        1.54,
+        6945.74
+      ]
+    },
+    {
+      "name": "calcDocument/random-058",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0.06,
+            "qty": 2,
+            "unitPrice": 0.555
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 0.685
+          },
+          {
+            "accountCode": "5100",
+            "discount": 127.29,
+            "qty": 0.5,
+            "unitPrice": 5091.585
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 2421.09,
+        "net": 2421.09,
+        "netByAccount": {
+          "4110": 1.05,
+          "5100": 2420.04
+        },
+        "payable": 2590.57,
+        "total": 2590.57,
+        "vat": 169.48,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-058",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0.06,
+            "qty": 2,
+            "unitPrice": 0.555
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 0.685
+          },
+          {
+            "accountCode": "5100",
+            "discount": 127.29,
+            "qty": 0.5,
+            "unitPrice": 5091.585
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        1.05,
+        1.54,
+        2418.5
+      ]
+    },
+    {
+      "name": "calcDocument/random-059",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 6.475
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 75.3
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 153,
+        "net": 139.09,
+        "netByAccount": {
+          "4100": 70.64,
+          "4110": 68.45
+        },
+        "payable": 153,
+        "total": 153,
+        "vat": 13.91,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-059",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 6.475
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 75.3
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10
+      },
+      "output": [
+        70.64,
+        68.45
+      ]
+    },
+    {
+      "name": "calcDocument/random-060",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 25.98,
+            "qty": 100,
+            "unitPrice": 5.195
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0.75,
+            "qty": 2.25,
+            "unitPrice": 3.325
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 19800.64
+          },
+          {
+            "accountCode": "5100",
+            "discount": 82.52,
+            "qty": 2.25,
+            "unitPrice": 110.14
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 20466.19,
+        "net": 20466.19,
+        "netByAccount": {
+          "4100": 19800.64,
+          "5100": 172.03,
+          "SVC": 493.52
+        },
+        "payable": 20261.53,
+        "total": 20466.19,
+        "vat": 0,
+        "wht": 204.66
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-060",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 25.98,
+            "qty": 100,
+            "unitPrice": 5.195
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0.75,
+            "qty": 2.25,
+            "unitPrice": 3.325
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 19800.64
+          },
+          {
+            "accountCode": "5100",
+            "discount": 82.52,
+            "qty": 2.25,
+            "unitPrice": 110.14
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        493.52,
+        6.73,
+        19800.64,
+        165.3
+      ]
+    },
+    {
+      "name": "calcDocument/random-061",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 52.17,
+            "qty": 1,
+            "unitPrice": 156.68
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 0.12
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 3.425
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 0.61
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 0.57
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 127.7,
+        "net": 127.7,
+        "netByAccount": {
+          "4100": 104.51,
+          "4110": 4.35,
+          "SVC": 18.84
+        },
+        "payable": 126.42,
+        "total": 127.7,
+        "vat": 0,
+        "wht": 1.28
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-061",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 52.17,
+            "qty": 1,
+            "unitPrice": 156.68
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 0.12
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 3.425
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 0.61
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 0.57
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        104.51,
+        12,
+        3.43,
+        0.92,
+        6.84
+      ]
+    },
+    {
+      "name": "calcDocument/random-062",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 60.86,
+            "qty": 3,
+            "unitPrice": 405.72
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 8201.16
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 2.795
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 5284.83,
+        "net": 4804.39,
+        "netByAccount": {
+          "4100": 1051.18,
+          "5100": 25.41,
+          "SVC": 3727.8
+        },
+        "payable": 5140.7,
+        "total": 5284.83,
+        "vat": 480.44,
+        "wht": 144.13
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-062",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 60.86,
+            "qty": 3,
+            "unitPrice": 405.72
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 8201.16
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 2.795
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10
+      },
+      "output": [
+        1051.18,
+        3727.8,
+        25.41
+      ]
+    },
+    {
+      "name": "calcDocument/random-063",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 6.52
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 6.52,
+        "net": 6.09,
+        "netByAccount": {
+          "5100": 6.09
+        },
+        "payable": 6.34,
+        "total": 6.52,
+        "vat": 0.43,
+        "wht": 0.18
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-063",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 6.52
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        6.09
+      ]
+    },
+    {
+      "name": "calcDocument/random-064",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 0.02
+          },
+          {
+            "accountCode": "4100",
+            "discount": 618.98,
+            "qty": 2.25,
+            "unitPrice": 826.13
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 1239.85,
+        "net": 1158.74,
+        "netByAccount": {
+          "4100": 1158.7,
+          "SVC": 0.04
+        },
+        "payable": 1205.09,
+        "total": 1239.85,
+        "vat": 81.11,
+        "wht": 34.76
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-064",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 0.02
+          },
+          {
+            "accountCode": "4100",
+            "discount": 618.98,
+            "qty": 2.25,
+            "unitPrice": 826.13
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        0.04,
+        1158.7
+      ]
+    },
+    {
+      "name": "calcDocument/random-065",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 245.27
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.79
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 16928.14
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 34408.4,
+        "net": 34408.4,
+        "netByAccount": {
+          "4100": 552.12,
+          "4110": 33856.28
+        },
+        "payable": 34408.4,
+        "total": 34408.4,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-065",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 245.27
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.79
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 16928.14
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        551.86,
+        0.26,
+        33856.28
+      ]
+    },
+    {
+      "name": "calcDocument/random-066",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 3.855
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 4.995
+          },
+          {
+            "accountCode": "4100",
+            "discount": 10,
+            "qty": 7,
+            "unitPrice": 4.29
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 26.31,
+        "net": 24.59,
+        "netByAccount": {
+          "4100": 24.59
+        },
+        "payable": 26.31,
+        "total": 26.31,
+        "vat": 1.72,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-066",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 3.855
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 4.995
+          },
+          {
+            "accountCode": "4100",
+            "discount": 10,
+            "qty": 7,
+            "unitPrice": 4.29
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        1.2,
+        4.67,
+        18.72
+      ]
+    },
+    {
+      "name": "calcDocument/random-067",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 3738.41
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 13540.58
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 6.525
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 8.42
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 22401.02,
+        "net": 22401.02,
+        "netByAccount": {
+          "4100": 842,
+          "4110": 1248.15,
+          "5100": 20310.87
+        },
+        "payable": 23745.08,
+        "total": 23969.09,
+        "vat": 1568.07,
+        "wht": 224.01
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-067",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 3738.41
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1.5,
+            "unitPrice": 13540.58
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 6.525
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 8.42
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        1244.89,
+        20310.87,
+        3.26,
+        842
+      ]
+    },
+    {
+      "name": "calcDocument/random-068",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 333.7
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.5
+          },
+          {
+            "accountCode": "5100",
+            "discount": 467.7,
+            "qty": 12,
+            "unitPrice": 389.75
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 167.03
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.685
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 7713.73,
+        "net": 7713.73,
+        "netByAccount": {
+          "4100": 0.4,
+          "5100": 7713.33
+        },
+        "payable": 8176.55,
+        "total": 8253.69,
+        "vat": 539.96,
+        "wht": 77.14
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-068",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 333.7
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.5
+          },
+          {
+            "accountCode": "5100",
+            "discount": 467.7,
+            "qty": 12,
+            "unitPrice": 389.75
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 167.03
+          },
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 0.685
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        3337,
+        0.17,
+        4209.3,
+        167.03,
+        0.23
+      ]
+    },
+    {
+      "name": "calcDocument/random-069",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 3.46
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 41.52,
+        "net": 38.8,
+        "netByAccount": {
+          "4100": 38.8
+        },
+        "payable": 41.13,
+        "total": 41.52,
+        "vat": 2.72,
+        "wht": 0.39
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-069",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 3.46
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        38.8
+      ]
+    },
+    {
+      "name": "calcDocument/random-070",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 253.905
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 253.91,
+        "net": 253.91,
+        "netByAccount": {
+          "4110": 253.91
+        },
+        "payable": 253.91,
+        "total": 253.91,
+        "vat": 0,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-070",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 253.905
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        253.91
+      ]
+    },
+    {
+      "name": "calcDocument/random-071",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0.08,
+            "qty": 2.25,
+            "unitPrice": 0.35
+          },
+          {
+            "accountCode": "4110",
+            "discount": 426.31,
+            "qty": 2,
+            "unitPrice": 640.1
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 19862.02
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 1987056.6,
+        "net": 1806415.09,
+        "netByAccount": {
+          "4110": 776.26,
+          "SVC": 1805638.83
+        },
+        "payable": 1987056.6,
+        "total": 1987056.6,
+        "vat": 180641.51,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-071",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "SVC",
+            "discount": 0.08,
+            "qty": 2.25,
+            "unitPrice": 0.35
+          },
+          {
+            "accountCode": "4110",
+            "discount": 426.31,
+            "qty": 2,
+            "unitPrice": 640.1
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 19862.02
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10
+      },
+      "output": [
+        0.65,
+        776.26,
+        1805638.18
+      ]
+    },
+    {
+      "name": "calcDocument/random-072",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 1505.53,
+            "qty": 12,
+            "unitPrice": 376.76
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.55
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 8.87
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 288.89
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0.34,
+            "qty": 12,
+            "unitPrice": 0.28
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 32014.6,
+        "net": 29920.19,
+        "netByAccount": {
+          "4110": 2818.31,
+          "5100": 2.82,
+          "SVC": 27099.06
+        },
+        "payable": 31715.4,
+        "total": 32014.6,
+        "vat": 2094.41,
+        "wht": 299.2
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-072",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 1505.53,
+            "qty": 12,
+            "unitPrice": 376.76
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.55
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 8.87
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 100,
+            "unitPrice": 288.89
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0.34,
+            "qty": 12,
+            "unitPrice": 0.28
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        2818.31,
+        0.51,
+        99.48,
+        26999.07,
+        2.82
+      ]
+    },
+    {
+      "name": "calcDocument/random-073",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 2.51,
+            "qty": 12,
+            "unitPrice": 2.095
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 0.53
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0.02,
+            "qty": 1,
+            "unitPrice": 0.3
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0.01,
+            "qty": 0.333,
+            "unitPrice": 0.865
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 13067.81
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 4381.13,
+        "net": 4094.51,
+        "netByAccount": {
+          "4110": 0.26,
+          "5100": 21.41,
+          "SVC": 4072.84
+        },
+        "payable": 4340.18,
+        "total": 4381.13,
+        "vat": 286.62,
+        "wht": 40.95
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-073",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 2.51,
+            "qty": 12,
+            "unitPrice": 2.095
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 0.53
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0.02,
+            "qty": 1,
+            "unitPrice": 0.3
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0.01,
+            "qty": 0.333,
+            "unitPrice": 0.865
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 0.333,
+            "unitPrice": 13067.81
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        21.15,
+        5.94,
+        0.26,
+        0.26,
+        4066.9
+      ]
+    },
+    {
+      "name": "calcDocument/random-074",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 0.67
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7,
+        "whtRate": 0
+      },
+      "output": {
+        "gross": 1.34,
+        "net": 1.25,
+        "netByAccount": {
+          "5100": 1.25
+        },
+        "payable": 1.34,
+        "total": 1.34,
+        "vat": 0.09,
+        "wht": 0
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-074",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 0.67
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 7
+      },
+      "output": [
+        1.25
+      ]
+    },
+    {
+      "name": "calcDocument/random-075",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1330.33
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 128.83
+          },
+          {
+            "accountCode": "5100",
+            "discount": 25770.17,
+            "qty": 10,
+            "unitPrice": 7738.79
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 54494.02,
+        "net": 54494.02,
+        "netByAccount": {
+          "5100": 52948.06,
+          "SVC": 1545.96
+        },
+        "payable": 52859.2,
+        "total": 54494.02,
+        "vat": 0,
+        "wht": 1634.82
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-075",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 1330.33
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 12,
+            "unitPrice": 128.83
+          },
+          {
+            "accountCode": "5100",
+            "discount": 25770.17,
+            "qty": 10,
+            "unitPrice": 7738.79
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 0
+      },
+      "output": [
+        1330.33,
+        1545.96,
+        51617.73
+      ]
+    },
+    {
+      "name": "calcDocument/random-076",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 382.81
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7,
+        "whtRate": 1
+      },
+      "output": {
+        "gross": 191.41,
+        "net": 191.41,
+        "netByAccount": {
+          "4100": 191.41
+        },
+        "payable": 202.9,
+        "total": 204.81,
+        "vat": 13.4,
+        "wht": 1.91
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-076",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 382.81
+          }
+        ],
+        "vatMode": "exclusive",
+        "vatRate": 7
+      },
+      "output": [
+        191.41
+      ]
+    },
+    {
+      "name": "calcDocument/random-077",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 324.145
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 162.07,
+        "net": 147.34,
+        "netByAccount": {
+          "4110": 147.34
+        },
+        "payable": 154.7,
+        "total": 162.07,
+        "vat": 14.73,
+        "wht": 7.37
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-077",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 0.5,
+            "unitPrice": 324.145
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 10
+      },
+      "output": [
+        147.34
+      ]
+    },
+    {
+      "name": "calcDocument/random-078",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 4598.565
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0,
+        "whtRate": 5
+      },
+      "output": {
+        "gross": 9197.13,
+        "net": 9197.13,
+        "netByAccount": {
+          "4100": 9197.13
+        },
+        "payable": 8737.27,
+        "total": 9197.13,
+        "vat": 0,
+        "wht": 459.86
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-078",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 4598.565
+          }
+        ],
+        "vatMode": "inclusive",
+        "vatRate": 0
+      },
+      "output": [
+        9197.13
+      ]
+    },
+    {
+      "name": "calcDocument/random-079",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 384.73
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 16970.41
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.63
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 449.15
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7,
+        "whtRate": 3
+      },
+      "output": {
+        "gross": 171484.78,
+        "net": 171484.78,
+        "netByAccount": {
+          "4100": 769.46,
+          "4110": 169704.1,
+          "5100": 0.63,
+          "SVC": 1010.59
+        },
+        "payable": 166340.24,
+        "total": 171484.78,
+        "vat": 0,
+        "wht": 5144.54
+      }
+    },
+    {
+      "name": "lineNetAmounts/random-079",
+      "input": {
+        "lines": [
+          {
+            "accountCode": "4100",
+            "discount": 0,
+            "qty": 2,
+            "unitPrice": 384.73
+          },
+          {
+            "accountCode": "4110",
+            "discount": 0,
+            "qty": 10,
+            "unitPrice": 16970.41
+          },
+          {
+            "accountCode": "5100",
+            "discount": 0,
+            "qty": 1,
+            "unitPrice": 0.63
+          },
+          {
+            "accountCode": "SVC",
+            "discount": 0,
+            "qty": 2.25,
+            "unitPrice": 449.15
+          }
+        ],
+        "vatMode": "none",
+        "vatRate": 7
+      },
+      "output": [
+        769.46,
+        169704.1,
+        0.63,
+        1010.59
+      ]
+    }
+  ]
+}

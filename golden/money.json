@@ -1,0 +1,1358 @@
+{
+  "file": "money.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 165,
+  "vectors": [
+    {
+      "name": "toSatang/0",
+      "input": {
+        "baht": 0
+      },
+      "output": 0
+    },
+    {
+      "name": "round2/0",
+      "input": {
+        "baht": 0
+      },
+      "output": 0
+    },
+    {
+      "name": "formatPlain/0",
+      "input": {
+        "baht": 0
+      },
+      "output": "0.00"
+    },
+    {
+      "name": "toSatang/1",
+      "input": {
+        "baht": 1
+      },
+      "output": 100
+    },
+    {
+      "name": "round2/1",
+      "input": {
+        "baht": 1
+      },
+      "output": 1
+    },
+    {
+      "name": "formatPlain/1",
+      "input": {
+        "baht": 1
+      },
+      "output": "1.00"
+    },
+    {
+      "name": "toSatang/-1",
+      "input": {
+        "baht": -1
+      },
+      "output": -100
+    },
+    {
+      "name": "round2/-1",
+      "input": {
+        "baht": -1
+      },
+      "output": -1
+    },
+    {
+      "name": "formatPlain/-1",
+      "input": {
+        "baht": -1
+      },
+      "output": "-1.00"
+    },
+    {
+      "name": "toSatang/0.01",
+      "input": {
+        "baht": 0.01
+      },
+      "output": 1
+    },
+    {
+      "name": "round2/0.01",
+      "input": {
+        "baht": 0.01
+      },
+      "output": 0.01
+    },
+    {
+      "name": "formatPlain/0.01",
+      "input": {
+        "baht": 0.01
+      },
+      "output": "0.01"
+    },
+    {
+      "name": "toSatang/-0.01",
+      "input": {
+        "baht": -0.01
+      },
+      "output": -1
+    },
+    {
+      "name": "round2/-0.01",
+      "input": {
+        "baht": -0.01
+      },
+      "output": -0.01
+    },
+    {
+      "name": "formatPlain/-0.01",
+      "input": {
+        "baht": -0.01
+      },
+      "output": "-0.01"
+    },
+    {
+      "name": "toSatang/0.005",
+      "input": {
+        "baht": 0.005
+      },
+      "output": 1
+    },
+    {
+      "name": "round2/0.005",
+      "input": {
+        "baht": 0.005
+      },
+      "output": 0.01
+    },
+    {
+      "name": "formatPlain/0.005",
+      "input": {
+        "baht": 0.005
+      },
+      "output": "0.01"
+    },
+    {
+      "name": "toSatang/-0.005",
+      "input": {
+        "baht": -0.005
+      },
+      "output": -1
+    },
+    {
+      "name": "round2/-0.005",
+      "input": {
+        "baht": -0.005
+      },
+      "output": -0.01
+    },
+    {
+      "name": "formatPlain/-0.005",
+      "input": {
+        "baht": -0.005
+      },
+      "output": "-0.01"
+    },
+    {
+      "name": "toSatang/0.004",
+      "input": {
+        "baht": 0.004
+      },
+      "output": 0
+    },
+    {
+      "name": "round2/0.004",
+      "input": {
+        "baht": 0.004
+      },
+      "output": 0
+    },
+    {
+      "name": "formatPlain/0.004",
+      "input": {
+        "baht": 0.004
+      },
+      "output": "0.00"
+    },
+    {
+      "name": "toSatang/0.0049",
+      "input": {
+        "baht": 0.0049
+      },
+      "output": 0
+    },
+    {
+      "name": "round2/0.0049",
+      "input": {
+        "baht": 0.0049
+      },
+      "output": 0
+    },
+    {
+      "name": "formatPlain/0.0049",
+      "input": {
+        "baht": 0.0049
+      },
+      "output": "0.00"
+    },
+    {
+      "name": "toSatang/0.015",
+      "input": {
+        "baht": 0.015
+      },
+      "output": 2
+    },
+    {
+      "name": "round2/0.015",
+      "input": {
+        "baht": 0.015
+      },
+      "output": 0.02
+    },
+    {
+      "name": "formatPlain/0.015",
+      "input": {
+        "baht": 0.015
+      },
+      "output": "0.02"
+    },
+    {
+      "name": "toSatang/0.025",
+      "input": {
+        "baht": 0.025
+      },
+      "output": 3
+    },
+    {
+      "name": "round2/0.025",
+      "input": {
+        "baht": 0.025
+      },
+      "output": 0.03
+    },
+    {
+      "name": "formatPlain/0.025",
+      "input": {
+        "baht": 0.025
+      },
+      "output": "0.03"
+    },
+    {
+      "name": "toSatang/0.035",
+      "input": {
+        "baht": 0.035
+      },
+      "output": 4
+    },
+    {
+      "name": "round2/0.035",
+      "input": {
+        "baht": 0.035
+      },
+      "output": 0.04
+    },
+    {
+      "name": "formatPlain/0.035",
+      "input": {
+        "baht": 0.035
+      },
+      "output": "0.04"
+    },
+    {
+      "name": "toSatang/0.045",
+      "input": {
+        "baht": 0.045
+      },
+      "output": 5
+    },
+    {
+      "name": "round2/0.045",
+      "input": {
+        "baht": 0.045
+      },
+      "output": 0.05
+    },
+    {
+      "name": "formatPlain/0.045",
+      "input": {
+        "baht": 0.045
+      },
+      "output": "0.05"
+    },
+    {
+      "name": "toSatang/1.005",
+      "input": {
+        "baht": 1.005
+      },
+      "output": 101
+    },
+    {
+      "name": "round2/1.005",
+      "input": {
+        "baht": 1.005
+      },
+      "output": 1.01
+    },
+    {
+      "name": "formatPlain/1.005",
+      "input": {
+        "baht": 1.005
+      },
+      "output": "1.01"
+    },
+    {
+      "name": "toSatang/-1.005",
+      "input": {
+        "baht": -1.005
+      },
+      "output": -101
+    },
+    {
+      "name": "round2/-1.005",
+      "input": {
+        "baht": -1.005
+      },
+      "output": -1.01
+    },
+    {
+      "name": "formatPlain/-1.005",
+      "input": {
+        "baht": -1.005
+      },
+      "output": "-1.01"
+    },
+    {
+      "name": "toSatang/2.675",
+      "input": {
+        "baht": 2.675
+      },
+      "output": 268
+    },
+    {
+      "name": "round2/2.675",
+      "input": {
+        "baht": 2.675
+      },
+      "output": 2.68
+    },
+    {
+      "name": "formatPlain/2.675",
+      "input": {
+        "baht": 2.675
+      },
+      "output": "2.68"
+    },
+    {
+      "name": "toSatang/-2.675",
+      "input": {
+        "baht": -2.675
+      },
+      "output": -268
+    },
+    {
+      "name": "round2/-2.675",
+      "input": {
+        "baht": -2.675
+      },
+      "output": -2.68
+    },
+    {
+      "name": "formatPlain/-2.675",
+      "input": {
+        "baht": -2.675
+      },
+      "output": "-2.68"
+    },
+    {
+      "name": "toSatang/1.115",
+      "input": {
+        "baht": 1.115
+      },
+      "output": 112
+    },
+    {
+      "name": "round2/1.115",
+      "input": {
+        "baht": 1.115
+      },
+      "output": 1.12
+    },
+    {
+      "name": "formatPlain/1.115",
+      "input": {
+        "baht": 1.115
+      },
+      "output": "1.12"
+    },
+    {
+      "name": "toSatang/8.345",
+      "input": {
+        "baht": 8.345
+      },
+      "output": 835
+    },
+    {
+      "name": "round2/8.345",
+      "input": {
+        "baht": 8.345
+      },
+      "output": 8.35
+    },
+    {
+      "name": "formatPlain/8.345",
+      "input": {
+        "baht": 8.345
+      },
+      "output": "8.35"
+    },
+    {
+      "name": "toSatang/10.555",
+      "input": {
+        "baht": 10.555
+      },
+      "output": 1056
+    },
+    {
+      "name": "round2/10.555",
+      "input": {
+        "baht": 10.555
+      },
+      "output": 10.56
+    },
+    {
+      "name": "formatPlain/10.555",
+      "input": {
+        "baht": 10.555
+      },
+      "output": "10.56"
+    },
+    {
+      "name": "toSatang/33.335",
+      "input": {
+        "baht": 33.335
+      },
+      "output": 3334
+    },
+    {
+      "name": "round2/33.335",
+      "input": {
+        "baht": 33.335
+      },
+      "output": 33.34
+    },
+    {
+      "name": "formatPlain/33.335",
+      "input": {
+        "baht": 33.335
+      },
+      "output": "33.34"
+    },
+    {
+      "name": "toSatang/0.30000000000000004",
+      "input": {
+        "baht": 0.30000000000000004
+      },
+      "output": 30
+    },
+    {
+      "name": "round2/0.30000000000000004",
+      "input": {
+        "baht": 0.30000000000000004
+      },
+      "output": 0.3
+    },
+    {
+      "name": "formatPlain/0.30000000000000004",
+      "input": {
+        "baht": 0.30000000000000004
+      },
+      "output": "0.30"
+    },
+    {
+      "name": "toSatang/1234.5",
+      "input": {
+        "baht": 1234.5
+      },
+      "output": 123450
+    },
+    {
+      "name": "round2/1234.5",
+      "input": {
+        "baht": 1234.5
+      },
+      "output": 1234.5
+    },
+    {
+      "name": "formatPlain/1234.5",
+      "input": {
+        "baht": 1234.5
+      },
+      "output": "1234.50"
+    },
+    {
+      "name": "toSatang/1234567.895",
+      "input": {
+        "baht": 1234567.895
+      },
+      "output": 123456790
+    },
+    {
+      "name": "round2/1234567.895",
+      "input": {
+        "baht": 1234567.895
+      },
+      "output": 1234567.9
+    },
+    {
+      "name": "formatPlain/1234567.895",
+      "input": {
+        "baht": 1234567.895
+      },
+      "output": "1234567.90"
+    },
+    {
+      "name": "toSatang/-1234567.895",
+      "input": {
+        "baht": -1234567.895
+      },
+      "output": -123456790
+    },
+    {
+      "name": "round2/-1234567.895",
+      "input": {
+        "baht": -1234567.895
+      },
+      "output": -1234567.9
+    },
+    {
+      "name": "formatPlain/-1234567.895",
+      "input": {
+        "baht": -1234567.895
+      },
+      "output": "-1234567.90"
+    },
+    {
+      "name": "toSatang/99999999.995",
+      "input": {
+        "baht": 99999999.995
+      },
+      "output": 10000000000
+    },
+    {
+      "name": "round2/99999999.995",
+      "input": {
+        "baht": 99999999.995
+      },
+      "output": 100000000
+    },
+    {
+      "name": "formatPlain/99999999.995",
+      "input": {
+        "baht": 99999999.995
+      },
+      "output": "100000000.00"
+    },
+    {
+      "name": "toSatang/123456789012.34",
+      "input": {
+        "baht": 123456789012.34
+      },
+      "output": 12345678901234
+    },
+    {
+      "name": "round2/123456789012.34",
+      "input": {
+        "baht": 123456789012.34
+      },
+      "output": 123456789012.34
+    },
+    {
+      "name": "formatPlain/123456789012.34",
+      "input": {
+        "baht": 123456789012.34
+      },
+      "output": "123456789012.34"
+    },
+    {
+      "name": "toSatang/0.125",
+      "input": {
+        "baht": 0.125
+      },
+      "output": 13
+    },
+    {
+      "name": "round2/0.125",
+      "input": {
+        "baht": 0.125
+      },
+      "output": 0.13
+    },
+    {
+      "name": "formatPlain/0.125",
+      "input": {
+        "baht": 0.125
+      },
+      "output": "0.13"
+    },
+    {
+      "name": "toSatang/0.135",
+      "input": {
+        "baht": 0.135
+      },
+      "output": 14
+    },
+    {
+      "name": "round2/0.135",
+      "input": {
+        "baht": 0.135
+      },
+      "output": 0.14
+    },
+    {
+      "name": "formatPlain/0.135",
+      "input": {
+        "baht": 0.135
+      },
+      "output": "0.14"
+    },
+    {
+      "name": "toSatang/4.355",
+      "input": {
+        "baht": 4.355
+      },
+      "output": 436
+    },
+    {
+      "name": "round2/4.355",
+      "input": {
+        "baht": 4.355
+      },
+      "output": 4.36
+    },
+    {
+      "name": "formatPlain/4.355",
+      "input": {
+        "baht": 4.355
+      },
+      "output": "4.36"
+    },
+    {
+      "name": "toSatang/1.0049",
+      "input": {
+        "baht": 1.0049
+      },
+      "output": 100
+    },
+    {
+      "name": "round2/1.0049",
+      "input": {
+        "baht": 1.0049
+      },
+      "output": 1
+    },
+    {
+      "name": "formatPlain/1.0049",
+      "input": {
+        "baht": 1.0049
+      },
+      "output": "1.00"
+    },
+    {
+      "name": "toSatang/1.0051",
+      "input": {
+        "baht": 1.0051
+      },
+      "output": 101
+    },
+    {
+      "name": "round2/1.0051",
+      "input": {
+        "baht": 1.0051
+      },
+      "output": 1.01
+    },
+    {
+      "name": "formatPlain/1.0051",
+      "input": {
+        "baht": 1.0051
+      },
+      "output": "1.01"
+    },
+    {
+      "name": "fromSatang/0",
+      "input": {
+        "satang": 0
+      },
+      "output": 0
+    },
+    {
+      "name": "fromSatang/1",
+      "input": {
+        "satang": 1
+      },
+      "output": 0.01
+    },
+    {
+      "name": "fromSatang/-1",
+      "input": {
+        "satang": -1
+      },
+      "output": -0.01
+    },
+    {
+      "name": "fromSatang/101",
+      "input": {
+        "satang": 101
+      },
+      "output": 1.01
+    },
+    {
+      "name": "fromSatang/12345",
+      "input": {
+        "satang": 12345
+      },
+      "output": 123.45
+    },
+    {
+      "name": "fromSatang/-12345",
+      "input": {
+        "satang": -12345
+      },
+      "output": -123.45
+    },
+    {
+      "name": "fromSatang/9999999999",
+      "input": {
+        "satang": 9999999999
+      },
+      "output": 99999999.99
+    },
+    {
+      "name": "sumBaht/empty",
+      "input": {
+        "values": []
+      },
+      "output": 0
+    },
+    {
+      "name": "sumBaht/0.1+0.2",
+      "input": {
+        "values": [
+          0.1,
+          0.2
+        ]
+      },
+      "output": 0.3
+    },
+    {
+      "name": "sumBaht/invoice-lines",
+      "input": {
+        "values": [
+          10640,
+          6895,
+          16800,
+          13055,
+          17570
+        ]
+      },
+      "output": 64960
+    },
+    {
+      "name": "sumBaht/each-rounded-first",
+      "input": {
+        "values": [
+          1.005,
+          1.005,
+          1.005
+        ]
+      },
+      "output": 3.03
+    },
+    {
+      "name": "sumBaht/mixed-sign",
+      "input": {
+        "values": [
+          -0.01,
+          0.01,
+          100.555,
+          -50.005
+        ]
+      },
+      "output": 50.55
+    },
+    {
+      "name": "sumBaht/many-small",
+      "input": {
+        "values": [
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07,
+          0.07
+        ]
+      },
+      "output": 7
+    },
+    {
+      "name": "sumBaht/large",
+      "input": {
+        "values": [
+          99999999.99,
+          99999999.99,
+          0.02
+        ]
+      },
+      "output": 200000000
+    },
+    {
+      "name": "subBaht/0.3-0.1",
+      "input": {
+        "a": 0.3,
+        "b": 0.1
+      },
+      "output": 0.2
+    },
+    {
+      "name": "subBaht/100-33.33",
+      "input": {
+        "a": 100,
+        "b": 33.33
+      },
+      "output": 66.67
+    },
+    {
+      "name": "subBaht/0-0.005",
+      "input": {
+        "a": 0,
+        "b": 0.005
+      },
+      "output": -0.01
+    },
+    {
+      "name": "subBaht/1.005-2.675",
+      "input": {
+        "a": 1.005,
+        "b": 2.675
+      },
+      "output": -1.67
+    },
+    {
+      "name": "subBaht/-5.555-5.555",
+      "input": {
+        "a": -5.555,
+        "b": 5.555
+      },
+      "output": -11.12
+    },
+    {
+      "name": "subBaht/1000000.01-0.02",
+      "input": {
+        "a": 1000000.01,
+        "b": 0.02
+      },
+      "output": 999999.99
+    },
+    {
+      "name": "prorateBaht/100*1/3",
+      "input": {
+        "amount": 100,
+        "part": 1,
+        "whole": 3
+      },
+      "output": 33.33
+    },
+    {
+      "name": "prorateBaht/100*2/3",
+      "input": {
+        "amount": 100,
+        "part": 2,
+        "whole": 3
+      },
+      "output": 66.67
+    },
+    {
+      "name": "prorateBaht/0.01*1/2",
+      "input": {
+        "amount": 0.01,
+        "part": 1,
+        "whole": 2
+      },
+      "output": 0.01
+    },
+    {
+      "name": "prorateBaht/0.03*1/2",
+      "input": {
+        "amount": 0.03,
+        "part": 1,
+        "whole": 2
+      },
+      "output": 0.02
+    },
+    {
+      "name": "prorateBaht/0.05*1/2",
+      "input": {
+        "amount": 0.05,
+        "part": 1,
+        "whole": 2
+      },
+      "output": 0.03
+    },
+    {
+      "name": "prorateBaht/-0.05*1/2",
+      "input": {
+        "amount": -0.05,
+        "part": 1,
+        "whole": 2
+      },
+      "output": -0.03
+    },
+    {
+      "name": "prorateBaht/-100*1/3",
+      "input": {
+        "amount": -100,
+        "part": 1,
+        "whole": 3
+      },
+      "output": -33.33
+    },
+    {
+      "name": "prorateBaht/100*-1/3",
+      "input": {
+        "amount": 100,
+        "part": -1,
+        "whole": 3
+      },
+      "output": -33.33
+    },
+    {
+      "name": "prorateBaht/100*1/-3",
+      "input": {
+        "amount": 100,
+        "part": 1,
+        "whole": -3
+      },
+      "output": -33.33
+    },
+    {
+      "name": "prorateBaht/-100*-2/3",
+      "input": {
+        "amount": -100,
+        "part": -2,
+        "whole": 3
+      },
+      "output": 66.67
+    },
+    {
+      "name": "prorateBaht/1000*0/10",
+      "input": {
+        "amount": 1000,
+        "part": 0,
+        "whole": 10
+      },
+      "output": 0
+    },
+    {
+      "name": "prorateBaht/1000*5/0",
+      "input": {
+        "amount": 1000,
+        "part": 5,
+        "whole": 0
+      },
+      "output": 0
+    },
+    {
+      "name": "prorateBaht/9345.79*3000/10000",
+      "input": {
+        "amount": 9345.79,
+        "part": 3000,
+        "whole": 10000
+      },
+      "output": 2803.74
+    },
+    {
+      "name": "prorateBaht/9999999.99*1234567.89/9999999.99",
+      "input": {
+        "amount": 9999999.99,
+        "part": 1234567.89,
+        "whole": 9999999.99
+      },
+      "output": 1234567.89
+    },
+    {
+      "name": "prorateBaht/123456789.01*98765432.1/222222222.22",
+      "input": {
+        "amount": 123456789.01,
+        "part": 98765432.1,
+        "whole": 222222222.22
+      },
+      "output": 54869684.01
+    },
+    {
+      "name": "prorateBaht/70000*35000.5/107000",
+      "input": {
+        "amount": 70000,
+        "part": 35000.5,
+        "whole": 107000
+      },
+      "output": 22897.52
+    },
+    {
+      "name": "prorateBaht/1*1/3",
+      "input": {
+        "amount": 1,
+        "part": 1,
+        "whole": 3
+      },
+      "output": 0.33
+    },
+    {
+      "name": "prorateBaht/2*1/3",
+      "input": {
+        "amount": 2,
+        "part": 1,
+        "whole": 3
+      },
+      "output": 0.67
+    },
+    {
+      "name": "mulBaht/3*0.335",
+      "input": {
+        "a": 3,
+        "b": 0.335
+      },
+      "output": 1.01
+    },
+    {
+      "name": "mulBaht/1.5*33.33",
+      "input": {
+        "a": 1.5,
+        "b": 33.33
+      },
+      "output": 50
+    },
+    {
+      "name": "mulBaht/0.333*3",
+      "input": {
+        "a": 0.333,
+        "b": 3
+      },
+      "output": 1
+    },
+    {
+      "name": "mulBaht/2*-1.005",
+      "input": {
+        "a": 2,
+        "b": -1.005
+      },
+      "output": -2.01
+    },
+    {
+      "name": "mulBaht/1.25*0.1",
+      "input": {
+        "a": 1.25,
+        "b": 0.1
+      },
+      "output": 0.13
+    },
+    {
+      "name": "mulBaht/7*0.145",
+      "input": {
+        "a": 7,
+        "b": 0.145
+      },
+      "output": 1.02
+    },
+    {
+      "name": "mulBaht/0.5*0.01",
+      "input": {
+        "a": 0.5,
+        "b": 0.01
+      },
+      "output": 0.01
+    },
+    {
+      "name": "mulBaht/0.5*0.03",
+      "input": {
+        "a": 0.5,
+        "b": 0.03
+      },
+      "output": 0.02
+    },
+    {
+      "name": "mulBaht/12*1234.56",
+      "input": {
+        "a": 12,
+        "b": 1234.56
+      },
+      "output": 14814.72
+    },
+    {
+      "name": "mulBaht/2.25*199.99",
+      "input": {
+        "a": 2.25,
+        "b": 199.99
+      },
+      "output": 449.98
+    },
+    {
+      "name": "mulBaht/1000*99.995",
+      "input": {
+        "a": 1000,
+        "b": 99.995
+      },
+      "output": 99995
+    },
+    {
+      "name": "mulBaht/0*123",
+      "input": {
+        "a": 0,
+        "b": 123
+      },
+      "output": 0
+    },
+    {
+      "name": "mulBaht/-3*0.335",
+      "input": {
+        "a": -3,
+        "b": 0.335
+      },
+      "output": -1.01
+    },
+    {
+      "name": "percentOf/100000@7",
+      "input": {
+        "baht": 100000,
+        "rate": 7
+      },
+      "output": 7000
+    },
+    {
+      "name": "percentOf/98500@3",
+      "input": {
+        "baht": 98500,
+        "rate": 3
+      },
+      "output": 2955
+    },
+    {
+      "name": "percentOf/33.33@7",
+      "input": {
+        "baht": 33.33,
+        "rate": 7
+      },
+      "output": 2.33
+    },
+    {
+      "name": "percentOf/0.07@7",
+      "input": {
+        "baht": 0.07,
+        "rate": 7
+      },
+      "output": 0
+    },
+    {
+      "name": "percentOf/0.5@7",
+      "input": {
+        "baht": 0.5,
+        "rate": 7
+      },
+      "output": 0.04
+    },
+    {
+      "name": "percentOf/-0.5@7",
+      "input": {
+        "baht": -0.5,
+        "rate": 7
+      },
+      "output": -0.04
+    },
+    {
+      "name": "percentOf/0.71@7",
+      "input": {
+        "baht": 0.71,
+        "rate": 7
+      },
+      "output": 0.05
+    },
+    {
+      "name": "percentOf/-33.33@7",
+      "input": {
+        "baht": -33.33,
+        "rate": 7
+      },
+      "output": -2.33
+    },
+    {
+      "name": "percentOf/1234.56@1.5",
+      "input": {
+        "baht": 1234.56,
+        "rate": 1.5
+      },
+      "output": 18.52
+    },
+    {
+      "name": "percentOf/1234.56@0.75",
+      "input": {
+        "baht": 1234.56,
+        "rate": 0.75
+      },
+      "output": 9.26
+    },
+    {
+      "name": "percentOf/999.99@3",
+      "input": {
+        "baht": 999.99,
+        "rate": 3
+      },
+      "output": 30
+    },
+    {
+      "name": "percentOf/0.01@50",
+      "input": {
+        "baht": 0.01,
+        "rate": 50
+      },
+      "output": 0.01
+    },
+    {
+      "name": "percentOf/0.03@50",
+      "input": {
+        "baht": 0.03,
+        "rate": 50
+      },
+      "output": 0.02
+    },
+    {
+      "name": "percentOf/-0.03@50",
+      "input": {
+        "baht": -0.03,
+        "rate": 50
+      },
+      "output": -0.02
+    },
+    {
+      "name": "percentOf/1000@0",
+      "input": {
+        "baht": 1000,
+        "rate": 0
+      },
+      "output": 0
+    },
+    {
+      "name": "percentOf/12345678.91@7",
+      "input": {
+        "baht": 12345678.91,
+        "rate": 7
+      },
+      "output": 864197.52
+    },
+    {
+      "name": "percentOf/100@100",
+      "input": {
+        "baht": 100,
+        "rate": 100
+      },
+      "output": 100
+    },
+    {
+      "name": "percentOf/100@15",
+      "input": {
+        "baht": 100,
+        "rate": 15
+      },
+      "output": 15
+    }
+  ]
+}

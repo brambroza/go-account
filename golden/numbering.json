@@ -1,0 +1,1877 @@
+{
+  "file": "numbering.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 150,
+  "vectors": [
+    {
+      "name": "constants/DOC_PREFIX",
+      "input": {},
+      "output": {
+        "creditMemo": "CM",
+        "creditNote": "CN",
+        "debitMemo": "DM",
+        "debitNote": "DN",
+        "invoice": "BL",
+        "journal": "JV",
+        "payment": "PV",
+        "purchase": "PI",
+        "purchaseCredit": "PC",
+        "quotation": "QT",
+        "receipt": "RE",
+        "receiptTaxInvoice": "RT",
+        "refund": "RF",
+        "supplierRefund": "SR",
+        "taxInvoice": "IV",
+        "transfer": "TR",
+        "whtCert": "WT"
+      }
+    },
+    {
+      "name": "constants/DATE_ORDERED_PREFIXES",
+      "input": {},
+      "output": [
+        "IV",
+        "BL",
+        "CN",
+        "CM",
+        "DN",
+        "DM",
+        "RE",
+        "RT",
+        "PI",
+        "PC",
+        "PV",
+        "WT",
+        "RF",
+        "SR",
+        "TR"
+      ]
+    },
+    {
+      "name": "nextDocNo/IV@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "IV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "IV6910-0001",
+        "key": "IV6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/IV@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "IV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "IV6901-0001",
+        "key": "IV6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/IV@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "IV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "IV6912-0001",
+        "key": "IV6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/IV@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "IV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "IV6802-0001",
+        "key": "IV6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/IV@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "IV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "IV6702-0001",
+        "key": "IV6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/IV@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "IV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "IV4301-0001",
+        "key": "IV4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/IV@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "IV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "IV4212-0001",
+        "key": "IV4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/BL@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "BL",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "BL6910-0001",
+        "key": "BL6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/BL@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "BL",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "BL6901-0001",
+        "key": "BL6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/BL@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "BL",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "BL6912-0001",
+        "key": "BL6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/BL@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "BL",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "BL6802-0001",
+        "key": "BL6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/BL@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "BL",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "BL6702-0001",
+        "key": "BL6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/BL@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "BL",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "BL4301-0001",
+        "key": "BL4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/BL@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "BL",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "BL4212-0001",
+        "key": "BL4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CN@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "CN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CN6910-0001",
+        "key": "CN6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CN@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "CN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CN6901-0001",
+        "key": "CN6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CN@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "CN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CN6912-0001",
+        "key": "CN6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CN@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "CN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CN6802-0001",
+        "key": "CN6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CN@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "CN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CN6702-0001",
+        "key": "CN6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CN@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "CN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CN4301-0001",
+        "key": "CN4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CN@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "CN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CN4212-0001",
+        "key": "CN4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CM@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "CM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CM6910-0001",
+        "key": "CM6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CM@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "CM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CM6901-0001",
+        "key": "CM6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CM@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "CM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CM6912-0001",
+        "key": "CM6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CM@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "CM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CM6802-0001",
+        "key": "CM6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CM@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "CM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CM6702-0001",
+        "key": "CM6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CM@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "CM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CM4301-0001",
+        "key": "CM4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/CM@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "CM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "CM4212-0001",
+        "key": "CM4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DN@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "DN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DN6910-0001",
+        "key": "DN6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DN@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "DN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DN6901-0001",
+        "key": "DN6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DN@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "DN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DN6912-0001",
+        "key": "DN6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DN@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "DN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DN6802-0001",
+        "key": "DN6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DN@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "DN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DN6702-0001",
+        "key": "DN6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DN@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "DN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DN4301-0001",
+        "key": "DN4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DN@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "DN",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DN4212-0001",
+        "key": "DN4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DM@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "DM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DM6910-0001",
+        "key": "DM6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DM@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "DM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DM6901-0001",
+        "key": "DM6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DM@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "DM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DM6912-0001",
+        "key": "DM6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DM@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "DM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DM6802-0001",
+        "key": "DM6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DM@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "DM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DM6702-0001",
+        "key": "DM6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DM@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "DM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DM4301-0001",
+        "key": "DM4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/DM@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "DM",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "DM4212-0001",
+        "key": "DM4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RE@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "RE",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RE6910-0001",
+        "key": "RE6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RE@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "RE",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RE6901-0001",
+        "key": "RE6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RE@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "RE",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RE6912-0001",
+        "key": "RE6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RE@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "RE",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RE6802-0001",
+        "key": "RE6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RE@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "RE",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RE6702-0001",
+        "key": "RE6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RE@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "RE",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RE4301-0001",
+        "key": "RE4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RE@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "RE",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RE4212-0001",
+        "key": "RE4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RT@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "RT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RT6910-0001",
+        "key": "RT6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RT@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "RT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RT6901-0001",
+        "key": "RT6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RT@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "RT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RT6912-0001",
+        "key": "RT6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RT@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "RT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RT6802-0001",
+        "key": "RT6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RT@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "RT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RT6702-0001",
+        "key": "RT6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RT@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "RT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RT4301-0001",
+        "key": "RT4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RT@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "RT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RT4212-0001",
+        "key": "RT4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PI@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "PI",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PI6910-0001",
+        "key": "PI6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PI@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "PI",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PI6901-0001",
+        "key": "PI6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PI@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "PI",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PI6912-0001",
+        "key": "PI6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PI@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "PI",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PI6802-0001",
+        "key": "PI6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PI@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "PI",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PI6702-0001",
+        "key": "PI6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PI@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "PI",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PI4301-0001",
+        "key": "PI4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PI@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "PI",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PI4212-0001",
+        "key": "PI4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PC@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "PC",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PC6910-0001",
+        "key": "PC6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PC@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "PC",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PC6901-0001",
+        "key": "PC6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PC@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "PC",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PC6912-0001",
+        "key": "PC6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PC@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "PC",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PC6802-0001",
+        "key": "PC6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PC@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "PC",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PC6702-0001",
+        "key": "PC6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PC@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "PC",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PC4301-0001",
+        "key": "PC4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PC@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "PC",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PC4212-0001",
+        "key": "PC4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PV@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "PV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PV6910-0001",
+        "key": "PV6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PV@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "PV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PV6901-0001",
+        "key": "PV6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PV@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "PV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PV6912-0001",
+        "key": "PV6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PV@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "PV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PV6802-0001",
+        "key": "PV6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PV@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "PV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PV6702-0001",
+        "key": "PV6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PV@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "PV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PV4301-0001",
+        "key": "PV4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/PV@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "PV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "PV4212-0001",
+        "key": "PV4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/WT@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "WT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "WT6910-0001",
+        "key": "WT6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/WT@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "WT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "WT6901-0001",
+        "key": "WT6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/WT@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "WT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "WT6912-0001",
+        "key": "WT6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/WT@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "WT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "WT6802-0001",
+        "key": "WT6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/WT@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "WT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "WT6702-0001",
+        "key": "WT6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/WT@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "WT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "WT4301-0001",
+        "key": "WT4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/WT@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "WT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "WT4212-0001",
+        "key": "WT4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RF@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "RF",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RF6910-0001",
+        "key": "RF6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RF@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "RF",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RF6901-0001",
+        "key": "RF6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RF@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "RF",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RF6912-0001",
+        "key": "RF6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RF@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "RF",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RF6802-0001",
+        "key": "RF6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RF@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "RF",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RF6702-0001",
+        "key": "RF6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RF@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "RF",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RF4301-0001",
+        "key": "RF4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/RF@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "RF",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "RF4212-0001",
+        "key": "RF4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/SR@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "SR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "SR6910-0001",
+        "key": "SR6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/SR@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "SR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "SR6901-0001",
+        "key": "SR6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/SR@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "SR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "SR6912-0001",
+        "key": "SR6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/SR@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "SR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "SR6802-0001",
+        "key": "SR6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/SR@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "SR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "SR6702-0001",
+        "key": "SR6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/SR@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "SR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "SR4301-0001",
+        "key": "SR4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/SR@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "SR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "SR4212-0001",
+        "key": "SR4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/TR@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "TR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "TR6910-0001",
+        "key": "TR6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/TR@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "TR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "TR6901-0001",
+        "key": "TR6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/TR@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "TR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "TR6912-0001",
+        "key": "TR6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/TR@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "TR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "TR6802-0001",
+        "key": "TR6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/TR@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "TR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "TR6702-0001",
+        "key": "TR6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/TR@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "TR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "TR4301-0001",
+        "key": "TR4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/TR@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "TR",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "TR4212-0001",
+        "key": "TR4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/QT@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "QT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "QT6910-0001",
+        "key": "QT6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/QT@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "QT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "QT6901-0001",
+        "key": "QT6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/QT@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "QT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "QT6912-0001",
+        "key": "QT6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/QT@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "QT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "QT6802-0001",
+        "key": "QT6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/QT@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "QT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "QT6702-0001",
+        "key": "QT6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/QT@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "QT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "QT4301-0001",
+        "key": "QT4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/QT@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "QT",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "QT4212-0001",
+        "key": "QT4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/JV@2026-10-24/empty",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "JV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "JV6910-0001",
+        "key": "JV6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/JV@2026-01-01/empty",
+      "input": {
+        "date": "2026-01-01",
+        "prefix": "JV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "JV6901-0001",
+        "key": "JV6901",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/JV@2026-12-31/empty",
+      "input": {
+        "date": "2026-12-31",
+        "prefix": "JV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "JV6912-0001",
+        "key": "JV6912",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/JV@2025-02-28/empty",
+      "input": {
+        "date": "2025-02-28",
+        "prefix": "JV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "JV6802-0001",
+        "key": "JV6802",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/JV@2024-02-29/empty",
+      "input": {
+        "date": "2024-02-29",
+        "prefix": "JV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "JV6702-0001",
+        "key": "JV6702",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/JV@2000-01-01/empty",
+      "input": {
+        "date": "2000-01-01",
+        "prefix": "JV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "JV4301-0001",
+        "key": "JV4301",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/JV@2099-12-31/empty",
+      "input": {
+        "date": "2099-12-31",
+        "prefix": "JV",
+        "sequences": {}
+      },
+      "output": {
+        "docNo": "JV4212-0001",
+        "key": "JV4212",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/existing",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "IV",
+        "sequences": {
+          "IV6909": 99,
+          "IV6910": 42
+        }
+      },
+      "output": {
+        "docNo": "IV6910-0043",
+        "key": "IV6910",
+        "value": 43
+      }
+    },
+    {
+      "name": "nextDocNo/other-month",
+      "input": {
+        "date": "2026-11-01",
+        "prefix": "IV",
+        "sequences": {
+          "IV6910": 42
+        }
+      },
+      "output": {
+        "docNo": "IV6911-0001",
+        "key": "IV6911",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/9999-rollover",
+      "input": {
+        "date": "2026-10-01",
+        "prefix": "RE",
+        "sequences": {
+          "RE6910": 9999
+        }
+      },
+      "output": {
+        "docNo": "RE6910-10000",
+        "key": "RE6910",
+        "value": 10000
+      }
+    },
+    {
+      "name": "nextDocNo/five-digits",
+      "input": {
+        "date": "2026-10-31",
+        "prefix": "PV",
+        "sequences": {
+          "PV6910": 12345
+        }
+      },
+      "output": {
+        "docNo": "PV6910-12346",
+        "key": "PV6910",
+        "value": 12346
+      }
+    },
+    {
+      "name": "nextDocNo/be-year-boundary",
+      "input": {
+        "date": "2027-01-01",
+        "prefix": "JV",
+        "sequences": {
+          "JV6912": 7
+        }
+      },
+      "output": {
+        "docNo": "JV7001-0001",
+        "key": "JV7001",
+        "value": 1
+      }
+    },
+    {
+      "name": "nextDocNo/other-prefix",
+      "input": {
+        "date": "2026-10-24",
+        "prefix": "IV",
+        "sequences": {
+          "CN6910": 3
+        }
+      },
+      "output": {
+        "docNo": "IV6910-0001",
+        "key": "IV6910",
+        "value": 1
+      }
+    },
+    {
+      "name": "parseDocNo/0:\"IV6910-0043\"",
+      "input": {
+        "docNo": "IV6910-0043"
+      },
+      "output": {
+        "period": "6910",
+        "prefix": "IV",
+        "seq": 43
+      }
+    },
+    {
+      "name": "parseDocNo/1:\"IV6910-10000\"",
+      "input": {
+        "docNo": "IV6910-10000"
+      },
+      "output": {
+        "period": "6910",
+        "prefix": "IV",
+        "seq": 10000
+      }
+    },
+    {
+      "name": "parseDocNo/2:\"JV6912-0001\"",
+      "input": {
+        "docNo": "JV6912-0001"
+      },
+      "output": {
+        "period": "6912",
+        "prefix": "JV",
+        "seq": 1
+      }
+    },
+    {
+      "name": "parseDocNo/3:\"iv6910-0001\"",
+      "input": {
+        "docNo": "iv6910-0001"
+      },
+      "output": null
+    },
+    {
+      "name": "parseDocNo/4:\"IV691-0001\"",
+      "input": {
+        "docNo": "IV691-0001"
+      },
+      "output": null
+    },
+    {
+      "name": "parseDocNo/5:\"IV6910-001\"",
+      "input": {
+        "docNo": "IV6910-001"
+      },
+      "output": null
+    },
+    {
+      "name": "parseDocNo/6:\"IVX6910-0001\"",
+      "input": {
+        "docNo": "IVX6910-0001"
+      },
+      "output": null
+    },
+    {
+      "name": "parseDocNo/7:\"IV6910-0043\\n\"",
+      "input": {
+        "docNo": "IV6910-0043\n"
+      },
+      "output": null
+    },
+    {
+      "name": "parseDocNo/8:\" IV6910-0043\"",
+      "input": {
+        "docNo": " IV6910-0043"
+      },
+      "output": null
+    },
+    {
+      "name": "parseDocNo/9:\"IV๖๙๑๐-0043\"",
+      "input": {
+        "docNo": "IV๖๙๑๐-0043"
+      },
+      "output": null
+    },
+    {
+      "name": "parseDocNo/10:\"XX0000-0000\"",
+      "input": {
+        "docNo": "XX0000-0000"
+      },
+      "output": {
+        "period": "0000",
+        "prefix": "XX",
+        "seq": 0
+      }
+    },
+    {
+      "name": "parseDocNo/11:\"\"",
+      "input": {
+        "docNo": ""
+      },
+      "output": null
+    },
+    {
+      "name": "openingNumberConflict/IV6911-0001@2026-10-31",
+      "input": {
+        "docNo": "IV6911-0001",
+        "openingDate": "2026-10-31"
+      },
+      "output": true
+    },
+    {
+      "name": "openingNumberConflict/IV6910-0001@2026-10-31",
+      "input": {
+        "docNo": "IV6910-0001",
+        "openingDate": "2026-10-31"
+      },
+      "output": false
+    },
+    {
+      "name": "openingNumberConflict/IV6910-0001@2026-10-15",
+      "input": {
+        "docNo": "IV6910-0001",
+        "openingDate": "2026-10-15"
+      },
+      "output": true
+    },
+    {
+      "name": "openingNumberConflict/JV6910-0001@2026-10-31",
+      "input": {
+        "docNo": "JV6910-0001",
+        "openingDate": "2026-10-31"
+      },
+      "output": true
+    },
+    {
+      "name": "openingNumberConflict/IV6909-0100@2026-10-31",
+      "input": {
+        "docNo": "IV6909-0100",
+        "openingDate": "2026-10-31"
+      },
+      "output": false
+    },
+    {
+      "name": "openingNumberConflict/iv6911-0001@2026-10-31/padded",
+      "input": {
+        "docNo": " iv6911-0001 ",
+        "openingDate": "2026-10-31"
+      },
+      "output": true
+    },
+    {
+      "name": "openingNumberConflict/EX6911-0001@2026-10-31",
+      "input": {
+        "docNo": "EX6911-0001",
+        "openingDate": "2026-10-31"
+      },
+      "output": false
+    },
+    {
+      "name": "openingNumberConflict/INV-2026-001@2026-10-31",
+      "input": {
+        "docNo": "INV-2026-001",
+        "openingDate": "2026-10-31"
+      },
+      "output": false
+    },
+    {
+      "name": "openingNumberConflict/QT6912-0001@2026-10-31",
+      "input": {
+        "docNo": "QT6912-0001",
+        "openingDate": "2026-10-31"
+      },
+      "output": true
+    },
+    {
+      "name": "openingNumberConflict/PI6902-0001@2026-02-28",
+      "input": {
+        "docNo": "PI6902-0001",
+        "openingDate": "2026-02-28"
+      },
+      "output": false
+    },
+    {
+      "name": "openingNumberConflict/PI6902-0001@2026-02-27",
+      "input": {
+        "docNo": "PI6902-0001",
+        "openingDate": "2026-02-27"
+      },
+      "output": true
+    }
+  ]
+}

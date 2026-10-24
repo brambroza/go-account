@@ -1,0 +1,2000 @@
+{
+  "file": "thai-date.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 223,
+  "vectors": [
+    {
+      "name": "toBE/2000",
+      "input": {
+        "yearAD": 2000
+      },
+      "output": 2543
+    },
+    {
+      "name": "toBE/2026",
+      "input": {
+        "yearAD": 2026
+      },
+      "output": 2569
+    },
+    {
+      "name": "toBE/2100",
+      "input": {
+        "yearAD": 2100
+      },
+      "output": 2643
+    },
+    {
+      "name": "formatThaiDate/2026-10-24",
+      "input": {
+        "date": "2026-10-24"
+      },
+      "output": "24/10/2569"
+    },
+    {
+      "name": "formatThaiDateShort/2026-10-24",
+      "input": {
+        "date": "2026-10-24"
+      },
+      "output": "24 ต.ค. 2569"
+    },
+    {
+      "name": "toRdDate/2026-10-24",
+      "input": {
+        "date": "2026-10-24"
+      },
+      "output": "24102569"
+    },
+    {
+      "name": "docPeriodCode/2026-10-24",
+      "input": {
+        "date": "2026-10-24"
+      },
+      "output": "6910"
+    },
+    {
+      "name": "monthKeyOf/2026-10-24",
+      "input": {
+        "date": "2026-10-24"
+      },
+      "output": "2026-10"
+    },
+    {
+      "name": "periodOf/2026-10-24",
+      "input": {
+        "date": "2026-10-24"
+      },
+      "output": {
+        "month": 10,
+        "year": 2026
+      }
+    },
+    {
+      "name": "endOfPreviousMonth/2026-10-24",
+      "input": {
+        "today": "2026-10-24"
+      },
+      "output": "2026-09-30"
+    },
+    {
+      "name": "formatThaiDate/2026-01-01",
+      "input": {
+        "date": "2026-01-01"
+      },
+      "output": "01/01/2569"
+    },
+    {
+      "name": "formatThaiDateShort/2026-01-01",
+      "input": {
+        "date": "2026-01-01"
+      },
+      "output": "1 ม.ค. 2569"
+    },
+    {
+      "name": "toRdDate/2026-01-01",
+      "input": {
+        "date": "2026-01-01"
+      },
+      "output": "01012569"
+    },
+    {
+      "name": "docPeriodCode/2026-01-01",
+      "input": {
+        "date": "2026-01-01"
+      },
+      "output": "6901"
+    },
+    {
+      "name": "monthKeyOf/2026-01-01",
+      "input": {
+        "date": "2026-01-01"
+      },
+      "output": "2026-01"
+    },
+    {
+      "name": "periodOf/2026-01-01",
+      "input": {
+        "date": "2026-01-01"
+      },
+      "output": {
+        "month": 1,
+        "year": 2026
+      }
+    },
+    {
+      "name": "endOfPreviousMonth/2026-01-01",
+      "input": {
+        "today": "2026-01-01"
+      },
+      "output": "2025-12-31"
+    },
+    {
+      "name": "formatThaiDate/2026-12-31",
+      "input": {
+        "date": "2026-12-31"
+      },
+      "output": "31/12/2569"
+    },
+    {
+      "name": "formatThaiDateShort/2026-12-31",
+      "input": {
+        "date": "2026-12-31"
+      },
+      "output": "31 ธ.ค. 2569"
+    },
+    {
+      "name": "toRdDate/2026-12-31",
+      "input": {
+        "date": "2026-12-31"
+      },
+      "output": "31122569"
+    },
+    {
+      "name": "docPeriodCode/2026-12-31",
+      "input": {
+        "date": "2026-12-31"
+      },
+      "output": "6912"
+    },
+    {
+      "name": "monthKeyOf/2026-12-31",
+      "input": {
+        "date": "2026-12-31"
+      },
+      "output": "2026-12"
+    },
+    {
+      "name": "periodOf/2026-12-31",
+      "input": {
+        "date": "2026-12-31"
+      },
+      "output": {
+        "month": 12,
+        "year": 2026
+      }
+    },
+    {
+      "name": "endOfPreviousMonth/2026-12-31",
+      "input": {
+        "today": "2026-12-31"
+      },
+      "output": "2026-11-30"
+    },
+    {
+      "name": "formatThaiDate/2024-02-29",
+      "input": {
+        "date": "2024-02-29"
+      },
+      "output": "29/02/2567"
+    },
+    {
+      "name": "formatThaiDateShort/2024-02-29",
+      "input": {
+        "date": "2024-02-29"
+      },
+      "output": "29 ก.พ. 2567"
+    },
+    {
+      "name": "toRdDate/2024-02-29",
+      "input": {
+        "date": "2024-02-29"
+      },
+      "output": "29022567"
+    },
+    {
+      "name": "docPeriodCode/2024-02-29",
+      "input": {
+        "date": "2024-02-29"
+      },
+      "output": "6702"
+    },
+    {
+      "name": "monthKeyOf/2024-02-29",
+      "input": {
+        "date": "2024-02-29"
+      },
+      "output": "2024-02"
+    },
+    {
+      "name": "periodOf/2024-02-29",
+      "input": {
+        "date": "2024-02-29"
+      },
+      "output": {
+        "month": 2,
+        "year": 2024
+      }
+    },
+    {
+      "name": "endOfPreviousMonth/2024-02-29",
+      "input": {
+        "today": "2024-02-29"
+      },
+      "output": "2024-01-31"
+    },
+    {
+      "name": "formatThaiDate/2025-03-01",
+      "input": {
+        "date": "2025-03-01"
+      },
+      "output": "01/03/2568"
+    },
+    {
+      "name": "formatThaiDateShort/2025-03-01",
+      "input": {
+        "date": "2025-03-01"
+      },
+      "output": "1 มี.ค. 2568"
+    },
+    {
+      "name": "toRdDate/2025-03-01",
+      "input": {
+        "date": "2025-03-01"
+      },
+      "output": "01032568"
+    },
+    {
+      "name": "docPeriodCode/2025-03-01",
+      "input": {
+        "date": "2025-03-01"
+      },
+      "output": "6803"
+    },
+    {
+      "name": "monthKeyOf/2025-03-01",
+      "input": {
+        "date": "2025-03-01"
+      },
+      "output": "2025-03"
+    },
+    {
+      "name": "periodOf/2025-03-01",
+      "input": {
+        "date": "2025-03-01"
+      },
+      "output": {
+        "month": 3,
+        "year": 2025
+      }
+    },
+    {
+      "name": "endOfPreviousMonth/2025-03-01",
+      "input": {
+        "today": "2025-03-01"
+      },
+      "output": "2025-02-28"
+    },
+    {
+      "name": "formatThaiDate/2000-02-29",
+      "input": {
+        "date": "2000-02-29"
+      },
+      "output": "29/02/2543"
+    },
+    {
+      "name": "formatThaiDateShort/2000-02-29",
+      "input": {
+        "date": "2000-02-29"
+      },
+      "output": "29 ก.พ. 2543"
+    },
+    {
+      "name": "toRdDate/2000-02-29",
+      "input": {
+        "date": "2000-02-29"
+      },
+      "output": "29022543"
+    },
+    {
+      "name": "docPeriodCode/2000-02-29",
+      "input": {
+        "date": "2000-02-29"
+      },
+      "output": "4302"
+    },
+    {
+      "name": "monthKeyOf/2000-02-29",
+      "input": {
+        "date": "2000-02-29"
+      },
+      "output": "2000-02"
+    },
+    {
+      "name": "periodOf/2000-02-29",
+      "input": {
+        "date": "2000-02-29"
+      },
+      "output": {
+        "month": 2,
+        "year": 2000
+      }
+    },
+    {
+      "name": "endOfPreviousMonth/2000-02-29",
+      "input": {
+        "today": "2000-02-29"
+      },
+      "output": "2000-01-31"
+    },
+    {
+      "name": "formatThaiDate/2100-02-28",
+      "input": {
+        "date": "2100-02-28"
+      },
+      "output": "28/02/2643"
+    },
+    {
+      "name": "formatThaiDateShort/2100-02-28",
+      "input": {
+        "date": "2100-02-28"
+      },
+      "output": "28 ก.พ. 2643"
+    },
+    {
+      "name": "toRdDate/2100-02-28",
+      "input": {
+        "date": "2100-02-28"
+      },
+      "output": "28022643"
+    },
+    {
+      "name": "docPeriodCode/2100-02-28",
+      "input": {
+        "date": "2100-02-28"
+      },
+      "output": "4302"
+    },
+    {
+      "name": "monthKeyOf/2100-02-28",
+      "input": {
+        "date": "2100-02-28"
+      },
+      "output": "2100-02"
+    },
+    {
+      "name": "periodOf/2100-02-28",
+      "input": {
+        "date": "2100-02-28"
+      },
+      "output": {
+        "month": 2,
+        "year": 2100
+      }
+    },
+    {
+      "name": "endOfPreviousMonth/2100-02-28",
+      "input": {
+        "today": "2100-02-28"
+      },
+      "output": "2100-01-31"
+    },
+    {
+      "name": "formatThaiDate/2026-10-24T13:45:00.000Z",
+      "input": {
+        "date": "2026-10-24T13:45:00.000Z"
+      },
+      "output": "24/10/2569"
+    },
+    {
+      "name": "formatThaiDateShort/2026-10-24T13:45:00.000Z",
+      "input": {
+        "date": "2026-10-24T13:45:00.000Z"
+      },
+      "output": "24 ต.ค. 2569"
+    },
+    {
+      "name": "toRdDate/2026-10-24T13:45:00.000Z",
+      "input": {
+        "date": "2026-10-24T13:45:00.000Z"
+      },
+      "output": "24102569"
+    },
+    {
+      "name": "docPeriodCode/2026-10-24T13:45:00.000Z",
+      "input": {
+        "date": "2026-10-24T13:45:00.000Z"
+      },
+      "output": "6910"
+    },
+    {
+      "name": "monthKeyOf/2026-10-24T13:45:00.000Z",
+      "input": {
+        "date": "2026-10-24T13:45:00.000Z"
+      },
+      "output": "2026-10"
+    },
+    {
+      "name": "periodOf/2026-10-24T13:45:00.000Z",
+      "input": {
+        "date": "2026-10-24T13:45:00.000Z"
+      },
+      "output": {
+        "month": 10,
+        "year": 2026
+      }
+    },
+    {
+      "name": "endOfPreviousMonth/2026-10-24T13:45:00.000Z",
+      "input": {
+        "today": "2026-10-24T13:45:00.000Z"
+      },
+      "output": "2026-09-30"
+    },
+    {
+      "name": "formatThaiDate/null",
+      "input": {
+        "date": null
+      },
+      "output": ""
+    },
+    {
+      "name": "formatThaiDateShort/null",
+      "input": {
+        "date": null
+      },
+      "output": ""
+    },
+    {
+      "name": "toRdDate/null",
+      "input": {
+        "date": null
+      },
+      "output": "00000000"
+    },
+    {
+      "name": "formatThaiDate/\"\"",
+      "input": {
+        "date": ""
+      },
+      "output": ""
+    },
+    {
+      "name": "formatThaiDateShort/\"\"",
+      "input": {
+        "date": ""
+      },
+      "output": ""
+    },
+    {
+      "name": "toRdDate/\"\"",
+      "input": {
+        "date": ""
+      },
+      "output": "00000000"
+    },
+    {
+      "name": "addDays/2026-10-24+0",
+      "input": {
+        "date": "2026-10-24",
+        "days": 0
+      },
+      "output": "2026-10-24"
+    },
+    {
+      "name": "addDays/2026-10-24+7",
+      "input": {
+        "date": "2026-10-24",
+        "days": 7
+      },
+      "output": "2026-10-31"
+    },
+    {
+      "name": "addDays/2026-10-24+30",
+      "input": {
+        "date": "2026-10-24",
+        "days": 30
+      },
+      "output": "2026-11-23"
+    },
+    {
+      "name": "addDays/2026-10-24-24",
+      "input": {
+        "date": "2026-10-24",
+        "days": -24
+      },
+      "output": "2026-09-30"
+    },
+    {
+      "name": "addDays/2026-12-31+1",
+      "input": {
+        "date": "2026-12-31",
+        "days": 1
+      },
+      "output": "2027-01-01"
+    },
+    {
+      "name": "addDays/2026-01-01-1",
+      "input": {
+        "date": "2026-01-01",
+        "days": -1
+      },
+      "output": "2025-12-31"
+    },
+    {
+      "name": "addDays/2024-02-28+1",
+      "input": {
+        "date": "2024-02-28",
+        "days": 1
+      },
+      "output": "2024-02-29"
+    },
+    {
+      "name": "addDays/2025-02-28+1",
+      "input": {
+        "date": "2025-02-28",
+        "days": 1
+      },
+      "output": "2025-03-01"
+    },
+    {
+      "name": "addDays/2026-10-24+365",
+      "input": {
+        "date": "2026-10-24",
+        "days": 365
+      },
+      "output": "2027-10-24"
+    },
+    {
+      "name": "addDays/2026-10-24-400",
+      "input": {
+        "date": "2026-10-24",
+        "days": -400
+      },
+      "output": "2025-09-19"
+    },
+    {
+      "name": "diffDays/2026-10-24..2026-10-24",
+      "input": {
+        "from": "2026-10-24",
+        "to": "2026-10-24"
+      },
+      "output": 0
+    },
+    {
+      "name": "diffDays/2026-10-24..2026-11-23",
+      "input": {
+        "from": "2026-10-24",
+        "to": "2026-11-23"
+      },
+      "output": 30
+    },
+    {
+      "name": "diffDays/2026-11-23..2026-10-24",
+      "input": {
+        "from": "2026-11-23",
+        "to": "2026-10-24"
+      },
+      "output": -30
+    },
+    {
+      "name": "diffDays/2024-01-01..2025-01-01",
+      "input": {
+        "from": "2024-01-01",
+        "to": "2025-01-01"
+      },
+      "output": 366
+    },
+    {
+      "name": "diffDays/2025-01-01..2026-01-01",
+      "input": {
+        "from": "2025-01-01",
+        "to": "2026-01-01"
+      },
+      "output": 365
+    },
+    {
+      "name": "diffDays/2026-03-01..2026-02-28",
+      "input": {
+        "from": "2026-03-01",
+        "to": "2026-02-28"
+      },
+      "output": -1
+    },
+    {
+      "name": "periodKey/2026-10",
+      "input": {
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": "2026-10"
+    },
+    {
+      "name": "periodLabel/2026-10",
+      "input": {
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": "ตุลาคม 2569"
+    },
+    {
+      "name": "periodShortLabel/2026-10",
+      "input": {
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": "ต.ค. 69"
+    },
+    {
+      "name": "filingDueDates/2026-10",
+      "input": {
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": {
+        "vat": "2026-11-23",
+        "wht": "2026-11-15"
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-10-13",
+      "input": {
+        "delta": -13,
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 9,
+        "year": 2025
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-10-1",
+      "input": {
+        "delta": -1,
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 9,
+        "year": 2026
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-10+0",
+      "input": {
+        "delta": 0,
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 10,
+        "year": 2026
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-10+1",
+      "input": {
+        "delta": 1,
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 11,
+        "year": 2026
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-10+2",
+      "input": {
+        "delta": 2,
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 12,
+        "year": 2026
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-10+12",
+      "input": {
+        "delta": 12,
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 10,
+        "year": 2027
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-10+25",
+      "input": {
+        "delta": 25,
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 11,
+        "year": 2028
+      }
+    },
+    {
+      "name": "inPeriod/2026-10-01@2026-10",
+      "input": {
+        "date": "2026-10-01",
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": true
+    },
+    {
+      "name": "inPeriod/2026-12-31@2026-10",
+      "input": {
+        "date": "2026-12-31",
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2026-01-15@2026-10",
+      "input": {
+        "date": "2026-01-15",
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2025-02-28@2026-10",
+      "input": {
+        "date": "2025-02-28",
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2024-02-29@2026-10",
+      "input": {
+        "date": "2024-02-29",
+        "period": {
+          "month": 10,
+          "year": 2026
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "periodKey/2026-12",
+      "input": {
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": "2026-12"
+    },
+    {
+      "name": "periodLabel/2026-12",
+      "input": {
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": "ธันวาคม 2569"
+    },
+    {
+      "name": "periodShortLabel/2026-12",
+      "input": {
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": "ธ.ค. 69"
+    },
+    {
+      "name": "filingDueDates/2026-12",
+      "input": {
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": {
+        "vat": "2027-01-23",
+        "wht": "2027-01-15"
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-12-13",
+      "input": {
+        "delta": -13,
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 11,
+        "year": 2025
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-12-1",
+      "input": {
+        "delta": -1,
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 11,
+        "year": 2026
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-12+0",
+      "input": {
+        "delta": 0,
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 12,
+        "year": 2026
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-12+1",
+      "input": {
+        "delta": 1,
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 1,
+        "year": 2027
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-12+2",
+      "input": {
+        "delta": 2,
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 2,
+        "year": 2027
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-12+12",
+      "input": {
+        "delta": 12,
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 12,
+        "year": 2027
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-12+25",
+      "input": {
+        "delta": 25,
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 1,
+        "year": 2029
+      }
+    },
+    {
+      "name": "inPeriod/2026-10-01@2026-12",
+      "input": {
+        "date": "2026-10-01",
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2026-12-31@2026-12",
+      "input": {
+        "date": "2026-12-31",
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": true
+    },
+    {
+      "name": "inPeriod/2026-01-15@2026-12",
+      "input": {
+        "date": "2026-01-15",
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2025-02-28@2026-12",
+      "input": {
+        "date": "2025-02-28",
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2024-02-29@2026-12",
+      "input": {
+        "date": "2024-02-29",
+        "period": {
+          "month": 12,
+          "year": 2026
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "periodKey/2026-01",
+      "input": {
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": "2026-01"
+    },
+    {
+      "name": "periodLabel/2026-01",
+      "input": {
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": "มกราคม 2569"
+    },
+    {
+      "name": "periodShortLabel/2026-01",
+      "input": {
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": "ม.ค. 69"
+    },
+    {
+      "name": "filingDueDates/2026-01",
+      "input": {
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": {
+        "vat": "2026-02-23",
+        "wht": "2026-02-15"
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-01-13",
+      "input": {
+        "delta": -13,
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 12,
+        "year": 2024
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-01-1",
+      "input": {
+        "delta": -1,
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 12,
+        "year": 2025
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-01+0",
+      "input": {
+        "delta": 0,
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 1,
+        "year": 2026
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-01+1",
+      "input": {
+        "delta": 1,
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 2,
+        "year": 2026
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-01+2",
+      "input": {
+        "delta": 2,
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 3,
+        "year": 2026
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-01+12",
+      "input": {
+        "delta": 12,
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 1,
+        "year": 2027
+      }
+    },
+    {
+      "name": "shiftPeriod/2026-01+25",
+      "input": {
+        "delta": 25,
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": {
+        "month": 2,
+        "year": 2028
+      }
+    },
+    {
+      "name": "inPeriod/2026-10-01@2026-01",
+      "input": {
+        "date": "2026-10-01",
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2026-12-31@2026-01",
+      "input": {
+        "date": "2026-12-31",
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2026-01-15@2026-01",
+      "input": {
+        "date": "2026-01-15",
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": true
+    },
+    {
+      "name": "inPeriod/2025-02-28@2026-01",
+      "input": {
+        "date": "2025-02-28",
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2024-02-29@2026-01",
+      "input": {
+        "date": "2024-02-29",
+        "period": {
+          "month": 1,
+          "year": 2026
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "periodKey/2025-02",
+      "input": {
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": "2025-02"
+    },
+    {
+      "name": "periodLabel/2025-02",
+      "input": {
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": "กุมภาพันธ์ 2568"
+    },
+    {
+      "name": "periodShortLabel/2025-02",
+      "input": {
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": "ก.พ. 68"
+    },
+    {
+      "name": "filingDueDates/2025-02",
+      "input": {
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": {
+        "vat": "2025-03-23",
+        "wht": "2025-03-15"
+      }
+    },
+    {
+      "name": "shiftPeriod/2025-02-13",
+      "input": {
+        "delta": -13,
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": {
+        "month": 1,
+        "year": 2024
+      }
+    },
+    {
+      "name": "shiftPeriod/2025-02-1",
+      "input": {
+        "delta": -1,
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": {
+        "month": 1,
+        "year": 2025
+      }
+    },
+    {
+      "name": "shiftPeriod/2025-02+0",
+      "input": {
+        "delta": 0,
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": {
+        "month": 2,
+        "year": 2025
+      }
+    },
+    {
+      "name": "shiftPeriod/2025-02+1",
+      "input": {
+        "delta": 1,
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": {
+        "month": 3,
+        "year": 2025
+      }
+    },
+    {
+      "name": "shiftPeriod/2025-02+2",
+      "input": {
+        "delta": 2,
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": {
+        "month": 4,
+        "year": 2025
+      }
+    },
+    {
+      "name": "shiftPeriod/2025-02+12",
+      "input": {
+        "delta": 12,
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": {
+        "month": 2,
+        "year": 2026
+      }
+    },
+    {
+      "name": "shiftPeriod/2025-02+25",
+      "input": {
+        "delta": 25,
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": {
+        "month": 3,
+        "year": 2027
+      }
+    },
+    {
+      "name": "inPeriod/2026-10-01@2025-02",
+      "input": {
+        "date": "2026-10-01",
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2026-12-31@2025-02",
+      "input": {
+        "date": "2026-12-31",
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2026-01-15@2025-02",
+      "input": {
+        "date": "2026-01-15",
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2025-02-28@2025-02",
+      "input": {
+        "date": "2025-02-28",
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": true
+    },
+    {
+      "name": "inPeriod/2024-02-29@2025-02",
+      "input": {
+        "date": "2024-02-29",
+        "period": {
+          "month": 2,
+          "year": 2025
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "periodFromKey/2026-10",
+      "input": {
+        "key": "2026-10"
+      },
+      "output": {
+        "month": 10,
+        "year": 2026
+      }
+    },
+    {
+      "name": "endOfMonth/2026-10",
+      "input": {
+        "key": "2026-10"
+      },
+      "output": "2026-10-31"
+    },
+    {
+      "name": "shiftMonthKey/2026-10-12",
+      "input": {
+        "delta": -12,
+        "key": "2026-10"
+      },
+      "output": "2025-10"
+    },
+    {
+      "name": "shiftMonthKey/2026-10-1",
+      "input": {
+        "delta": -1,
+        "key": "2026-10"
+      },
+      "output": "2026-09"
+    },
+    {
+      "name": "shiftMonthKey/2026-10+1",
+      "input": {
+        "delta": 1,
+        "key": "2026-10"
+      },
+      "output": "2026-11"
+    },
+    {
+      "name": "shiftMonthKey/2026-10+3",
+      "input": {
+        "delta": 3,
+        "key": "2026-10"
+      },
+      "output": "2027-01"
+    },
+    {
+      "name": "shiftMonthKey/2026-10+15",
+      "input": {
+        "delta": 15,
+        "key": "2026-10"
+      },
+      "output": "2028-01"
+    },
+    {
+      "name": "periodFromKey/2026-01",
+      "input": {
+        "key": "2026-01"
+      },
+      "output": {
+        "month": 1,
+        "year": 2026
+      }
+    },
+    {
+      "name": "endOfMonth/2026-01",
+      "input": {
+        "key": "2026-01"
+      },
+      "output": "2026-01-31"
+    },
+    {
+      "name": "shiftMonthKey/2026-01-12",
+      "input": {
+        "delta": -12,
+        "key": "2026-01"
+      },
+      "output": "2025-01"
+    },
+    {
+      "name": "shiftMonthKey/2026-01-1",
+      "input": {
+        "delta": -1,
+        "key": "2026-01"
+      },
+      "output": "2025-12"
+    },
+    {
+      "name": "shiftMonthKey/2026-01+1",
+      "input": {
+        "delta": 1,
+        "key": "2026-01"
+      },
+      "output": "2026-02"
+    },
+    {
+      "name": "shiftMonthKey/2026-01+3",
+      "input": {
+        "delta": 3,
+        "key": "2026-01"
+      },
+      "output": "2026-04"
+    },
+    {
+      "name": "shiftMonthKey/2026-01+15",
+      "input": {
+        "delta": 15,
+        "key": "2026-01"
+      },
+      "output": "2027-04"
+    },
+    {
+      "name": "periodFromKey/2026-12",
+      "input": {
+        "key": "2026-12"
+      },
+      "output": {
+        "month": 12,
+        "year": 2026
+      }
+    },
+    {
+      "name": "endOfMonth/2026-12",
+      "input": {
+        "key": "2026-12"
+      },
+      "output": "2026-12-31"
+    },
+    {
+      "name": "shiftMonthKey/2026-12-12",
+      "input": {
+        "delta": -12,
+        "key": "2026-12"
+      },
+      "output": "2025-12"
+    },
+    {
+      "name": "shiftMonthKey/2026-12-1",
+      "input": {
+        "delta": -1,
+        "key": "2026-12"
+      },
+      "output": "2026-11"
+    },
+    {
+      "name": "shiftMonthKey/2026-12+1",
+      "input": {
+        "delta": 1,
+        "key": "2026-12"
+      },
+      "output": "2027-01"
+    },
+    {
+      "name": "shiftMonthKey/2026-12+3",
+      "input": {
+        "delta": 3,
+        "key": "2026-12"
+      },
+      "output": "2027-03"
+    },
+    {
+      "name": "shiftMonthKey/2026-12+15",
+      "input": {
+        "delta": 15,
+        "key": "2026-12"
+      },
+      "output": "2028-03"
+    },
+    {
+      "name": "periodFromKey/2024-02",
+      "input": {
+        "key": "2024-02"
+      },
+      "output": {
+        "month": 2,
+        "year": 2024
+      }
+    },
+    {
+      "name": "endOfMonth/2024-02",
+      "input": {
+        "key": "2024-02"
+      },
+      "output": "2024-02-29"
+    },
+    {
+      "name": "shiftMonthKey/2024-02-12",
+      "input": {
+        "delta": -12,
+        "key": "2024-02"
+      },
+      "output": "2023-02"
+    },
+    {
+      "name": "shiftMonthKey/2024-02-1",
+      "input": {
+        "delta": -1,
+        "key": "2024-02"
+      },
+      "output": "2024-01"
+    },
+    {
+      "name": "shiftMonthKey/2024-02+1",
+      "input": {
+        "delta": 1,
+        "key": "2024-02"
+      },
+      "output": "2024-03"
+    },
+    {
+      "name": "shiftMonthKey/2024-02+3",
+      "input": {
+        "delta": 3,
+        "key": "2024-02"
+      },
+      "output": "2024-05"
+    },
+    {
+      "name": "shiftMonthKey/2024-02+15",
+      "input": {
+        "delta": 15,
+        "key": "2024-02"
+      },
+      "output": "2025-05"
+    },
+    {
+      "name": "periodFromKey/2025-02",
+      "input": {
+        "key": "2025-02"
+      },
+      "output": {
+        "month": 2,
+        "year": 2025
+      }
+    },
+    {
+      "name": "endOfMonth/2025-02",
+      "input": {
+        "key": "2025-02"
+      },
+      "output": "2025-02-28"
+    },
+    {
+      "name": "shiftMonthKey/2025-02-12",
+      "input": {
+        "delta": -12,
+        "key": "2025-02"
+      },
+      "output": "2024-02"
+    },
+    {
+      "name": "shiftMonthKey/2025-02-1",
+      "input": {
+        "delta": -1,
+        "key": "2025-02"
+      },
+      "output": "2025-01"
+    },
+    {
+      "name": "shiftMonthKey/2025-02+1",
+      "input": {
+        "delta": 1,
+        "key": "2025-02"
+      },
+      "output": "2025-03"
+    },
+    {
+      "name": "shiftMonthKey/2025-02+3",
+      "input": {
+        "delta": 3,
+        "key": "2025-02"
+      },
+      "output": "2025-05"
+    },
+    {
+      "name": "shiftMonthKey/2025-02+15",
+      "input": {
+        "delta": 15,
+        "key": "2025-02"
+      },
+      "output": "2026-05"
+    },
+    {
+      "name": "periodFromKey/2100-02",
+      "input": {
+        "key": "2100-02"
+      },
+      "output": {
+        "month": 2,
+        "year": 2100
+      }
+    },
+    {
+      "name": "endOfMonth/2100-02",
+      "input": {
+        "key": "2100-02"
+      },
+      "output": "2100-02-28"
+    },
+    {
+      "name": "shiftMonthKey/2100-02-12",
+      "input": {
+        "delta": -12,
+        "key": "2100-02"
+      },
+      "output": "2099-02"
+    },
+    {
+      "name": "shiftMonthKey/2100-02-1",
+      "input": {
+        "delta": -1,
+        "key": "2100-02"
+      },
+      "output": "2100-01"
+    },
+    {
+      "name": "shiftMonthKey/2100-02+1",
+      "input": {
+        "delta": 1,
+        "key": "2100-02"
+      },
+      "output": "2100-03"
+    },
+    {
+      "name": "shiftMonthKey/2100-02+3",
+      "input": {
+        "delta": 3,
+        "key": "2100-02"
+      },
+      "output": "2100-05"
+    },
+    {
+      "name": "shiftMonthKey/2100-02+15",
+      "input": {
+        "delta": 15,
+        "key": "2100-02"
+      },
+      "output": "2101-05"
+    },
+    {
+      "name": "periodFromKey/2000-02",
+      "input": {
+        "key": "2000-02"
+      },
+      "output": {
+        "month": 2,
+        "year": 2000
+      }
+    },
+    {
+      "name": "endOfMonth/2000-02",
+      "input": {
+        "key": "2000-02"
+      },
+      "output": "2000-02-29"
+    },
+    {
+      "name": "shiftMonthKey/2000-02-12",
+      "input": {
+        "delta": -12,
+        "key": "2000-02"
+      },
+      "output": "1999-02"
+    },
+    {
+      "name": "shiftMonthKey/2000-02-1",
+      "input": {
+        "delta": -1,
+        "key": "2000-02"
+      },
+      "output": "2000-01"
+    },
+    {
+      "name": "shiftMonthKey/2000-02+1",
+      "input": {
+        "delta": 1,
+        "key": "2000-02"
+      },
+      "output": "2000-03"
+    },
+    {
+      "name": "shiftMonthKey/2000-02+3",
+      "input": {
+        "delta": 3,
+        "key": "2000-02"
+      },
+      "output": "2000-05"
+    },
+    {
+      "name": "shiftMonthKey/2000-02+15",
+      "input": {
+        "delta": 15,
+        "key": "2000-02"
+      },
+      "output": "2001-05"
+    },
+    {
+      "name": "isMonthKey/0:\"2026-10\"",
+      "input": {
+        "value": "2026-10"
+      },
+      "output": true
+    },
+    {
+      "name": "isMonthKey/1:\"2026-13\"",
+      "input": {
+        "value": "2026-13"
+      },
+      "output": false
+    },
+    {
+      "name": "isMonthKey/2:\"2026-00\"",
+      "input": {
+        "value": "2026-00"
+      },
+      "output": false
+    },
+    {
+      "name": "isMonthKey/3:\"1999-12\"",
+      "input": {
+        "value": "1999-12"
+      },
+      "output": false
+    },
+    {
+      "name": "isMonthKey/4:\"2101-01\"",
+      "input": {
+        "value": "2101-01"
+      },
+      "output": false
+    },
+    {
+      "name": "isMonthKey/5:\"2569-10\"",
+      "input": {
+        "value": "2569-10"
+      },
+      "output": false
+    },
+    {
+      "name": "isMonthKey/6:\"2026-1\"",
+      "input": {
+        "value": "2026-1"
+      },
+      "output": false
+    },
+    {
+      "name": "isMonthKey/7:\"2026-10-01\"",
+      "input": {
+        "value": "2026-10-01"
+      },
+      "output": false
+    },
+    {
+      "name": "isMonthKey/8:\"\"",
+      "input": {
+        "value": ""
+      },
+      "output": false
+    },
+    {
+      "name": "isMonthKey/9:null",
+      "input": {
+        "value": null
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/0:\"2026-10-24\"",
+      "input": {
+        "value": "2026-10-24"
+      },
+      "output": true
+    },
+    {
+      "name": "isValidISODate/1:\"2026-02-29\"",
+      "input": {
+        "value": "2026-02-29"
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/2:\"2024-02-29\"",
+      "input": {
+        "value": "2024-02-29"
+      },
+      "output": true
+    },
+    {
+      "name": "isValidISODate/3:\"2100-02-29\"",
+      "input": {
+        "value": "2100-02-29"
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/4:\"2000-02-29\"",
+      "input": {
+        "value": "2000-02-29"
+      },
+      "output": true
+    },
+    {
+      "name": "isValidISODate/5:\"2026-04-31\"",
+      "input": {
+        "value": "2026-04-31"
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/6:\"2026-13-01\"",
+      "input": {
+        "value": "2026-13-01"
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/7:\"2026-00-10\"",
+      "input": {
+        "value": "2026-00-10"
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/8:\"2026-10-00\"",
+      "input": {
+        "value": "2026-10-00"
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/9:\"2569-10-24\"",
+      "input": {
+        "value": "2569-10-24"
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/10:\"1999-12-31\"",
+      "input": {
+        "value": "1999-12-31"
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/11:\"2000-01-01\"",
+      "input": {
+        "value": "2000-01-01"
+      },
+      "output": true
+    },
+    {
+      "name": "isValidISODate/12:\"2100-12-31\"",
+      "input": {
+        "value": "2100-12-31"
+      },
+      "output": true
+    },
+    {
+      "name": "isValidISODate/13:\"2101-01-01\"",
+      "input": {
+        "value": "2101-01-01"
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/14:\"2026-1-01\"",
+      "input": {
+        "value": "2026-1-01"
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/15:\"2026-10-24T00:00:00Z\"",
+      "input": {
+        "value": "2026-10-24T00:00:00Z"
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/16:\"20261024\"",
+      "input": {
+        "value": "20261024"
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/17:\"\"",
+      "input": {
+        "value": ""
+      },
+      "output": false
+    },
+    {
+      "name": "isValidISODate/18:null",
+      "input": {
+        "value": null
+      },
+      "output": false
+    }
+  ]
+}

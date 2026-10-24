@@ -1,0 +1,343 @@
+{
+  "file": "baht-text.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 48,
+  "vectors": [
+    {
+      "name": "bahtText/0",
+      "input": {
+        "amount": 0
+      },
+      "output": "ศูนย์บาทถ้วน"
+    },
+    {
+      "name": "bahtText/0.005",
+      "input": {
+        "amount": 0.005
+      },
+      "output": "หนึ่งสตางค์"
+    },
+    {
+      "name": "bahtText/0.01",
+      "input": {
+        "amount": 0.01
+      },
+      "output": "หนึ่งสตางค์"
+    },
+    {
+      "name": "bahtText/0.25",
+      "input": {
+        "amount": 0.25
+      },
+      "output": "ยี่สิบห้าสตางค์"
+    },
+    {
+      "name": "bahtText/0.5",
+      "input": {
+        "amount": 0.5
+      },
+      "output": "ห้าสิบสตางค์"
+    },
+    {
+      "name": "bahtText/0.99",
+      "input": {
+        "amount": 0.99
+      },
+      "output": "เก้าสิบเก้าสตางค์"
+    },
+    {
+      "name": "bahtText/1",
+      "input": {
+        "amount": 1
+      },
+      "output": "หนึ่งบาทถ้วน"
+    },
+    {
+      "name": "bahtText/2",
+      "input": {
+        "amount": 2
+      },
+      "output": "สองบาทถ้วน"
+    },
+    {
+      "name": "bahtText/10",
+      "input": {
+        "amount": 10
+      },
+      "output": "สิบบาทถ้วน"
+    },
+    {
+      "name": "bahtText/11",
+      "input": {
+        "amount": 11
+      },
+      "output": "สิบเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/12",
+      "input": {
+        "amount": 12
+      },
+      "output": "สิบสองบาทถ้วน"
+    },
+    {
+      "name": "bahtText/20",
+      "input": {
+        "amount": 20
+      },
+      "output": "ยี่สิบบาทถ้วน"
+    },
+    {
+      "name": "bahtText/21",
+      "input": {
+        "amount": 21
+      },
+      "output": "ยี่สิบเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/22",
+      "input": {
+        "amount": 22
+      },
+      "output": "ยี่สิบสองบาทถ้วน"
+    },
+    {
+      "name": "bahtText/100",
+      "input": {
+        "amount": 100
+      },
+      "output": "หนึ่งร้อยบาทถ้วน"
+    },
+    {
+      "name": "bahtText/101",
+      "input": {
+        "amount": 101
+      },
+      "output": "หนึ่งร้อยเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/110",
+      "input": {
+        "amount": 110
+      },
+      "output": "หนึ่งร้อยสิบบาทถ้วน"
+    },
+    {
+      "name": "bahtText/111",
+      "input": {
+        "amount": 111
+      },
+      "output": "หนึ่งร้อยสิบเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/121",
+      "input": {
+        "amount": 121
+      },
+      "output": "หนึ่งร้อยยี่สิบเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/1000",
+      "input": {
+        "amount": 1000
+      },
+      "output": "หนึ่งพันบาทถ้วน"
+    },
+    {
+      "name": "bahtText/1001",
+      "input": {
+        "amount": 1001
+      },
+      "output": "หนึ่งพันเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/1011",
+      "input": {
+        "amount": 1011
+      },
+      "output": "หนึ่งพันสิบเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/10000",
+      "input": {
+        "amount": 10000
+      },
+      "output": "หนึ่งหมื่นบาทถ้วน"
+    },
+    {
+      "name": "bahtText/100000",
+      "input": {
+        "amount": 100000
+      },
+      "output": "หนึ่งแสนบาทถ้วน"
+    },
+    {
+      "name": "bahtText/999999",
+      "input": {
+        "amount": 999999
+      },
+      "output": "เก้าแสนเก้าหมื่นเก้าพันเก้าร้อยเก้าสิบเก้าบาทถ้วน"
+    },
+    {
+      "name": "bahtText/1000000",
+      "input": {
+        "amount": 1000000
+      },
+      "output": "หนึ่งล้านบาทถ้วน"
+    },
+    {
+      "name": "bahtText/1000001",
+      "input": {
+        "amount": 1000001
+      },
+      "output": "หนึ่งล้านเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/1000011",
+      "input": {
+        "amount": 1000011
+      },
+      "output": "หนึ่งล้านสิบเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/1000021",
+      "input": {
+        "amount": 1000021
+      },
+      "output": "หนึ่งล้านยี่สิบเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/1100000",
+      "input": {
+        "amount": 1100000
+      },
+      "output": "หนึ่งล้านหนึ่งแสนบาทถ้วน"
+    },
+    {
+      "name": "bahtText/2000000.01",
+      "input": {
+        "amount": 2000000.01
+      },
+      "output": "สองล้านบาทหนึ่งสตางค์"
+    },
+    {
+      "name": "bahtText/11000011",
+      "input": {
+        "amount": 11000011
+      },
+      "output": "สิบเอ็ดล้านสิบเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/21000021",
+      "input": {
+        "amount": 21000021
+      },
+      "output": "ยี่สิบเอ็ดล้านยี่สิบเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/100000000",
+      "input": {
+        "amount": 100000000
+      },
+      "output": "หนึ่งร้อยล้านบาทถ้วน"
+    },
+    {
+      "name": "bahtText/1000000000000",
+      "input": {
+        "amount": 1000000000000
+      },
+      "output": "หนึ่งล้านล้านบาทถ้วน"
+    },
+    {
+      "name": "bahtText/1000001000001",
+      "input": {
+        "amount": 1000001000001
+      },
+      "output": "หนึ่งล้านเอ็ดล้านเอ็ดบาทถ้วน"
+    },
+    {
+      "name": "bahtText/1070.5",
+      "input": {
+        "amount": 1070.5
+      },
+      "output": "หนึ่งพันเจ็ดสิบบาทห้าสิบสตางค์"
+    },
+    {
+      "name": "bahtText/1070.05",
+      "input": {
+        "amount": 1070.05
+      },
+      "output": "หนึ่งพันเจ็ดสิบบาทห้าสตางค์"
+    },
+    {
+      "name": "bahtText/21.21",
+      "input": {
+        "amount": 21.21
+      },
+      "output": "ยี่สิบเอ็ดบาทยี่สิบเอ็ดสตางค์"
+    },
+    {
+      "name": "bahtText/10.1",
+      "input": {
+        "amount": 10.1
+      },
+      "output": "สิบบาทสิบสตางค์"
+    },
+    {
+      "name": "bahtText/20.2",
+      "input": {
+        "amount": 20.2
+      },
+      "output": "ยี่สิบบาทยี่สิบสตางค์"
+    },
+    {
+      "name": "bahtText/11.11",
+      "input": {
+        "amount": 11.11
+      },
+      "output": "สิบเอ็ดบาทสิบเอ็ดสตางค์"
+    },
+    {
+      "name": "bahtText/-1070.5",
+      "input": {
+        "amount": -1070.5
+      },
+      "output": "ลบหนึ่งพันเจ็ดสิบบาทห้าสิบสตางค์"
+    },
+    {
+      "name": "bahtText/-0.01",
+      "input": {
+        "amount": -0.01
+      },
+      "output": "ลบหนึ่งสตางค์"
+    },
+    {
+      "name": "bahtText/123456789.99",
+      "input": {
+        "amount": 123456789.99
+      },
+      "output": "หนึ่งร้อยยี่สิบสามล้านสี่แสนห้าหมื่นหกพันเจ็ดร้อยแปดสิบเก้าบาทเก้าสิบเก้าสตางค์"
+    },
+    {
+      "name": "bahtText/1234567890123.45",
+      "input": {
+        "amount": 1234567890123.45
+      },
+      "output": "หนึ่งล้านสองแสนสามหมื่นสี่พันห้าร้อยหกสิบเจ็ดล้านแปดแสนเก้าหมื่นหนึ่งร้อยยี่สิบสามบาทสี่สิบห้าสตางค์"
+    },
+    {
+      "name": "bahtText/1.005",
+      "input": {
+        "amount": 1.005
+      },
+      "output": "หนึ่งบาทหนึ่งสตางค์"
+    },
+    {
+      "name": "bahtText/7.995",
+      "input": {
+        "amount": 7.995
+      },
+      "output": "แปดบาทถ้วน"
+    }
+  ]
+}
