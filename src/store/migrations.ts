@@ -10,6 +10,7 @@ import {
   docPeriodCode,
   companySnapshot,
   DEFAULT_ACCOUNTS,
+  dateOrderInversions,
   validateAccountingData,
 } from 'src/domain';
 
@@ -22,6 +23,12 @@ import {
 //     ได้เลขเดิมตรงตัว เพราะ v1 ออกเลข PV ครั้งละ 1 ต่อการจ่าย 1 ครั้งตามลำดับนั้น
 //   - เลข 50 ทวิ ออกใหม่เป็น sequence WT ของตัวเอง (เดิมใช้เลข PV แทน จึงไม่ต่อเนื่อง) — v1 ยังไม่มีการพิมพ์ 50 ทวิ
 //   - เพิ่มบัญชีใหม่ในผังบัญชี (2120 เงินรอคืนลูกค้า) และ refunds = []
+//
+// v2 → v3
+//   - การตรวจข้อมูลเพิ่ม "เลขที่ต้องเรียงตามวันที่" (IV/BL/CN/CM/RE/PV/WT/RF) — v1 ไม่ได้บังคับกฎนี้ เอกสารเดิม
+//     จึงอาจเลขเรียงไม่ตรงวันที่ (ออกไปแล้ว แก้เลขไม่ได้) → ตั้ง `legacyOrderThrough` = วันที่ล่าสุดของคู่ที่เรียงผิด
+//     เพื่อยกเว้นเฉพาะเอกสารเดิม เอกสารใหม่ยังถูกตรวจ (action ของ v2 บังคับลำดับแล้ว คู่ที่ผิดจึงมาจาก v1)
+//   - ไม่มีการเปลี่ยนโครงอื่น
 // ----------------------------------------------------------------------
 
 type DataV1 = Omit<AccountingData, 'version' | 'payments' | 'refunds'> & { version: 1 };
@@ -126,6 +133,16 @@ export function migrateV1(data: DataV1): AccountingData {
   };
 }
 
+/** v2 → v3 (pure): ยกเว้นการตรวจลำดับเลขที่ของเอกสารเดิมที่ออกก่อนบังคับกฎ */
+export function migrateV2(data: AccountingData): AccountingData {
+  const inversions = dateOrderInversions(data);
+  if (!inversions.length) return { ...data, version: DATA_VERSION };
+  const through = inversions
+    .map((x) => x.earlier.date)
+    .reduce((latest, d) => (d > latest ? d : latest), data.legacyOrderThrough ?? '');
+  return { ...data, version: DATA_VERSION, legacyOrderThrough: through };
+}
+
 export type LoadResult = {
   /** null = อ่านไม่ได้/รูปแบบผิด ห้ามนำไปใช้ */
   data: AccountingData | null;
@@ -152,13 +169,18 @@ export function readAccountingData(raw: unknown): LoadResult {
     } catch (error) {
       return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน 1 ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
     }
+  } else if (raw.version === 2) {
+    // โครง v2 = v3 ที่ยังไม่มี legacyOrderThrough — ตรวจด้วย schema ปัจจุบันแล้วค่อย migrate
+    candidate = { ...raw, version: DATA_VERSION };
+    migratedFrom = 2;
   } else if (raw.version !== DATA_VERSION) {
     return { data: null, problems: [`ไม่รองรับข้อมูลเวอร์ชัน ${String(raw.version)}`] };
   }
 
   const parsed = AccountingDataSchema.safeParse(candidate);
   if (!parsed.success) return { data: null, problems: formatSchemaIssues(parsed.error), migratedFrom };
-  return { data: parsed.data, problems: validateAccountingData(parsed.data), migratedFrom };
+  const data = migratedFrom === undefined ? parsed.data : migrateV2(parsed.data);
+  return { data, problems: validateAccountingData(data), migratedFrom };
 }
 
 /** อ่านจากข้อความ JSON (ไฟล์ backup) */

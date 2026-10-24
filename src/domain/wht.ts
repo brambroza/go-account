@@ -19,6 +19,15 @@ export const WHT_INCOME_TYPES: { label: string; rate: number }[] = [
   { label: 'ค่ารางวัล / ส่งเสริมการขาย', rate: 3 },
 ];
 
+/**
+ * อัตราสูงสุดที่ลูกค้าหัก ณ ที่จ่ายเราได้ตอนรับชำระ = อัตราสูงสุดในตารางประเภทเงินได้ (ค่าเช่า 5%)
+ * ใช้กับฐานมูลค่าก่อน VAT ตามสัดส่วนยอดที่รับ (`receiptWhtAmount`) — กันกรอก WHT เกินจริง เช่น 50% ของยอด
+ */
+export const RECEIPT_WHT_MAX_RATE = Math.max(...WHT_INCOME_TYPES.map((w) => w.rate));
+
+/** อัตราหัก ณ ที่จ่ายสูงสุดที่บันทึกในเอกสารซื้อได้ (อัตราสูงสุดตามกฎหมายสำหรับผู้มีถิ่นที่อยู่ในไทย = 15%) */
+export const PURCHASE_WHT_MAX_RATE = 15;
+
 export type WhtForm = 'PND3' | 'PND53';
 
 export type WhtItem = {

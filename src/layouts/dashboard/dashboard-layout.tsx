@@ -42,7 +42,7 @@ export function DashboardLayout({ children }: Props) {
   const mobileNav = useBoolean();
   const search = useBoolean();
   const resetConfirm = useBoolean();
-  const { data, problems, storageError, externalChangeAt } = useAccounting();
+  const { data, problems, storageError, externalChangeAt, readOnly } = useAccounting();
 
   // แท็บอื่นแก้ข้อมูล → store โหลดล่าสุดให้แล้ว แจ้งผู้ใช้ครั้งเดียวต่อการเปลี่ยน
   const lastExternal = useRef(externalChangeAt);
@@ -155,12 +155,13 @@ export function DashboardLayout({ children }: Props) {
                   </Button>
                 }
               >
-                {storageError} — ข้อมูลล่าสุดยังอยู่ในหน้านี้แต่จะหายเมื่อปิดหรือรีเฟรช ให้สำรองข้อมูลเป็นไฟล์ก่อน
+                {storageError} — รายการที่บันทึกไม่สำเร็จจะไม่ถูกออกเลขที่และไม่ลงบัญชี ให้สำรองข้อมูลเป็นไฟล์แล้วแก้ที่เบราว์เซอร์
+                (เปิดการเก็บข้อมูลของเว็บไซต์ / เพิ่มพื้นที่) ก่อนทำรายการต่อ
               </Alert>
             )}
             {problems.length > 0 && (
               <Alert
-                severity="warning"
+                severity={readOnly ? 'error' : 'warning'}
                 variant="outlined"
                 sx={{ mb: 3 }}
                 action={
@@ -169,7 +170,9 @@ export function DashboardLayout({ children }: Props) {
                   </Button>
                 }
               >
-                พบปัญหาในข้อมูล {problems.length} ข้อ เช่น {problems[0]} — สำรองข้อมูลแล้วตรวจสอบที่หน้าตั้งค่า
+                {readOnly
+                  ? `โหมดอ่านอย่างเดียว — ข้อมูลไม่ผ่านการตรวจ ${problems.length} ข้อ เช่น ${problems[0]} · ดูรายงานได้แต่บันทึกรายการไม่ได้ จนกว่าจะกู้คืนจากไฟล์สำรองที่ถูกต้องหรือล้างข้อมูลที่หน้าตั้งค่า`
+                  : `พบปัญหาในข้อมูล ${problems.length} ข้อ เช่น ${problems[0]} — สำรองข้อมูลแล้วตรวจสอบที่หน้าตั้งค่า`}
               </Alert>
             )}
             {children}

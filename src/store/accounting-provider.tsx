@@ -30,7 +30,10 @@ export type AccountingContextValue = {
   problems: string[];
   /** เวลา (ms) ที่ข้อมูลถูกโหลดใหม่เพราะแท็บอื่นแก้ไข */
   externalChangeAt: number | null;
+  /** บันทึกลงเครื่องไม่ได้ (ไม่มี storage / พื้นที่เต็ม) — รายการล่าสุดไม่ถูกบันทึก */
   storageError: string | null;
+  /** ข้อมูลไม่ผ่านการตรวจ — `run` ถูกปฏิเสธจนกว่าจะกู้คืนหรือล้างข้อมูล */
+  readOnly: boolean;
 };
 
 const AccountingContext = createContext<AccountingContextValue | undefined>(undefined);
@@ -62,6 +65,7 @@ export function AccountingProvider({ children }: Props) {
       problems: snap.problems,
       externalChangeAt: snap.externalChangeAt,
       storageError: snap.storageError,
+      readOnly: snap.readOnly,
     }),
     [snap, store]
   );

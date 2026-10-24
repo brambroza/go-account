@@ -100,6 +100,37 @@ export function isControlAccount(code: string): boolean {
   return CONTROL_ACCOUNTS.includes(code);
 }
 
+/**
+ * บัญชีเงินสด/ธนาคาร ที่ใช้รับ/จ่ายเงินได้ — สินทรัพย์หมวด 111x (เงินสด) และ 112x (เงินฝากธนาคาร)
+ * ตามผังบัญชี SME (ลูกหนี้ 113x, ภาษี 116x–117x, สินค้า 1200 ฯลฯ ใช้รับเงินไม่ได้)
+ */
+export function isCashAccount(account: Pick<Account, 'code' | 'type'> | undefined): boolean {
+  return !!account && account.type === 'asset' && /^11[12]\d$/.test(account.code) && !isControlAccount(account.code);
+}
+
+/** ประเภทเอกสารที่บรรทัดรายการใช้: ขาย/ลดหนี้ = บัญชีรายได้, ซื้อ = ค่าใช้จ่ายหรือสินทรัพย์ */
+export type LineSide = 'sales' | 'purchase';
+
+/**
+ * ตรวจบัญชีของบรรทัดเอกสาร — คืนข้อความปัญหา หรือ null ถ้าใช้ได้
+ * - ห้ามบัญชีคุม (ภาษีขาย/ภาษีซื้อ/ลูกหนี้/เจ้าหนี้ ฯลฯ) เพราะยอดต้องกระทบกับทะเบียนภาษีและทะเบียนย่อย
+ * - ขาย/ลดหนี้: บัญชีรายได้เท่านั้น
+ * - ซื้อ: ค่าใช้จ่าย หรือสินทรัพย์ที่ไม่ใช่เงินสด/ธนาคาร (เช่น สินค้า อุปกรณ์)
+ */
+export function lineAccountProblem(account: Account | undefined, side: LineSide): string | null {
+  if (!account) return 'ไม่พบบัญชีในผังบัญชี';
+  if (isControlAccount(account.code)) {
+    return `${account.code} ${account.name} เป็นบัญชีคุม ใช้ในบรรทัดรายการไม่ได้`;
+  }
+  if (side === 'sales' && account.type !== 'revenue') {
+    return `${account.code} ${account.name} ไม่ใช่บัญชีรายได้`;
+  }
+  if (side === 'purchase' && !(account.type === 'expense' || (account.type === 'asset' && !isCashAccount(account)))) {
+    return `${account.code} ${account.name} ไม่ใช่บัญชีค่าใช้จ่ายหรือสินทรัพย์`;
+  }
+  return null;
+}
+
 /** ด้านปกติของบัญชี: สินทรัพย์/ค่าใช้จ่าย = เดบิต, ที่เหลือ = เครดิต */
 export function normalSide(type: Account['type']): 'debit' | 'credit' {
   return type === 'asset' || type === 'expense' ? 'debit' : 'credit';

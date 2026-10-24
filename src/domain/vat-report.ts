@@ -111,7 +111,9 @@ export function pp30Summary(salesRows: VatReportRow[], purchaseRows: VatReportRo
  * ข้อความที่ขึ้นต้นด้วย = + - @ tab หรือ CR ให้เติม ' นำหน้า เพื่อไม่ให้ Excel/Sheets รันเป็นสูตร
  */
 export function csvCell(value: string): string {
-  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  // Excel ตัดช่องว่าง/ขึ้นบรรทัดนำหน้าแล้วยังตีความเป็นสูตรได้ และ ＝ (full-width) เทียบเท่า = หลัง NFKC
+  const head = value.normalize('NFKC').replace(/^[\s\u00A0\u200B-\u200D\uFEFF]+/, '');
+  const safe = /^[=+\-@\t\r]/.test(value) || /^[=+\-@]/.test(head) ? `'${value}` : value;
   return `"${safe.replace(/"/g, '""')}"`;
 }
 

@@ -82,10 +82,13 @@ describe('dialog schemas', () => {
     expect(monthEndOf('2026-02-10')).toBe('2026-02-28');
     expect(monthEndOf('2028-02-01')).toBe('2028-02-29');
     expect(monthEndOf('2026-12-31')).toBe('2026-12-31');
-    const schema = makeLockPeriodSchema('2026-09-30');
+    const schema = makeLockPeriodSchema('2026-09-30', '2026-11-05');
     expect(schema.safeParse({ month: '2026-10-01' }).success).toBe(true);
     expect(schema.safeParse({ month: '2026-09-01' }).success).toBe(false);
-    expect(makeLockPeriodSchema('2026-09-15').safeParse({ month: '2026-09-01' }).success).toBe(true);
-    expect(makeLockPeriodSchema(undefined).safeParse({ month: '2026-01-01' }).success).toBe(true);
+    expect(makeLockPeriodSchema('2026-09-15', '2026-11-05').safeParse({ month: '2026-09-01' }).success).toBe(true);
+    expect(makeLockPeriodSchema(undefined, '2026-11-05').safeParse({ month: '2026-01-01' }).success).toBe(true);
+    // T8: เดือนที่ยังไม่สิ้นสุด (หรืออนาคต) ปิดไม่ได้
+    expect(makeLockPeriodSchema(undefined, '2026-10-24').safeParse({ month: '2026-10-01' }).success).toBe(false);
+    expect(makeLockPeriodSchema(undefined, '2026-10-24').safeParse({ month: '2099-12-01' }).success).toBe(false);
   });
 });

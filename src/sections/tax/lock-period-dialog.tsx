@@ -17,8 +17,8 @@ import DialogContent from '@mui/material/DialogContent';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { lockPeriod, useAccounting } from 'src/store';
-import { addDays, periodOf, todayISO, periodLabel, formatThaiDate } from 'src/domain';
 import { monthEndOf, makeLockPeriodSchema } from 'src/schemas/accounting/doc-schemas';
+import { addDays, periodOf, todayISO, periodLabel, formatThaiDate, endOfPreviousMonth } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
@@ -30,11 +30,14 @@ import { ConfirmSummary, preventEnterSubmit } from 'src/sections/shared';
 
 type Props = { open: boolean; onClose: () => void };
 
-/** เดือนเริ่มต้นที่เสนอ: เดือนถัดจากงวดที่ปิดแล้ว หรือเดือนก่อนหน้าวันนี้ */
+/** เดือนเริ่มต้นที่เสนอ: เดือนถัดจากงวดที่ปิดแล้ว (ไม่เกินเดือนที่แล้ว) หรือเดือนก่อนหน้าวันนี้ */
 function suggestedMonth(lockedThrough: string | undefined): string {
-  if (lockedThrough) return `${addDays(lockedThrough, 1).slice(0, 7)}-01`;
-  const today = todayISO();
-  return `${addDays(`${today.slice(0, 7)}-01`, -1).slice(0, 7)}-01`;
+  const lastEnded = `${endOfPreviousMonth(todayISO()).slice(0, 7)}-01`;
+  if (lockedThrough) {
+    const next = `${addDays(lockedThrough, 1).slice(0, 7)}-01`;
+    return next < lastEnded ? next : lastEnded;
+  }
+  return lastEnded;
 }
 
 /**
@@ -59,7 +62,7 @@ export function LockPeriodDialog({ open, onClose }: Props) {
     if (open) reset({ month: suggestedMonth(current) });
   }, [open, current, reset]);
 
-  const notEnded = !!preview && preview >= todayISO();
+  const notEnded = !!preview && preview > endOfPreviousMonth(todayISO());
   const etaxWaiting = preview
     ? data.sales.filter((s) => s.date <= preview && (s.etax === 'pending-sign' || s.etax === 'signed')).length
     : 0;
@@ -106,8 +109,8 @@ export function LockPeriodDialog({ open, onClose }: Props) {
                 </Typography>
               )}
               {notEnded && (
-                <Alert severity="warning" variant="outlined">
-                  เดือนนี้ยังไม่สิ้นสุด — ปิดแล้วจะบันทึกรายการของวันที่เหลือในเดือนนี้ไม่ได้
+                <Alert severity="error" variant="outlined">
+                  เดือนนี้ยังไม่สิ้นสุด — ปิดได้ถึงสิ้นเดือนที่แล้ว ({formatThaiDate(endOfPreviousMonth(todayISO()))}) เท่านั้น
                 </Alert>
               )}
               {etaxWaiting > 0 && (

@@ -6,6 +6,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
 import Dialog from '@mui/material/Dialog';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
@@ -15,8 +16,8 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 
 import { useAccounting, upsertContact } from 'src/store';
-import { normalizeTaxId, normalizeBranch5 } from 'src/domain';
 import { ContactSchema } from 'src/schemas/accounting/doc-schemas';
+import { normalizeTaxId, normalizeBranch5, contactDisplayName, contactsWithSameTaxId } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
@@ -56,9 +57,15 @@ function toForm(c: Contact | null | undefined, nextCode: string): ContactSchemaT
 }
 
 export function ContactDialog({ open, onClose, contact, nextCode }: Props) {
-  const { run } = useAccounting();
+  const { data, run } = useAccounting();
   const methods = useForm<ContactSchemaType>({ resolver: zodResolver(ContactSchema), defaultValues: toForm(contact, nextCode) });
-  const legalForm = useWatch({ control: methods.control, name: 'legalForm' });
+  const [legalForm, taxId, branchNo] = useWatch({ control: methods.control, name: ['legalForm', 'taxId', 'branchNo'] });
+  // เตือน (ไม่บล็อก) เมื่อมีผู้ติดต่ออื่นเลขผู้เสียภาษี + สาขาเดียวกัน — ผู้ขายซ้ำทำให้ตรวจใบกำกับซ้ำยาก
+  const sameTaxId = contactsWithSameTaxId(data.contacts, {
+    id: contact?.id,
+    taxId: normalizeTaxId(taxId),
+    branchNo: legalForm === 'juristic' ? branchNo : undefined,
+  });
 
   useEffect(() => {
     if (open) methods.reset(toForm(contact, nextCode));
@@ -126,6 +133,12 @@ export function ContactDialog({ open, onClose, contact, nextCode }: Props) {
             />
             <Field.Text name="phone" label="โทรศัพท์" size="small" />
             <Field.Text name="email" label="อีเมล (ส่ง e-Tax)" size="small" />
+            {sameTaxId.length > 0 && (
+              <Alert severity="warning" variant="outlined" sx={{ gridColumn: '1 / -1' }}>
+                เลขผู้เสียภาษีและสาขานี้มีอยู่แล้ว: {sameTaxId.map((c) => `${c.code} ${contactDisplayName(c)}`).join(', ')} — ถ้าเป็นรายเดียวกัน
+                ให้ใช้ผู้ติดต่อเดิม (บันทึกได้ แต่ใบกำกับของผู้ขายรายเดียวกันจะถูกตรวจซ้ำรวมกัน)
+              </Alert>
+            )}
           </Box>
 
           <Typography variant="subtitle2" sx={{ mt: 3, mb: 1.5 }}>

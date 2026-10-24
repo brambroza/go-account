@@ -263,7 +263,7 @@ export type JournalEntry = {
 };
 
 /** เวอร์ชันโครงข้อมูลปัจจุบัน — เปลี่ยนเมื่อไรต้องเพิ่ม migration ใน `store/migrations.ts` */
-export const DATA_VERSION = 2;
+export const DATA_VERSION = 3;
 
 export type AccountingData = {
   version: typeof DATA_VERSION;
@@ -278,4 +278,9 @@ export type AccountingData = {
   journal: JournalEntry[];
   /** เลขที่ล่าสุดต่อ prefix+งวด เช่น { 'IV6910': 43 } */
   sequences: Record<string, number>;
+  /**
+   * เอกสารที่ลงวันที่ไม่เกินวันนี้ออกเลขก่อนระบบบังคับ "เลขที่เรียงตามวันที่" (ข้อมูล v1)
+   * การตรวจลำดับเลขที่ยกเว้นคู่ที่ใบก่อนหน้าลงวันที่ ≤ ค่านี้ — ตั้งโดย migration เท่านั้น
+   */
+  legacyOrderThrough?: ISODate;
 };

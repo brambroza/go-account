@@ -64,3 +64,50 @@ describe('migration v1 → v2 (A5, A7)', () => {
     expect(readAccountingData(corrupt).problems[0]).toMatch(/ย้ายข้อมูลเวอร์ชัน 1 ไม่สำเร็จ/);
   });
 });
+
+// ----------------------------------------------------------------------
+
+describe('migration v2 → v3 (legacy number order)', () => {
+  /** v1 ไม่บังคับเลขเรียงตามวันที่ — จำลองข้อมูลจริงที่ IV ใบหลังลงวันที่ก่อนใบก่อนหน้า */
+  function outOfOrder() {
+    const data = JSON.parse(JSON.stringify(demo())) as ReturnType<typeof demo>;
+    const ivs = data.sales.filter((s) => s.docNo.startsWith('IV6910')).sort((a, b) => a.docNo.localeCompare(b.docNo));
+    const [a, b] = ivs.slice(-2);
+    [a.docNo, b.docNo] = [b.docNo, a.docNo];
+    data.journal.forEach((e) => {
+      if (e.id === a.journalId) e.sourceDocNo = a.docNo;
+      if (e.id === b.journalId) e.sourceDocNo = b.docNo;
+    });
+    return { data, laterDate: a.date > b.date ? a.date : b.date };
+  }
+
+  it('v2 data without inversions migrates unchanged except the version', () => {
+    const v2 = { ...demo(), version: 2 };
+    const result = readAccountingData(v2);
+    expect(result.migratedFrom).toBe(2);
+    expect(result.problems).toEqual([]);
+    expect(result.data?.version).toBe(DATA_VERSION);
+    expect(result.data?.legacyOrderThrough).toBeUndefined();
+  });
+
+  it('grandfathers inversions that came from v1 / v2 history, but not in current-version files', () => {
+    const { data, laterDate } = outOfOrder();
+    const fromV2 = readAccountingData({ ...data, version: 2 });
+    expect(fromV2.problems).toEqual([]);
+    expect(fromV2.data?.legacyOrderThrough).toBe(laterDate);
+
+    const fromV1 = readAccountingData(toV1(data));
+    expect(fromV1.migratedFrom).toBe(1);
+    expect(fromV1.problems).toEqual([]);
+    expect(fromV1.data?.legacyOrderThrough).toBe(laterDate);
+
+    // ไฟล์เวอร์ชันปัจจุบันที่เลขไม่เรียง = ถูกแก้ไฟล์ → รายงานปัญหา
+    expect(readAccountingData(data).problems.some((p) => p.includes('เรียงตามวันที่'))).toBe(true);
+  });
+
+  it('readAccountingJson round-trips the migrated data', () => {
+    const { data } = outOfOrder();
+    const migrated = readAccountingJson(JSON.stringify({ ...data, version: 2 })).data;
+    expect(migrated && readAccountingJson(JSON.stringify(migrated)).problems).toEqual([]);
+  });
+});

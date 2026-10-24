@@ -68,19 +68,23 @@ export function SettingsView() {
 
   const onSubmit = methods.handleSubmit((v) => {
     const clean = (s?: string) => (s && s.trim() ? s.trim() : undefined);
-    run((s) => ({
-      state: updateCompany(s, {
-        name: v.name.trim(),
-        taxId: normalizeTaxId(v.taxId),
-        branchNo: normalizeBranch5(v.branchNo),
-        vatRegistered: v.vatRegistered,
-        rdUserId: clean(v.rdUserId),
-        email: clean(v.email),
-        phone: clean(v.phone),
-        address: Object.fromEntries(Object.entries(v.address).map(([k, val]) => [k, clean(val)])),
-      }),
-    }));
-    toast.success('บันทึกข้อมูลบริษัทแล้ว');
+    try {
+      run((s) => ({
+        state: updateCompany(s, {
+          name: v.name.trim(),
+          taxId: normalizeTaxId(v.taxId),
+          branchNo: normalizeBranch5(v.branchNo),
+          vatRegistered: v.vatRegistered,
+          rdUserId: clean(v.rdUserId),
+          email: clean(v.email),
+          phone: clean(v.phone),
+          address: Object.fromEntries(Object.entries(v.address).map(([k, val]) => [k, clean(val)])),
+        }),
+      }));
+      toast.success('บันทึกข้อมูลบริษัทแล้ว');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ');
+    }
   });
 
   const importBackup = async (input: HTMLInputElement) => {
@@ -95,7 +99,11 @@ export function SettingsView() {
     }
   };
 
-  const grid = { display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' } };
+  const grid = {
+    display: 'grid',
+    gap: 2,
+    gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+  };
 
   return (
     <>
@@ -109,14 +117,27 @@ export function SettingsView() {
         <Grid item xs={12} lg={8}>
           <Form methods={methods} onSubmit={onSubmit}>
             <Card onKeyDown={preventEnterSubmit}>
-              <CardHeader title="ข้อมูลบริษัท" subheader="พิมพ์บนใบกำกับภาษี และใช้ใน header ของไฟล์ ภ.ง.ด. / e-Tax" />
+              <CardHeader
+                title="ข้อมูลบริษัท"
+                subheader="พิมพ์บนใบกำกับภาษี และใช้ใน header ของไฟล์ ภ.ง.ด. / e-Tax"
+              />
               <Box sx={{ p: 3 }}>
                 <Box sx={grid}>
-                  <Field.Text name="name" label="ชื่อบริษัท" size="small" sx={{ gridColumn: { sm: 'span 3' } }} />
+                  <Field.Text
+                    name="name"
+                    label="ชื่อบริษัท"
+                    size="small"
+                    sx={{ gridColumn: { sm: 'span 3' } }}
+                  />
                   <Field.Text name="taxId" label="เลขประจำตัวผู้เสียภาษี 13 หลัก" size="small" />
                   <Field.Text name="branchNo" label="สาขา (00000 = สำนักงานใหญ่)" size="small" />
                   <Field.Switch name="vatRegistered" label="จดทะเบียนภาษีมูลค่าเพิ่ม" />
-                  <Field.Text name="rdUserId" label="รหัสผู้ใช้ e-Filing" size="small" helperText="ใส่ในไฟล์ ภ.ง.ด. (USER_ID)" />
+                  <Field.Text
+                    name="rdUserId"
+                    label="รหัสผู้ใช้ e-Filing"
+                    size="small"
+                    helperText="ใส่ในไฟล์ ภ.ง.ด. (USER_ID)"
+                  />
                   <Field.Text name="email" label="อีเมลฝ่ายบัญชี" size="small" />
                   <Field.Text name="phone" label="โทรศัพท์" size="small" />
                 </Box>
@@ -146,14 +167,30 @@ export function SettingsView() {
 
         <Grid item xs={12} lg={4}>
           <Card>
-            <CardHeader title="ข้อมูลในเครื่องนี้" subheader="ต้นแบบนี้เก็บข้อมูลในเบราว์เซอร์ ยังไม่มีเซิร์ฟเวอร์" />
+            <CardHeader
+              title="ข้อมูลในเครื่องนี้"
+              subheader="ต้นแบบนี้เก็บข้อมูลในเบราว์เซอร์ ยังไม่มีเซิร์ฟเวอร์"
+            />
             <Stack spacing={1.5} sx={{ p: 3 }}>
-              <Button variant="outlined" startIcon={<Iconify icon="solar:download-bold" />} onClick={() => downloadBackup(data)}>
+              <Button
+                variant="outlined"
+                startIcon={<Iconify icon="solar:download-bold" />}
+                onClick={() => downloadBackup(data)}
+              >
                 สำรองข้อมูล (.json)
               </Button>
-              <Button variant="outlined" component="label" startIcon={<Iconify icon="solar:upload-bold" />}>
+              <Button
+                variant="outlined"
+                component="label"
+                startIcon={<Iconify icon="solar:upload-bold" />}
+              >
                 กู้คืนจากไฟล์สำรอง
-                <input hidden type="file" accept="application/json,.json" onChange={(e) => importBackup(e.currentTarget)} />
+                <input
+                  hidden
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={(e) => importBackup(e.currentTarget)}
+                />
               </Button>
               <Button color="error" onClick={confirmReset.onTrue}>
                 ล้างข้อมูลและสร้างข้อมูลตัวอย่างใหม่

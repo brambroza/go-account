@@ -10,6 +10,7 @@ import {
   calcDocument,
   customerCreditOf,
   receiptWhtAmount,
+  endOfPreviousMonth,
   trialBalanceTotals,
   hasNegativeOutstanding,
   validateAccountingData,
@@ -131,7 +132,7 @@ function run(seed: number, steps: number) {
       const docs = state.sales.filter((s) => s.etax === 'pending-sign' || s.etax === 'signed');
       return setETaxStatus(state, [pick(docs).id], pick(['signed', 'uploaded', 'pending-sign'] as const));
     },
-    () => lockPeriod(state, addDays(date, -1 - Math.floor(rnd() * 3))),
+    () => lockPeriod(state, endOfPreviousMonth(date), date),
   ];
 
   for (let i = 0; i < steps; i += 1) {

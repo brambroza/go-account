@@ -11,7 +11,7 @@ import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
 
 import { useAccounting } from 'src/store';
-import { formatThaiDate } from 'src/domain';
+import { formatThaiDate, restoreRegressions } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -30,11 +30,15 @@ type Props = {
 /**
  * ตรวจไฟล์สำรองก่อนกู้คืน: เทียบจำนวนรายการไฟล์กับข้อมูลปัจจุบัน, แจ้งการย้ายเวอร์ชัน, แสดงปัญหา
  * มีปัญหาข้อใดข้อหนึ่ง = กู้คืนไม่ได้ (ไม่มีทางข้ามใน UI)
+ * รวมถึงไฟล์ของบริษัทเดียวกันที่เก่ากว่าข้อมูลปัจจุบัน (วันปิดงวด/ตัวนับเลขที่ถอยหลัง → เลขที่ซ้ำ)
  */
 export function RestoreDialog({ file, onClose }: Props) {
   const { data, replace } = useAccounting();
   const result = file?.result;
-  const blocked = !result?.data || result.problems.length > 0;
+  const problems = result
+    ? [...(result.data ? restoreRegressions(data, result.data) : []), ...result.problems]
+    : [];
+  const blocked = !result?.data || problems.length > 0;
   const current = backupCounts(data);
   const incoming = result?.data ? backupCounts(result.data) : [];
 
@@ -61,36 +65,40 @@ export function RestoreDialog({ file, onClose }: Props) {
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
               ไฟล์ {file?.name}
               {result.data ? ` · ${result.data.company.name}` : ''}
-              {result.data?.company.lockedThrough ? ` · ปิดงวดถึง ${formatThaiDate(result.data.company.lockedThrough)}` : ''}
+              {result.data?.company.lockedThrough
+                ? ` · ปิดงวดถึง ${formatThaiDate(result.data.company.lockedThrough)}`
+                : ''}
             </Typography>
 
             {result.migratedFrom !== undefined && (
               <Alert severity="info" variant="outlined">
-                ไฟล์เป็นข้อมูลเวอร์ชัน {result.migratedFrom} — ระบบจะย้ายขึ้นเวอร์ชันปัจจุบันให้ตอนกู้คืน
+                ไฟล์เป็นข้อมูลเวอร์ชัน {result.migratedFrom} —
+                ระบบจะย้ายขึ้นเวอร์ชันปัจจุบันให้ตอนกู้คืน
               </Alert>
             )}
 
             {blocked ? (
               <Alert severity="error">
                 <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                  กู้คืนไม่ได้ — ไฟล์ไม่ผ่านการตรวจ {result.problems.length} ข้อ
+                  กู้คืนไม่ได้ — ไฟล์ไม่ผ่านการตรวจ {problems.length} ข้อ
                 </Typography>
                 <Stack component="ul" sx={{ m: 0, pl: 2.5 }}>
-                  {result.problems.slice(0, 20).map((p) => (
+                  {problems.slice(0, 20).map((p) => (
                     <li key={p}>
                       <Typography variant="body2">{p}</Typography>
                     </li>
                   ))}
-                  {result.problems.length > 20 && (
+                  {problems.length > 20 && (
                     <li>
-                      <Typography variant="body2">และอีก {result.problems.length - 20} ข้อ</Typography>
+                      <Typography variant="body2">และอีก {problems.length - 20} ข้อ</Typography>
                     </li>
                   )}
                 </Stack>
               </Alert>
             ) : (
               <Alert severity="warning" variant="outlined">
-                ข้อมูลปัจจุบันในเบราว์เซอร์นี้ทั้งหมดจะถูกแทนที่ด้วยข้อมูลในไฟล์ ย้อนกลับไม่ได้ — สำรองข้อมูลปัจจุบันไว้ก่อน
+                ข้อมูลปัจจุบันในเบราว์เซอร์นี้ทั้งหมดจะถูกแทนที่ด้วยข้อมูลในไฟล์ ย้อนกลับไม่ได้ —
+                สำรองข้อมูลปัจจุบันไว้ก่อน
               </Alert>
             )}
 
@@ -110,7 +118,9 @@ export function RestoreDialog({ file, onClose }: Props) {
                       <TableCell align="right">{row.count.toLocaleString('th-TH')}</TableCell>
                       <TableCell
                         align="right"
-                        sx={{ color: current[i].count > row.count ? 'warning.main' : 'text.secondary' }}
+                        sx={{
+                          color: current[i].count > row.count ? 'warning.main' : 'text.secondary',
+                        }}
                       >
                         {current[i].count.toLocaleString('th-TH')}
                       </TableCell>

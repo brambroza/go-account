@@ -120,6 +120,11 @@ export function diffDays(from: ISODate, to: ISODate): number {
   );
 }
 
+/** วันสุดท้ายของเดือนก่อนหน้า `today` เช่น 2026-10-24 → 2026-09-30 (เพดานวันปิดงวด) */
+export function endOfPreviousMonth(today: ISODate): ISODate {
+  return addDays(`${today.slice(0, 7)}-01`, -1);
+}
+
 export function todayISO(): ISODate {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);

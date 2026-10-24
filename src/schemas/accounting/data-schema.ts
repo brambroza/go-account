@@ -219,6 +219,7 @@ export const AccountingDataSchema: zod.ZodType<AccountingData, zod.ZodTypeDef, u
   refunds: zod.array(CustomerRefundSchema),
   journal: zod.array(JournalEntrySchema),
   sequences: zod.record(zod.number().int().nonnegative()),
+  legacyOrderThrough: isoDate.optional(),
 });
 
 /** แปลง issue ของ zod เป็นข้อความอ่านง่าย เช่น `sales.3.date: วันที่ต้องเป็น ค.ศ. YYYY-MM-DD` */

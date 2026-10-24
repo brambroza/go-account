@@ -46,9 +46,13 @@ export function ImportContactsDialog({ open, onClose }: Props) {
 
   const confirm = () => {
     if (!result) return;
-    const r = run((s) => importContacts(s, result.contacts));
-    toast.success(`นำเข้า ${r.added} รายการ${r.skipped ? ` (ข้ามรหัสซ้ำ ${r.skipped})` : ''}`);
-    close();
+    try {
+      const r = run((s) => importContacts(s, result.contacts));
+      toast.success(`นำเข้า ${r.added} รายการ${r.skipped ? ` (ข้ามรหัสซ้ำ ${r.skipped})` : ''}`);
+      close();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'นำเข้าไม่สำเร็จ');
+    }
   };
 
   return (

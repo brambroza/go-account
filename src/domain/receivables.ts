@@ -44,10 +44,33 @@ export function outstandingOf(state: SalesState, doc: SalesDoc): number {
   return round2(calcDocument(doc).total - doc.paidAmount - appliedToAr);
 }
 
-/** เงินรอคืนลูกค้า = ส่วนเกินจากใบลดหนี้ − ที่คืนไปแล้ว */
-export function customerCreditOf(state: Pick<AccountingData, 'sales' | 'refunds'>, contactId: string): number {
+/** ยอดมูลค่าก่อน VAT และ VAT ของใบลดหนี้ทั้งหมดที่อ้างถึงใบกำกับนี้ */
+export function creditedPartsOf(state: SalesState, invoice: SalesDoc): { net: number; vat: number } {
+  const totals = creditNotesOf(state, invoice.id).map((s) => calcDocument(s));
+  return { net: sumBaht(totals.map((t) => t.net)), vat: sumBaht(totals.map((t) => t.vat)) };
+}
+
+/** วันที่รับชำระครั้งล่าสุดของใบกำกับ (ไม่มีคืน undefined) */
+export function lastReceiptDateOf(state: Pick<AccountingData, 'receipts'>, invoiceId: string): ISODate | undefined {
+  return state.receipts
+    .filter((r) => r.invoiceId === invoiceId)
+    .reduce<ISODate | undefined>((latest, r) => (!latest || r.date > latest ? r.date : latest), undefined);
+}
+
+/**
+ * เงินรอคืนลูกค้า = ส่วนเกินจากใบลดหนี้ − ที่คืนไปแล้ว
+ * ส่ง `asOf` เพื่อนับเฉพาะใบลดหนี้ที่ลงวันที่ไม่เกินวันนั้น (คืนเงินได้เฉพาะยอดที่เกิดขึ้นแล้ว ณ วันคืนเงิน)
+ * — การคืนเงินนับทั้งหมดเพราะเลข RF เรียงตามวันที่ ใบใหม่จึงลงวันที่ไม่ก่อนใบที่มีอยู่
+ */
+export function customerCreditOf(
+  state: Pick<AccountingData, 'sales' | 'refunds'>,
+  contactId: string,
+  asOf?: ISODate
+): number {
   const credited = sumBaht(
-    state.sales.filter((s) => s.kind === 'credit-note' && s.contactId === contactId).map((s) => s.creditToCustomer ?? 0)
+    state.sales
+      .filter((s) => s.kind === 'credit-note' && s.contactId === contactId && (!asOf || s.date <= asOf))
+      .map((s) => s.creditToCustomer ?? 0)
   );
   const refunded = sumBaht(state.refunds.filter((r) => r.contactId === contactId).map((r) => r.amount));
   return subBaht(credited, refunded);

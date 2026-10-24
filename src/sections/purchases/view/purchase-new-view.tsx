@@ -30,6 +30,7 @@ import {
   calcDocument,
   formatThaiDate,
   WHT_INCOME_TYPES,
+  findDuplicatePurchase,
 } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
@@ -79,11 +80,19 @@ export function PurchaseNewView() {
   });
 
   const { control, setValue, handleSubmit, formState } = methods;
-  const [contactId, date, paidDate, vatMode, whtRate, whtIncomeType, payNow, lines] = useWatch({
+  const [contactId, date, paidDate, vatMode, whtRate, whtIncomeType, payNow, lines, supplierInvoiceNo] = useWatch({
     control,
-    name: ['contactId', 'date', 'paidDate', 'vatMode', 'whtRate', 'whtIncomeType', 'payNow', 'lines'],
+    name: ['contactId', 'date', 'paidDate', 'vatMode', 'whtRate', 'whtIncomeType', 'payNow', 'lines', 'supplierInvoiceNo'],
   });
   const vendor = contacts.get(contactId);
+  // เตือนเลขใบกำกับซ้ำตั้งแต่ตอนกรอก (กฎเดียวกับที่ action ใช้ปฏิเสธ)
+  const duplicate = useMemo(
+    () =>
+      contactId
+        ? findDuplicatePurchase(data.purchases, data.contacts, { contactId, supplierInvoiceNo: supplierInvoiceNo ?? '' })
+        : undefined,
+    [data.purchases, data.contacts, contactId, supplierInvoiceNo]
+  );
 
   // เลือกประเภทเงินได้แล้วเติมอัตราให้
   useEffect(() => {
@@ -177,6 +186,12 @@ export function PurchaseNewView() {
                   disabled={vatMode === 'none' || !vatRegistered}
                 />
                 <LockedDateAlert date={date} sx={{ gridColumn: { sm: 'span 2' } }} />
+                {duplicate && (
+                  <Alert severity="error" variant="outlined" sx={{ gridColumn: { sm: 'span 2' } }}>
+                    ใบกำกับเลขที่นี้ของผู้ขายรายนี้บันทึกไปแล้วใน {duplicate.docNo} (เลขที่ {duplicate.supplierInvoiceNo}) —
+                    บันทึกซ้ำไม่ได้เพื่อไม่ให้ขอคืนภาษีซื้อสองครั้ง
+                  </Alert>
+                )}
               </Box>
             </Card>
 
@@ -184,7 +199,7 @@ export function PurchaseNewView() {
               <CardHeader title="รายการ" />
               <Box sx={{ p: 3 }}>
                 <DocLinesEditor
-                  accounts={accounts.byType('expense', 'asset')}
+                  accounts={accounts.forLines('purchase')}
                   defaultAccountCode={ACC.misc}
                   accountLabel="บัญชีค่าใช้จ่าย"
                 />
@@ -252,7 +267,7 @@ export function PurchaseNewView() {
                     </Field.Select>
                   </>
                 )}
-                <LoadingButton type="submit" variant="contained" size="large" loading={formState.isSubmitting}>
+                <LoadingButton type="submit" variant="contained" size="large" loading={formState.isSubmitting} disabled={!!duplicate}>
                   บันทึก
                 </LoadingButton>
               </Stack>

@@ -34,6 +34,7 @@ import {
   eTaxReadiness,
   salesDocTitle,
   formatThaiDate,
+  isValidISODate,
 } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
@@ -88,9 +89,11 @@ export function SalesNewView() {
   const [contactId, date, vatMode, lines] = useWatch({ control, name: ['contactId', 'date', 'vatMode', 'lines'] });
   const customer = contacts.get(contactId);
 
-  // วันครบกำหนดตามเครดิตเทอมของลูกค้า
+  // วันครบกำหนดตามเครดิตเทอมของลูกค้า — คำนวณเฉพาะเมื่อวันที่ครบและถูกต้อง
+  // (ระหว่างพิมพ์ด้วยคีย์บอร์ดค่าจะเป็น "Invalid Date" / ปีไม่ครบ ห้ามคำนวณ ไม่อย่างนั้นหน้าแตกและข้อมูลที่กรอกหาย)
   useEffect(() => {
-    if (customer && date) setValue('dueDate', addDays(date.slice(0, 10), customer.creditDays));
+    const iso = date?.slice(0, 10);
+    if (customer && isValidISODate(iso)) setValue('dueDate', addDays(iso, customer.creditDays));
   }, [customer, date, setValue]);
 
   const totals = useMemo(
@@ -200,7 +203,7 @@ export function SalesNewView() {
               <CardHeader title="รายการ" />
               <Box sx={{ p: 3 }}>
                 <DocLinesEditor
-                  accounts={accounts.byType('revenue')}
+                  accounts={accounts.forLines('sales')}
                   defaultAccountCode={ACC.sales}
                   accountLabel="บัญชีรายได้"
                 />

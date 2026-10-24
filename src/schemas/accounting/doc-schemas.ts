@@ -1,6 +1,6 @@
 import { z as zod } from 'zod';
 
-import { toSatang, isValidThaiTaxId } from 'src/domain';
+import { toSatang, todayISO, isValidThaiTaxId, endOfPreviousMonth } from 'src/domain';
 
 // ----------------------------------------------------------------------
 // ทุก field ในฟอร์มต้องอยู่ใน schema — field ที่ไม่ได้ประกาศจะถูก resolver ตัดทิ้งตอน submit
@@ -194,12 +194,20 @@ export function monthEndOf(date: string): string {
   return `${date.slice(0, 7)}-${String(last).padStart(2, '0')}`;
 }
 
-/** ปิดงวด — เลือกเดือน (ปิดถึงสิ้นเดือนนั้น) ต้องเลื่อนไปข้างหน้าจากงวดที่ปิดไว้แล้ว (`lockedThrough`) */
-export function makeLockPeriodSchema(lockedThrough: string | undefined) {
+/**
+ * ปิดงวด — เลือกเดือน (ปิดถึงสิ้นเดือนนั้น) ต้องเลื่อนไปข้างหน้าจากงวดที่ปิดไว้แล้ว (`lockedThrough`)
+ * และต้องเป็นเดือนที่สิ้นสุดแล้ว (ไม่เกินสิ้นเดือนก่อนหน้า `today`) — กฎเดียวกับ `lockPeriod`
+ */
+export function makeLockPeriodSchema(lockedThrough: string | undefined, today: string = todayISO()) {
+  const max = endOfPreviousMonth(today);
   return zod.object({
-    month: isoDate('เดือนที่ปิด').refine((v) => !lockedThrough || monthEndOf(v) > lockedThrough, {
-      message: 'ต้องเป็นเดือนหลังงวดที่ปิดไว้แล้ว (ปิดงวดย้อนหลังไม่ได้)',
-    }),
+    month: isoDate('เดือนที่ปิด')
+      .refine((v) => !lockedThrough || monthEndOf(v) > lockedThrough, {
+        message: 'ต้องเป็นเดือนหลังงวดที่ปิดไว้แล้ว (ปิดงวดย้อนหลังไม่ได้)',
+      })
+      .refine((v) => monthEndOf(v) <= max, {
+        message: 'ปิดได้เฉพาะเดือนที่สิ้นสุดแล้ว (ถึงเดือนที่แล้ว)',
+      }),
   });
 }
 

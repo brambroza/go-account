@@ -1,8 +1,8 @@
-import { ACC } from 'src/domain';
+import { ACC, DATA_VERSION } from 'src/domain';
 
 import { ln, demo, toV1, TODAY } from './fixtures';
-import { issueTaxInvoice, BusinessRuleError } from '../actions';
-import { STORAGE_KEY, createAccountingStore } from '../accounting-store';
+import { lockPeriod, issueTaxInvoice, BusinessRuleError } from '../actions';
+import { STORAGE_KEY, createAccountingStore, STORAGE_UNAVAILABLE_MESSAGE } from '../accounting-store';
 
 import type { StorageLike } from '../accounting-store';
 
@@ -32,7 +32,7 @@ describe('accounting store', () => {
     const storage = memoryStorage();
     const store = newStore(storage);
     expect(store.getSnapshot().data.sales.length).toBeGreaterThan(0);
-    expect(JSON.parse(storage.map.get(STORAGE_KEY) ?? '{}').version).toBe(2);
+    expect(JSON.parse(storage.map.get(STORAGE_KEY) ?? '{}').version).toBe(DATA_VERSION);
   });
 
   it('runs consecutive mutations on the latest state, not a stale closure', () => {
@@ -86,7 +86,16 @@ describe('accounting store', () => {
     expect(store.getSnapshot().problems).toEqual([]);
     expect(store.getSnapshot().data.payments.length).toBeGreaterThan(0);
     expect(storage.map.get(`${STORAGE_KEY}:backup-v1`)).toBe(v1);
-    expect(JSON.parse(storage.map.get(STORAGE_KEY) ?? '{}').version).toBe(2);
+    expect(JSON.parse(storage.map.get(STORAGE_KEY) ?? '{}').version).toBe(DATA_VERSION);
+  });
+
+  it('migrates v2 storage to the current version and keeps the v2 copy', () => {
+    const v2 = JSON.stringify({ ...demo(), version: 2 });
+    const storage = memoryStorage({ [STORAGE_KEY]: v2 });
+    const store = newStore(storage);
+    expect(store.getSnapshot().readOnly).toBe(false);
+    expect(storage.map.get(`${STORAGE_KEY}:backup-v2`)).toBe(v2);
+    expect(JSON.parse(storage.map.get(STORAGE_KEY) ?? '{}').version).toBe(DATA_VERSION);
   });
 
   it('never silently wipes unreadable data', () => {
@@ -117,10 +126,45 @@ describe('accounting store', () => {
     expect(store.getSnapshot().problems).toEqual([]);
   });
 
-  it('works without storage and reports write failures', () => {
+  it('T6: without storage shows a persistent error and refuses to post (nothing kept only in memory)', () => {
     const memoryOnly = newStore(null);
-    expect(memoryOnly.run(issue()).doc.docNo).toBe('IV6910-0005');
+    expect(memoryOnly.getSnapshot().storageError).toBe(STORAGE_UNAVAILABLE_MESSAGE);
+    expect(memoryOnly.getSnapshot().storageError).toMatch(/ไม่สามารถบันทึกข้อมูลในเบราว์เซอร์นี้/);
+    const before = memoryOnly.getSnapshot().data;
+    expect(() => memoryOnly.run(issue())).toThrow(/ไม่สามารถบันทึกข้อมูลในเบราว์เซอร์นี้/);
+    expect(() => memoryOnly.resetDemo()).toThrow(BusinessRuleError);
+    expect(() => memoryOnly.replace(demo())).toThrow(BusinessRuleError);
+    expect(memoryOnly.getSnapshot().data).toBe(before);
+    expect(memoryOnly.getSnapshot().data.accounts.some((a) => a.code === ACC.bank)).toBe(true);
+  });
 
+  it('T6: setItem failing → run throws, data and counters unchanged, number not consumed', () => {
+    const storage = memoryStorage();
+    let fail = false;
+    const flaky: StorageLike = {
+      getItem: storage.getItem,
+      setItem: (k, v) => {
+        if (fail) throw new Error('QuotaExceededError');
+        storage.setItem(k, v);
+      },
+    };
+    const store = newStore(flaky);
+    const before = store.getSnapshot().data;
+    const listener = jest.fn();
+    store.subscribe(listener);
+    fail = true;
+    expect(() => store.run(issue())).toThrow(/QuotaExceededError.*ยังไม่ใช้เลขที่/);
+    expect(store.getSnapshot().data).toBe(before);
+    expect(store.getSnapshot().storageError).toMatch(/QuotaExceededError/);
+    expect(listener).toHaveBeenCalled();
+    expect(JSON.parse(storage.map.get(STORAGE_KEY) ?? '{}').sequences.IV6910).toBe(4);
+    fail = false;
+    // บันทึกได้อีกครั้ง → ได้เลขเดิมที่ไม่ได้ถูกใช้ และล้างข้อความ error
+    expect(store.run(issue()).doc.docNo).toBe('IV6910-0005');
+    expect(store.getSnapshot().storageError).toBeNull();
+  });
+
+  it('T6: storage failing from start (getItem/setItem throw) reports the error and refuses to post', () => {
     const failing: StorageLike = {
       getItem: () => {
         throw new Error('denied');
@@ -131,8 +175,79 @@ describe('accounting store', () => {
     };
     const store = newStore(failing);
     expect(store.getSnapshot().storageError).toMatch(/quota/);
-    store.run((s) => ({ state: { ...s, sequences: { ...s.sequences } } }));
+    expect(() => store.run((s) => ({ state: { ...s, sequences: { ...s.sequences } } }))).toThrow(/quota/);
     expect(store.getSnapshot().storageError).toMatch(/quota/);
-    expect(store.getSnapshot().data.accounts.some((a) => a.code === ACC.bank)).toBe(true);
+  });
+
+  it('T6 (auditor S3): tab A save fails → A did not issue; tab B gets the next number, no duplicate', () => {
+    const shared = memoryStorage();
+    let failA = false;
+    const storageA: StorageLike = {
+      getItem: shared.getItem,
+      setItem: (k, v) => {
+        if (failA) throw new Error('QuotaExceeded');
+        shared.setItem(k, v);
+      },
+    };
+    const a = newStore(storageA);
+    const b = newStore(shared);
+    failA = true;
+    expect(() => a.run(issue())).toThrow(BusinessRuleError);
+    expect(b.run(issue()).doc.docNo).toBe('IV6910-0005');
+    failA = false;
+    expect(a.run(issue()).doc.docNo).toBe('IV6910-0006');
+  });
+
+  it('T11: data with integrity problems opens read-only — run refused until restore/reset', () => {
+    const data = demo();
+    const tampered = JSON.parse(JSON.stringify(data)) as typeof data;
+    tampered.journal[1].lines[0].debit += 1;
+    const storage = memoryStorage({ [STORAGE_KEY]: JSON.stringify(tampered) });
+    const store = newStore(storage);
+    expect(store.getSnapshot().readOnly).toBe(true);
+    expect(store.getSnapshot().problems.length).toBeGreaterThan(0);
+    expect(() => store.run(issue())).toThrow(/อ่านอย่างเดียว/);
+    expect(storage.map.get(STORAGE_KEY)).toBe(JSON.stringify(tampered));
+    store.resetDemo();
+    expect(store.getSnapshot().readOnly).toBe(false);
+    expect(store.run(issue()).doc.docNo).toBe('IV6910-0005');
+  });
+
+  it('T11: tampered data from another tab switches to read-only; a valid restore clears it', () => {
+    const storage = memoryStorage();
+    const store = newStore(storage);
+    const good = store.getSnapshot().data;
+    const tampered = JSON.parse(JSON.stringify(good)) as typeof good;
+    tampered.journal[0].lines[0].debit += 100;
+    // แท็บอื่นเขียนข้อมูลที่ผิดกฎลง storage แล้วส่ง event มา
+    storage.map.set(STORAGE_KEY, JSON.stringify(tampered));
+    store.handleStorageEvent(STORAGE_KEY, JSON.stringify(tampered));
+    expect(store.getSnapshot().readOnly).toBe(true);
+    expect(() => store.run(issue())).toThrow(/อ่านอย่างเดียว/);
+    store.replace(good);
+    expect(store.getSnapshot().readOnly).toBe(false);
+    expect(store.getSnapshot().problems).toEqual([]);
+  });
+
+  it('T4: restoring an older backup of the same company cannot move lock or counters backwards', () => {
+    const storage = memoryStorage();
+    const store = newStore(storage);
+    const old = demo();
+    const issued = store.run(issue()).doc.docNo;
+    expect(() => store.replace(old)).toThrow(/IV6910.*ออกซ้ำ/);
+    expect(() => store.replace(old, { force: true })).toThrow(/กู้คืนไม่ได้/);
+    expect(store.run(issue()).doc.docNo).not.toBe(issued);
+
+    // ปิดงวดแล้วกู้คืนไฟล์ที่ยังไม่ปิด → ปฏิเสธ
+    const locked = createAccountingStore({
+      storage: memoryStorage({ [STORAGE_KEY]: JSON.stringify(lockPeriod(demo(), '2026-09-30', TODAY)) }),
+      fallback: demo,
+    });
+    expect(() => locked.replace(demo())).toThrow(/ปิดงวด/);
+
+    // ไฟล์ของบริษัทอื่น (สมุดบัญชีคนละชุด) กู้คืนได้
+    const other = { ...old, company: { ...old.company, taxId: '0105561098763' } };
+    store.replace(other);
+    expect(store.getSnapshot().data.company.taxId).toBe('0105561098763');
   });
 });

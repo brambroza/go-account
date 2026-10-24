@@ -147,7 +147,9 @@ describe('date validation (A4)', () => {
 });
 
 describe('period lock (A4)', () => {
-  const locked = lockPeriod(demo(), '2026-10-22');
+  // ปิดงวดได้ไม่เกินสิ้นเดือนก่อนหน้า "วันนี้" — ทดสอบด้วยวันนี้สมมติเป็นเดือนถัดไป
+  const LATER = '2026-11-05';
+  const locked = lockPeriod(demo(), '2026-10-22', LATER);
 
   it('blocks every posting action on or before the locked date', () => {
     const invoice = openInvoice(locked);
@@ -176,10 +178,17 @@ describe('period lock (A4)', () => {
   });
 
   it('only moves the lock forward', () => {
-    expect(() => lockPeriod(locked, '2026-09-30')).toThrow(/ย้อนหลังไม่ได้/);
-    expect(lockPeriod(locked, '2026-10-22').company.lockedThrough).toBe('2026-10-22');
-    expect(lockPeriod(locked, '2026-10-31').company.lockedThrough).toBe('2026-10-31');
-    expect(() => lockPeriod(locked, '2569-10-31')).toThrow(/วันที่ปิดงวด/);
+    expect(() => lockPeriod(locked, '2026-09-30', LATER)).toThrow(/ย้อนหลังไม่ได้/);
+    expect(lockPeriod(locked, '2026-10-22', LATER).company.lockedThrough).toBe('2026-10-22');
+    expect(lockPeriod(locked, '2026-10-31', LATER).company.lockedThrough).toBe('2026-10-31');
+    expect(() => lockPeriod(locked, '2569-10-31', LATER)).toThrow(/วันที่ปิดงวด/);
+  });
+
+  it('T8: cannot lock beyond the end of the previous month (no irreversible future lock)', () => {
+    expect(() => lockPeriod(demo(), '2026-10-31', TODAY)).toThrow(/30\/09\/2569/);
+    expect(() => lockPeriod(demo(), '2099-12-31', TODAY)).toThrow(/สิ้นเดือนที่ผ่านมา/);
+    expect(lockPeriod(demo(), '2026-09-30', TODAY).company.lockedThrough).toBe('2026-09-30');
+    expect(lockPeriod(demo(), '2026-11-30', '2026-12-01').company.lockedThrough).toBe('2026-11-30');
   });
 
   it('cannot be undone through updateCompany', () => {
@@ -421,7 +430,11 @@ describe('e-Tax status (A12)', () => {
     expect(() => setETaxStatus(data, ['nope'], 'signed')).toThrow(/ไม่พบเอกสาร/);
     expect(() => setETaxStatus(data, [pending.id], 'not-required')).toThrow(BusinessRuleError);
 
-    const next = setETaxStatus(data, [pending.id, signed.id], 'uploaded', { at: '2026-10-24T09:00:00Z', reference: ' RD-1 ' });
+    // Z-soft etaxSkipSigned: ข้ามขั้นลงนามไม่ได้
+    expect(() => setETaxStatus(data, [pending.id], 'uploaded')).toThrow(/ต้องลงนามก่อน/);
+
+    const signedAll = setETaxStatus(data, [pending.id], 'signed');
+    const next = setETaxStatus(signedAll, [pending.id, signed.id], 'uploaded', { at: '2026-10-24T09:00:00Z', reference: ' RD-1 ' });
     const doc = next.sales.find((s) => s.id === pending.id);
     expect(doc?.etax).toBe('uploaded');
     expect(doc?.etaxUploadedAt).toBe('2026-10-24T09:00:00Z');

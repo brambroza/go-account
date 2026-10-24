@@ -20,6 +20,8 @@ export * from './sales-doc';
 
 export * from './integrity';
 
+export * from './duplicates';
+
 export * from './csv-import';
 
 export * from './vat-report';

@@ -38,7 +38,12 @@ export function ResetDemoDialog({ open, onClose }: Props) {
       toast.error(`ดาวน์โหลดไฟล์สำรองไม่สำเร็จ จึงยังไม่ล้างข้อมูล: ${error instanceof Error ? error.message : ''}`);
       return;
     }
-    resetDemo();
+    try {
+      resetDemo();
+    } catch (error) {
+      toast.error(`ล้างข้อมูลไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`);
+      return;
+    }
     onClose();
     toast.success('ดาวน์โหลดไฟล์สำรองแล้ว และสร้างข้อมูลตัวอย่างใหม่แล้ว');
   };

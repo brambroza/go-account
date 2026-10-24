@@ -348,7 +348,7 @@ export function buildDemoData(today: string = todayISO()): AccountingData {
 
   // สถานะ e-Tax: เอกสารเดือนก่อน ๆ นำส่งแล้ว เดือนนี้ลงนามแล้วบางส่วน
   const before = s.sales.filter((d) => d.date < ym(0, 1)).map((d) => d.id);
-  s = setETaxStatus(s, before, 'uploaded');
+  s = setETaxStatus(setETaxStatus(s, before, 'signed'), before, 'uploaded');
   const thisMonth = s.sales.filter((d) => d.date >= ym(0, 1));
   s = setETaxStatus(
     s,
