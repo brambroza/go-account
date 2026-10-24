@@ -12,3 +12,15 @@ export function downloadText(fileName: string, content: string, mime = 'text/pla
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+/** บันทึก Blob เป็นไฟล์ (ไฟล์จากเซิร์ฟเวอร์ — CSV / .txt / XML ตามที่ API สร้าง ทุก byte) */
+export function downloadBlob(fileName: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

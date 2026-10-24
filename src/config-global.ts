@@ -2,7 +2,14 @@ import packageJson from '../package.json';
 
 // ----------------------------------------------------------------------
 
+/** local = ต้นแบบเก็บข้อมูลใน localStorage (demo), api = เซิร์ฟเวอร์ go-account-api เป็น source of truth */
+export type DataMode = 'local' | 'api';
+
 export type ConfigValue = {
+  /** `VITE_DATA_MODE` — ไม่ตั้ง = `local` (dev/test/preview) */
+  dataMode: DataMode;
+  /** `VITE_API_BASE_URL` — ไม่ตั้ง = `/api/v1` (same-origin ผ่าน vite proxy ตอน dev / reverse proxy ตอน deploy) */
+  apiBaseUrl: string;
   site: {
     name: string;
     basePath: string;
@@ -19,6 +26,8 @@ export type ConfigValue = {
  * สำหรับประกอบ URL ของไฟล์ใน `public/`
  */
 export const CONFIG: ConfigValue = {
+  dataMode: import.meta.env.VITE_DATA_MODE === 'api' ? 'api' : 'local',
+  apiBaseUrl: (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/+$/, ''),
   site: {
     name: 'GO Account',
     basePath: import.meta.env.VITE_BASE_PATH ?? '',

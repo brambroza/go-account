@@ -66,7 +66,15 @@ export default defineConfig(({ mode }) =>({
       },
     ],
   },
-  server: { port: PORT, host: true },
+  // VITE_DATA_MODE=api: หน้าเว็บเรียก /api/v1 แบบ same-origin แล้ว proxy ส่งต่อไป go-account-api
+  // cookie ของ API (`__Host-` / `__Secure-`, Secure, SameSite=Strict) จึงผูกกับ http://localhost:8081 — Chrome/Firefox ถือว่า localhost
+  // เป็น secure context รับ Secure cookie ได้โดยไม่ต้องใช้ https (Safari ไม่รับ → ใช้ Chrome/Firefox ตอน dev) ดู README "โหมด API"
+  // changeOrigin: false = ส่ง Origin/Host เดิม (http://localhost:8081) ซึ่งอยู่ใน allowlist ของ API (CORS + กัน CSRF)
+  server: {
+    port: PORT,
+    host: true,
+    proxy: { '/api': { target: env.VITE_API_PROXY_TARGET || 'http://localhost:5070', changeOrigin: false } },
+  },
   preview: { port: PORT, host: true },
 
   build: {
