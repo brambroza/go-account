@@ -65,6 +65,9 @@ import {
 } from 'src/domain/thai-date';
 
 import { runScenario, SALES_SCENARIOS } from './scenarios';
+import { BANKING_SCENARIOS, CLOSING_SCENARIOS, PURCHASE_SCENARIOS } from './scenarios-c4b';
+
+import type { Scenario } from './scenarios';
 
 // ----------------------------------------------------------------------
 // Golden vectors: รันตรรกะ TS บนชุด input ที่กำหนดตายตัว แล้วเขียนผลลง `golden/*.json`
@@ -773,11 +776,11 @@ function chartOfAccountsVectors(): GoldenVector[] {
 // ----------------------------------------------------------------------
 
 /**
- * Scenario golden (C4): ลำดับ action ของ store ฝั่งขาย พร้อมผลที่สังเกตได้ทุกขั้น — input = { description, company, steps },
+ * Scenario golden (C4): ลำดับ action ของ store พร้อมผลที่สังเกตได้ทุกขั้น (ขาย C4a; ซื้อ/ธนาคาร/ปิดงวด C4b) — input = { description, company, steps },
  * output = ผลทีละขั้น ({ ok, output } หรือ { ok: false, error: { code, message } }) ดู `scenarios.ts`
  */
-function salesScenarioVectors(): GoldenVector[] {
-  return SALES_SCENARIOS.map((s) => ({
+function scenarioVectors(scenarios: Scenario[]): GoldenVector[] {
+  return scenarios.map((s) => ({
     name: s.name,
     input: { description: s.description, company: s.company, steps: s.steps },
     output: runScenario(s),
@@ -795,7 +798,10 @@ export function buildGoldenSet(): GoldenSet {
     'numbering.json': numberingVectors(),
     'thai-date.json': thaiDateVectors(),
     'chart-of-accounts.json': chartOfAccountsVectors(),
-    'scenarios-sales.json': salesScenarioVectors(),
+    'scenarios-sales.json': scenarioVectors(SALES_SCENARIOS),
+    'scenarios-purchases.json': scenarioVectors(PURCHASE_SCENARIOS),
+    'scenarios-banking.json': scenarioVectors(BANKING_SCENARIOS),
+    'scenarios-closing.json': scenarioVectors(CLOSING_SCENARIOS),
   };
 }
 

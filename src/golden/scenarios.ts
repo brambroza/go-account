@@ -1,31 +1,63 @@
 import type {
   Address,
   Contact,
+  Payment,
   Receipt,
   VatMode,
   SalesDoc,
   SaleType,
+  Quotation,
   ETaxStatus,
   JournalLine,
   PurchaseDoc,
+  WhtCondition,
   JournalEntry,
+  BankTransfer,
   AccountingData,
   CustomerRefund,
+  SupplierRefund,
+  QuotationStatus,
+  BankAccountKind,
+  PurchaseCreditNote,
 } from 'src/domain';
 
 import { emptyData } from 'src/store/seed';
-import { toSatang, calcDocument, outstandingOf, customerCreditOf } from 'src/domain';
 import {
+  toSatang,
+  calcDocument,
+  outstandingOf,
+  customerCreditOf,
+  purchaseOutstanding,
+  supplierRefundDueOf,
+} from 'src/domain';
+import {
+  closeYear,
   lockPeriod,
   saveContact,
+  unmatchBank,
+  payPurchase,
+  saveQuotation,
   setETaxStatus,
+  autoMatchBank,
+  transferFunds,
   issueDebitNote,
   receivePayment,
+  recordPurchase,
+  addBankAccount,
+  matchBankItems,
   issueCreditNote,
   issueTaxInvoice,
+  addManualJournal,
   BusinessRuleError,
+  setQuotationStatus,
   setOpeningBalances,
+  issueFromQuotation,
   refundCustomerCredit,
+  receiveSupplierRefund,
+  addBankStatementLines,
+  recordPettyCashExpense,
+  deleteBankStatementLines,
+  recordSupplierCreditNote,
 } from 'src/store/actions';
 
 // ----------------------------------------------------------------------
@@ -33,29 +65,36 @@ import {
 // ฝั่ง C# (go-account-api) replay ทีละขั้นกับ DB จริงผ่าน Application layer แล้วต้องได้ผลเดียวกันทุกตัว:
 // เลขที่เอกสาร, ยอด (สตางค์), บรรทัดรายการบัญชี, ยอดค้าง/เงินรอคืน, สถานะ e-Tax และ code + ข้อความของขั้นที่ถูกปฏิเสธ
 //
-// input ของแต่ละขั้นเป็นรูปแบบเดียวกับ request ของ API: อ้างผู้ติดต่อด้วยรหัส (`contact`) และเอกสารด้วยเลขที่ (`invoice`, `docs`)
+// input ของแต่ละขั้นเป็นรูปแบบเดียวกับ request ของ API: อ้างผู้ติดต่อด้วยรหัส (`contact`) เอกสารด้วยเลขที่ (`invoice`, `docs`,
+// `purchase`, `quotation`, `journals` = เลขที่ JV) และรายการ statement ด้วยลำดับที่นำเข้า (`statementRefs` เริ่ม 1, ไม่นับใหม่หลังลบ)
 // แทน id (TS สุ่ม id) — เงินใน input เป็นบาท (ตามที่ผู้ใช้กรอก), เงินใน output เป็นสตางค์ (integer)
+// ชุด: sales (C4a), purchases / banking / closing (C4b — ดู `scenarios-c4b.ts`)
 // ----------------------------------------------------------------------
 
 /** บรรทัดเอกสารตามที่ผู้ใช้กรอก (ไม่มี id) */
 export type ScenarioLine = { description: string; qty: number; unitPrice: number; discount: number; accountCode: string };
 
+/** บรรทัดเอกสารซื้อ — หัก ณ ที่จ่ายระดับบรรทัด */
+export type ScenarioPurchaseLine = ScenarioLine & { whtIncomeType: string; whtRate: number };
+
+/** บรรทัดใบลดหนี้ผู้ขาย — `purchaseLine` = ลำดับบรรทัดของเอกสารซื้อ (เริ่ม 1) ไม่ส่ง = จับคู่ตามบัญชี */
+export type ScenarioCreditLine = ScenarioLine & { purchaseLine?: number };
+
 export type ScenarioContact = Omit<Contact, 'id'>;
+
+type InvoiceInput = {
+  date: string;
+  dueDate: string;
+  contact: string;
+  lines: ScenarioLine[];
+  vatMode: VatMode;
+  saleType?: SaleType;
+  note?: string;
+};
 
 export type ScenarioStep =
   | { action: 'saveContact'; input: ScenarioContact & { update?: boolean } }
-  | {
-      action: 'issueTaxInvoice';
-      input: {
-        date: string;
-        dueDate: string;
-        contact: string;
-        lines: ScenarioLine[];
-        vatMode: VatMode;
-        saleType?: SaleType;
-        note?: string;
-      };
-    }
+  | { action: 'issueTaxInvoice'; input: InvoiceInput }
   | { action: 'issueCreditNote' | 'issueDebitNote'; input: { invoice: string; date: string; reason: string; lines: ScenarioLine[] } }
   | {
       action: 'receivePayment';
@@ -87,7 +126,86 @@ export type ScenarioStep =
           whtRate?: number;
         }[];
       };
-    };
+    }
+  // ---------------- C4b ----------------
+  | {
+      action: 'recordPurchase';
+      input: {
+        supplierInvoiceNo: string;
+        supplierInvoiceDate?: string;
+        vatClaimPeriod?: string;
+        date: string;
+        contact: string;
+        vatMode: VatMode;
+        claimVat: boolean;
+        whtCondition: WhtCondition;
+        note?: string;
+        lines: ScenarioPurchaseLine[];
+        payNow?: { date: string; accountCode: string };
+      };
+    }
+  | { action: 'payPurchase'; input: { purchase: string; date: string; accountCode: string; amount?: number } }
+  | {
+      action: 'recordSupplierCreditNote';
+      input: {
+        purchase: string;
+        supplierCreditNoteNo: string;
+        supplierCreditNoteDate: string;
+        date: string;
+        reason: string;
+        lines: ScenarioCreditLine[];
+      };
+    }
+  | { action: 'receiveSupplierRefund'; input: { contact: string; date: string; amount: number; accountCode: string; note?: string } }
+  | {
+      action: 'recordPettyCashExpense';
+      input: {
+        pettyAccountCode: string;
+        date: string;
+        contact?: string;
+        lines: { description: string; accountCode: string; amount: number }[];
+        vatMode: VatMode;
+        claimVat: boolean;
+        supplierInvoiceNo?: string;
+        supplierInvoiceDate?: string;
+        vatClaimPeriod?: string;
+        note?: string;
+      };
+    }
+  | { action: 'transferFunds'; input: { date: string; fromAccountCode: string; toAccountCode: string; amount: number; note?: string } }
+  | { action: 'addManualJournal'; input: { date: string; description: string; lines: JournalLine[] } }
+  | {
+      action: 'addBankAccount';
+      input: { kind: BankAccountKind; bankName: string; accountNo: string; branch?: string; accountName?: string };
+    }
+  | {
+      action: 'addBankStatementLines';
+      input: {
+        accountCode: string;
+        lines: { date: string; description: string; amount: number; balance?: number }[];
+        imported?: boolean;
+      };
+    }
+  | { action: 'deleteBankStatementLines'; input: { statementRefs: number[] } }
+  | { action: 'matchBankItems'; input: { accountCode: string; statementRefs: number[]; journals: string[] } }
+  | { action: 'autoMatchBank'; input: { accountCode: string; windowDays?: number } }
+  | { action: 'unmatchBank'; input: { statementRef: number } }
+  | {
+      action: 'saveQuotation';
+      input: {
+        quotation?: string;
+        date: string;
+        validDays: number;
+        contact: string;
+        lines: ScenarioLine[];
+        vatMode: VatMode;
+        saleType?: SaleType;
+        note?: string;
+      };
+    }
+  | { action: 'setQuotationStatus'; input: { quotation: string; status: QuotationStatus } }
+  | { action: 'issueFromQuotation'; input: InvoiceInput & { quotation: string } }
+  | { action: 'closeYear'; input: { fiscalYearEnd: string } };
 
 export type ScenarioCompany = { name: string; taxId: string; branchNo: string; vatRegistered: boolean; address: Address };
 
@@ -109,7 +227,12 @@ export const ERROR_CODES: readonly [string, RegExp][] = [
   ['OPENING_NOT_MONTH_END', /^วันที่ยอดยกมาต้องเป็นวันสิ้นเดือน/],
   ['OPENING_BLOCKED', /^บันทึกยอดยกมาได้ก่อนมีรายการอื่นเท่านั้น/],
   ['OPENING_CONTROL_ACCOUNT', /เป็นบัญชีคุม — ลูกหนี้\/เจ้าหนี้กรอกเป็นรายการค้างทีละใบ/],
-  ['OPENING_LINE_INVALID', /^บรรทัดที่ \d+: /],
+  ['JOURNAL_CONTROL_ACCOUNT', /^บรรทัดที่ \d+: .+ เป็นบัญชีคุม ลงด้วยเอกสาร/],
+  // บรรทัดบัญชีแยกประเภท (ยอดยกมา / รายการปรับปรุง): ไม่พบบัญชี, จำนวนเงินติดลบ
+  ['JOURNAL_LINE_INVALID', /^บรรทัดที่ \d+: /],
+  ['JOURNAL_UNBALANCED', /^รายการไม่สมดุล: /],
+  ['JOURNAL_EMPTY', /^ยอดรวมต้องมากกว่า 0$/],
+  ['DESCRIPTION_REQUIRED', /^ระบุคำอธิบายรายการ$/],
   ['OPENING_DUPLICATE_DOC', /ของผู้ติดต่อเดียวกันซ้ำในรายการค้าง$/],
   ['OPENING_NUMBER_CONFLICT', /ซ้ำรูปแบบเลขที่ที่ระบบนี้จะออกหลังวันยอดยกมา/],
   ['OPENING_DOCNO_REQUIRED', /: ระบุเลขที่เอกสารในระบบเดิม$/],
@@ -128,9 +251,13 @@ export const ERROR_CODES: readonly [string, RegExp][] = [
   ['LINE_PRICE', /^รายการที่ \d+: ราคาต่อหน่วยติดลบไม่ได้$/],
   ['LINE_DISCOUNT', /^รายการที่ \d+: ส่วนลด(ติดลบไม่ได้|เกินมูลค่ารายการ)$/],
   ['LINE_ACCOUNT_NOT_FOUND', /^รายการที่ \d+: ไม่พบบัญชี .+ ในผังบัญชี$/],
-  ['LINE_ACCOUNT_INVALID', /^รายการที่ \d+: .+ (เป็นบัญชีคุม ใช้ในบรรทัดรายการไม่ได้|ไม่ใช่บัญชีรายได้)$/],
+  ['LINE_ACCOUNT_INVALID', /^รายการที่ \d+: .+ (เป็นบัญชีคุม ใช้ในบรรทัดรายการไม่ได้|ไม่ใช่บัญชีรายได้|ไม่ใช่บัญชีค่าใช้จ่ายหรือสินทรัพย์)$/],
+  ['WHT_RATE_INVALID', /^รายการที่ \d+: อัตราหัก ณ ที่จ่ายต้องอยู่ระหว่าง /],
+  ['WHT_INCOME_TYPE_REQUIRED', /^รายการที่ \d+: หัก ณ ที่จ่ายต้องระบุประเภทเงินได้$/],
+  ['PURCHASE_LINE_NOT_FOUND', /รายการที่ \d+: ไม่พบบรรทัดของ.+ที่อ้างถึง$/],
+  ['SUPPLIER_CREDIT_LINE_EXCEEDS', /รายการที่ \d+: ลดเกินมูลค่า/],
   ['CONTACT_NOT_FOUND', /^ไม่พบผู้ติดต่อ/],
-  ['CONTACT_NOT_CUSTOMER', /เป็นผู้ขายเท่านั้น — ตั้งประเภทผู้ติดต่อเป็นลูกค้าหรือทั้งสองก่อนออกเอกสารขาย$/],
+  ['CONTACT_NOT_CUSTOMER', /เป็นผู้ขายเท่านั้น — ตั้ง(ประเภทผู้ติดต่อ)?เป็นลูกค้าหรือทั้งสองก่อน/],
   ['CONTACT_NAME_REQUIRED', /^ต้องระบุชื่อ$/],
   ['CONTACT_CODE_DUPLICATE', /^รหัส .+ ซ้ำกับ /],
   ['TOTAL_NOT_POSITIVE', /^ยอดรวมเอกสารต้องมากกว่า 0$/],
@@ -161,6 +288,64 @@ export const ERROR_CODES: readonly [string, RegExp][] = [
   ['ETAX_NOT_REQUIRED', / ไม่ต้องออก e-Tax$/],
   ['ETAX_BACKWARD', /: สถานะ e-Tax ย้อนกลับไม่ได้$/],
   ['ETAX_SIGN_FIRST', /: ต้องลงนามก่อนนำส่ง e-Tax$/],
+  // ---------------- ซื้อ / จ่าย / ใบลดหนี้ผู้ขาย (C4b) ----------------
+  ['SUPPLIER_INVOICE_NO_REQUIRED', /^ขอคืนภาษีซื้อต้องมีเลขที่ใบกำกับภาษีของผู้ขาย$/],
+  ['VAT_CLAIM_DATE_REQUIRED', /^ขอคืนภาษีซื้อต้องระบุวันที่ในใบกำกับภาษีของผู้ขาย/],
+  ['SUPPLIER_INVOICE_AFTER_DATE', /^วันที่ใบกำกับผู้ขายต้องไม่หลังวันที่บันทึก$/],
+  ['VAT_CLAIM_PERIOD_REQUIRED', /^ขอคืนภาษีซื้อต้องเลือกเดือนที่ใช้สิทธิ$/],
+  ['VAT_CLAIM_PERIOD_BEFORE_INVOICE', /^เดือนที่ใช้สิทธิภาษีซื้อต้องไม่ก่อนเดือนในใบกำกับของผู้ขาย$/],
+  ['VAT_CLAIM_PERIOD_EXPIRED', /^ใช้สิทธิภาษีซื้อได้ไม่เกิน \d+ เดือนถัดจากเดือนในใบกำกับ/],
+  ['VAT_CLAIM_PERIOD_LOCKED', /^เดือนภาษี .+ ปิดงวดแล้ว \(ยื่น ภ\.พ\.30 ไปแล้ว\)/],
+  ['VAT_CLAIM_PERIOD_BEFORE_OPENING', /^เดือนภาษี .+ ยื่นในระบบเดิมแล้ว/],
+  ['SUPPLIER_INVOICE_DUPLICATE', /^ใบกำกับผู้ขายเลขที่ .+ บันทึกไปแล้วใน /],
+  ['PURCHASE_NOT_FOUND', /^ไม่พบเอกสารซื้อ/],
+  ['PURCHASE_PAID', /^\S+ จ่ายชำระแล้ว$/],
+  ['PAYMENT_BEFORE_PURCHASE', /^วันที่จ่ายต้องไม่ก่อนวันที่เอกสาร$/],
+  ['PAYMENT_EXCEEDS_OUTSTANDING', /^ยอดจ่ายเกินยอดค้าง/],
+  ['WHT_EXCEEDS_PAYMENT', /^ภาษีหัก ณ ที่จ่ายเกินยอดที่จ่ายครั้งนี้/],
+  ['SUPPLIER_CREDIT_DATE_ORDER', /^วันที่ในใบลดหนี้ของผู้ขายต้องไม่หลังวันที่ได้รับ$/],
+  ['ADJUSTMENT_BEFORE_PURCHASE', /^วันที่ได้รับใบลดหนี้ต้องไม่ก่อนวันที่บันทึก /],
+  ['ADJUSTMENT_BEFORE_PAYMENT', /^วันที่ได้รับใบลดหนี้ต้องไม่ก่อนการจ่ายครั้งล่าสุดของ /],
+  ['SUPPLIER_CREDIT_NO_REQUIRED', /^ลดภาษีซื้อต้องมีเลขที่ใบลดหนี้ของผู้ขาย$/],
+  ['SUPPLIER_CREDIT_DUPLICATE', /^ใบลดหนี้ผู้ขายเลขที่ .+ บันทึกไปแล้วใน /],
+  ['SUPPLIER_CREDIT_EXCEEDS', /^ยอดลดหนี้ .+ เกินยอดที่ลดได้ของ /],
+  ['SUPPLIER_CREDIT_VAT_EXCEEDS', /^ภาษีที่ลดรวมเกินภาษีของ /],
+  ['SUPPLIER_CREDIT_NET_EXCEEDS', /^มูลค่าที่ลดรวมเกินมูลค่าของ /],
+  ['SUPPLIER_CREDIT_BEFORE_CLAIM', /^ภาษีซื้อของ .+ ใช้สิทธิเดือน .+ — บันทึกใบลดหนี้ \(ลดภาษีซื้อ\) ได้ตั้งแต่เดือนนั้น$/],
+  ['SUPPLIER_REFUND_EXCEEDS', /^ยอดรับคืนเกินยอดเงินคืนจากผู้ขาย/],
+  ['NOT_PETTY_CASH', /^บัญชี .+ ไม่ใช่เงินสดย่อย$/],
+  ['PETTY_VENDOR_REQUIRED', /^ขอคืนภาษีซื้อต้องเลือกผู้ขาย/],
+  ['SUPPLIER_TAX_ID_INVALID', /— ขอคืนภาษีซื้อไม่ได้ \(ม\.82\/5\)$/],
+  // ---------------- ธนาคาร / กระทบยอด (C4b) ----------------
+  ['TRANSFER_SAME_ACCOUNT', /^บัญชีต้นทางและปลายทางต้องต่างกัน$/],
+  ['BANK_ACCOUNT_INVALID', /^ระบุ(ชื่อธนาคารและเลขที่บัญชี|ชื่อผู้ถือเงินสดย่อย \/ แผนก)$/],
+  ['BANK_ACCOUNT_DUPLICATE', / ลงทะเบียนแล้ว \(บัญชี \d+\)$/],
+  ['BANK_ACCOUNT_LIMIT', /^เพิ่ม.+ได้ไม่เกิน 9 บัญชี$/],
+  ['NOT_BANK_ACCOUNT', /^บัญชี .+ ไม่ใช่บัญชีธนาคารที่ลงทะเบียน$/],
+  ['STATEMENT_EMPTY', /^ไม่มีรายการ statement$/],
+  ['STATEMENT_LINE_INVALID', /^แถวที่ \d+: /],
+  ['STATEMENT_MATCHED', /^รายการที่จับคู่แล้วลบไม่ได้/],
+  ['BANK_MATCH_AMOUNT', /^ยอดไม่เท่ากัน: statement /],
+  ['BANK_MATCH_USED', / จับคู่ไปแล้ว$/],
+  ['BANK_MATCH_NOT_FOUND', /^ไม่พบการจับคู่$/],
+  ['BANK_MATCH_INVALID', /^(เลือกรายการ statement และรายการในสมุดบัญชี|เลือกรายการซ้ำ|ไม่พบรายการ statement ของบัญชีนี้|ไม่พบรายการเคลื่อนไหวของบัญชีนี้)/],
+  // ---------------- ใบเสนอราคา (C4b) ----------------
+  ['QUOTATION_VALID_DAYS', /^ยืนราคาได้ 0–365 วัน$/],
+  ['QUOTATION_NOT_FOUND', /^ไม่พบใบเสนอราคา$/],
+  ['QUOTATION_CONVERTED', / ออกเอกสารขาย(แล้ว|ไปแล้ว)/],
+  ['QUOTATION_MONTH', /เป็นของเดือนเดิม — แก้วันที่ได้ภายในเดือนเดียวกัน/],
+  ['QUOTATION_STATUS_INVALID', /^สถานะไม่ถูกต้อง$/],
+  ['QUOTATION_REJECTED', / ลูกค้าไม่อนุมัติ — /],
+  ['QUOTATION_EXPIRED', / หมดอายุแล้ว — /],
+  ['QUOTATION_CONTACT_MISMATCH', /^ลูกค้าต้องตรงกับใบเสนอราคา /],
+  ['QUOTATION_DATE_ORDER', /^วันที่เอกสารต้องไม่ก่อนวันที่ใบเสนอราคา /],
+  // ---------------- ปิดบัญชีสิ้นปี (C4b) ----------------
+  ['YEAR_END_NOT_MONTH_END', /^วันสิ้นรอบบัญชีต้องเป็นวันสิ้นเดือน$/],
+  ['YEAR_CLOSE_NOT_LOCKED', /^ต้องปิดงวดถึง .+ ก่อนปิดบัญชีสิ้นปี/],
+  ['YEAR_CLOSE_BEFORE_OPENING', /^วันสิ้นปีต้องหลังวันยอดยกมา/],
+  ['YEAR_CLOSE_BACKWARD', /^ปิดบัญชีถึง .+ แล้ว — ปิดย้อนหลังไม่ได้$/],
+  ['YEAR_CLOSE_SEQUENCE', /^รอบบัญชีถัดไปต้องสิ้นสุด /],
+  ['YEAR_CLOSE_NO_RETAINED', /^ไม่พบบัญชี .+ กำไร \(ขาดทุน\) สะสม ในผังบัญชี$/],
   ['AMOUNT_INVALID', /(ติดลบไม่ได้|ต้องมากกว่า 0)$/],
 ];
 
@@ -188,7 +373,12 @@ function docNoOf(state: AccountingData, id: string | undefined): string | null {
   return [...state.sales, ...state.receipts].find((d) => d.id === id)?.docNo ?? '?';
 }
 
-function journalDocNo(state: AccountingData, id: string): string | null {
+function purchaseDocNoOf(state: AccountingData, id: string): string {
+  return state.purchases.find((p) => p.id === id)?.docNo ?? '?';
+}
+
+function journalDocNo(state: AccountingData, id: string | undefined): string | null {
+  if (!id) return null;
   return state.journal.find((e) => e.id === id)?.docNo ?? null;
 }
 
@@ -212,6 +402,7 @@ function salesOut(state: AccountingData, s: SalesDoc) {
     refDocNo: docNoOf(state, s.refDocId),
     refReceiptNo: docNoOf(state, s.refReceiptId),
     reason: s.reason ?? null,
+    note: s.note ?? null,
     originalNet: sat(s.originalNet),
     correctNet: sat(s.correctNet),
     creditToCustomer: sat(s.creditToCustomer),
@@ -260,13 +451,110 @@ function purchaseOut(state: AccountingData, p: PurchaseDoc) {
     type: 'purchase',
     docNo: p.docNo,
     opening: p.opening ?? false,
+    supplierInvoiceNo: p.supplierInvoiceNo,
+    supplierInvoiceDate: p.supplierInvoiceDate ?? null,
     date: p.date,
     contact: codeOf(state, p.contactId),
+    vatMode: p.vatMode,
+    vatRate: p.vatRate,
+    claimVat: p.claimVat,
+    vatClaimPeriod: p.vatClaimPeriod ?? null,
+    whtCondition: p.whtCondition,
+    note: p.note ?? null,
     net: toSatang(t.net),
     vat: toSatang(t.vat),
     total: toSatang(t.total),
     whtRates: p.lines.map((l) => l.whtRate),
+    whtIncomeTypes: p.lines.map((l) => l.whtIncomeType),
+    supplier: party(p.supplier),
     journalDocNo: journalDocNo(state, p.journalId),
+  };
+}
+
+function paymentOut(state: AccountingData, p: Payment) {
+  return {
+    type: 'payment',
+    docNo: p.docNo,
+    date: p.date,
+    purchaseDocNo: purchaseDocNoOf(state, p.purchaseId),
+    contact: codeOf(state, p.contactId),
+    amount: toSatang(p.amount),
+    whtAmount: toSatang(p.whtAmount),
+    netPaid: toSatang(p.netPaid),
+    whtItems: p.whtItems.map((i) => ({ incomeType: i.incomeType, rate: i.rate, base: toSatang(i.base), tax: toSatang(i.tax) })),
+    accountCode: p.accountCode,
+    whtCertNo: p.whtCertNo ?? null,
+    payee: party(p.payee),
+    journalDocNo: journalDocNo(state, p.journalId),
+  };
+}
+
+function purchaseCreditOut(state: AccountingData, c: PurchaseCreditNote) {
+  const t = calcDocument(c);
+  return {
+    type: 'purchase-credit',
+    docNo: c.docNo,
+    supplierCreditNoteNo: c.supplierCreditNoteNo,
+    supplierCreditNoteDate: c.supplierCreditNoteDate,
+    date: c.date,
+    purchaseDocNo: purchaseDocNoOf(state, c.purchaseId),
+    contact: codeOf(state, c.contactId),
+    vatMode: c.vatMode,
+    net: toSatang(t.net),
+    vat: toSatang(t.vat),
+    total: toSatang(t.total),
+    refundDue: sat(c.refundDue),
+    claimVat: c.claimVat,
+    vatClaimPeriod: c.vatClaimPeriod ?? null,
+    reason: c.reason,
+    journalDocNo: journalDocNo(state, c.journalId),
+  };
+}
+
+function supplierRefundOut(state: AccountingData, r: SupplierRefund) {
+  return {
+    type: 'supplier-refund',
+    docNo: r.docNo,
+    date: r.date,
+    contact: codeOf(state, r.contactId),
+    amount: toSatang(r.amount),
+    accountCode: r.accountCode,
+    note: r.note ?? null,
+    journalDocNo: journalDocNo(state, r.journalId),
+  };
+}
+
+function transferOut(state: AccountingData, t: BankTransfer) {
+  return {
+    type: 'transfer',
+    docNo: t.docNo,
+    date: t.date,
+    fromAccountCode: t.fromAccountCode,
+    toAccountCode: t.toAccountCode,
+    amount: toSatang(t.amount),
+    note: t.note ?? null,
+    journalDocNo: journalDocNo(state, t.journalId),
+  };
+}
+
+function quotationOut(state: AccountingData, q: Quotation) {
+  const t = calcDocument(q);
+  return {
+    docNo: q.docNo,
+    date: q.date,
+    validDays: q.validDays,
+    contact: codeOf(state, q.contactId),
+    status: q.status,
+    convertedDocNo: docNoOf(state, q.convertedSalesId),
+    vatMode: q.vatMode,
+    vatRate: q.vatRate,
+    saleType: q.saleType ?? null,
+    note: q.note ?? null,
+    lines: q.lines.map((l) => ({ description: l.description, qty: l.qty, unitPrice: l.unitPrice, discount: l.discount, accountCode: l.accountCode })),
+    net: toSatang(t.net),
+    vat: toSatang(t.vat),
+    total: toSatang(t.total),
+    buyer: party(q.buyer),
   };
 }
 
@@ -288,28 +576,46 @@ function entryOut(e: JournalEntry) {
 
 const byDocNo = <T extends { docNo: string }>(a: T, b: T) => a.docNo.localeCompare(b.docNo);
 
-/** ผลที่สังเกตได้ของขั้นที่สำเร็จ: เอกสาร/รายการบัญชีใหม่ + สถานะทั้งสมุด (ยอดค้างทุกใบ, เงินรอคืน, e-Tax, ปิดงวด) */
-function observe(before: AccountingData, after: AccountingData) {
+/** ลำดับของรายการ statement (เริ่ม 1 ตามลำดับที่เพิ่ม ไม่นับใหม่หลังลบ) — แทน id ที่สุ่ม */
+type ReplayContext = { statementRefs: Map<string, number>; nextRef: number };
+
+/** ผลเฉพาะของ action (จำนวนที่นำเข้า/ข้าม, จับคู่อัตโนมัติ, ปิดปีซ้ำ, คำเตือนใบลดหนี้ผู้ขาย) — ไม่มี = null */
+export type StepResult =
+  | { added: number; skipped: number }
+  | { matched: number }
+  | { already: boolean; netProfit: number }
+  | { warnings: string[] }
+  | null;
+
+/** ผลที่สังเกตได้ของขั้นที่สำเร็จ: เอกสาร/รายการบัญชีใหม่ + สถานะทั้งสมุด (ยอดค้างทุกใบ, เงินรอคืน, e-Tax, ปิดงวด, ภาษี, ธนาคาร) */
+function observe(before: AccountingData, after: AccountingData, ctx: ReplayContext, result: StepResult) {
   const known = (ids: { id: string }[]) => new Set(ids.map((x) => x.id));
-  const oldSales = known(before.sales);
-  const oldReceipts = known(before.receipts);
-  const oldRefunds = known(before.refunds);
-  const oldPurchases = known(before.purchases);
+  const isNew = <T extends { id: string }>(prev: T[], next: T[]) => {
+    const old = known(prev);
+    return next.filter((x) => !old.has(x.id));
+  };
   const oldJournal = new Set(before.journal.map((e) => JSON.stringify(e)));
   const docs = [
-    ...after.sales.filter((s) => !oldSales.has(s.id)).map((s) => salesOut(after, s)),
-    ...after.receipts.filter((r) => !oldReceipts.has(r.id)).map((r) => receiptOut(after, r)),
-    ...after.refunds.filter((r) => !oldRefunds.has(r.id)).map((r) => refundOut(after, r)),
-    ...after.purchases.filter((p) => !oldPurchases.has(p.id)).map((p) => purchaseOut(after, p)),
+    ...isNew(before.sales, after.sales).map((s) => salesOut(after, s)),
+    ...isNew(before.receipts, after.receipts).map((r) => receiptOut(after, r)),
+    ...isNew(before.refunds, after.refunds).map((r) => refundOut(after, r)),
+    ...isNew(before.purchases, after.purchases).map((p) => purchaseOut(after, p)),
+    ...isNew(before.payments, after.payments).map((p) => paymentOut(after, p)),
+    ...isNew(before.purchaseCredits, after.purchaseCredits).map((c) => purchaseCreditOut(after, c)),
+    ...isNew(before.supplierRefunds ?? [], after.supplierRefunds ?? []).map((r) => supplierRefundOut(after, r)),
+    ...isNew(before.transfers, after.transfers).map((t) => transferOut(after, t)),
   ].sort((a, b) => a.type.localeCompare(b.type) || a.docNo.localeCompare(b.docNo));
-  // lockPeriod ลงรายการปิดภาษีเดือน (vat-close) ด้วย — พอร์ตใน C4b จึงยังไม่อยู่ใน golden ชุดนี้
+  // C4b: รวมรายการปิดภาษีเดือน (vat-close) ที่ lockPeriod ลง และปิดบัญชีสิ้นปี (year-close)
   const journal = after.journal
-    .filter((e) => !oldJournal.has(JSON.stringify(e)) && e.source !== 'vat-close')
+    .filter((e) => !oldJournal.has(JSON.stringify(e)))
     .map(entryOut)
     .sort(byDocNo);
   const invoices = after.sales
     .filter((s) => s.kind === 'tax-invoice')
     .map((s) => ({ docNo: s.docNo, status: s.status, paidAmount: toSatang(s.paidAmount), outstanding: toSatang(outstandingOf(after, s)) }))
+    .sort(byDocNo);
+  const purchases = after.purchases
+    .map((p) => ({ docNo: p.docNo, paid: p.paid, outstanding: toSatang(purchaseOutstanding(after, p)) }))
     .sort(byDocNo);
   const etax = [
     ...after.sales.filter((s) => s.etax !== 'not-required').map((s) => ({ docNo: s.docNo, etax: s.etax, at: s.etaxUploadedAt ?? null, reference: s.etaxReference ?? null })),
@@ -322,12 +628,82 @@ function observe(before: AccountingData, after: AccountingData) {
       .filter((c) => c.kind !== 'vendor')
       .map((c) => [c.code, toSatang(customerCreditOf(after, c.id))])
   );
+  const supplierRefundDue = Object.fromEntries(
+    after.contacts
+      .filter((c) => c.kind !== 'customer')
+      .map((c) => [c.code, toSatang(supplierRefundDueOf(after, c.id))])
+  );
+  const vatCloses = after.vatCloses
+    .slice()
+    .sort((a, b) => a.period.localeCompare(b.period))
+    .map((c) => ({
+      period: c.period,
+      date: c.date,
+      outputVat: toSatang(c.outputVat),
+      inputVat: toSatang(c.inputVat),
+      broughtForward: toSatang(c.broughtForward),
+      payable: toSatang(c.payable),
+      carriedForward: toSatang(c.carriedForward),
+      journalDocNo: journalDocNo(after, c.journalId),
+    }));
+  const yearCloses = after.yearCloses
+    .slice()
+    .sort((a, b) => a.fiscalYearEnd.localeCompare(b.fiscalYearEnd))
+    .map((c) => ({ fiscalYearEnd: c.fiscalYearEnd, netProfit: toSatang(c.netProfit), journalDocNo: journalDocNo(after, c.journalId) }));
+  const accountName = (code: string) => after.accounts.find((a) => a.code === code)?.name ?? null;
+  const bankAccounts = after.bankAccounts
+    .slice()
+    .sort((a, b) => a.accountCode.localeCompare(b.accountCode))
+    .map((b) => ({
+      accountCode: b.accountCode,
+      kind: b.kind,
+      bankName: b.bankName,
+      accountNo: b.accountNo,
+      branch: b.branch ?? null,
+      reconcileFrom: b.reconcileFrom ?? null,
+      accountName: accountName(b.accountCode),
+    }));
+  after.bankStatements.forEach((l) => {
+    if (!ctx.statementRefs.has(l.id)) {
+      ctx.statementRefs.set(l.id, ctx.nextRef);
+      ctx.nextRef += 1;
+    }
+  });
+  const ref = (id: string) => ctx.statementRefs.get(id) ?? 0;
+  const bankStatements = after.bankStatements
+    .map((l) => ({
+      ref: ref(l.id),
+      accountCode: l.accountCode,
+      date: l.date,
+      description: l.description,
+      amount: toSatang(l.amount),
+      balance: sat(l.balance),
+      imported: !!l.batchId,
+    }))
+    .sort((a, b) => a.ref - b.ref);
+  const bankMatches = after.bankMatches
+    .map((m) => ({
+      accountCode: m.accountCode,
+      statementRefs: m.statementLineIds.map(ref),
+      journalDocNos: m.journalIds.map((id) => journalDocNo(after, id)),
+      auto: m.auto,
+    }))
+    .sort((a, b) => a.statementRefs[0] - b.statementRefs[0]);
   return {
     docs,
     journal,
     invoices,
+    purchases,
     etax,
     customerCredit,
+    supplierRefundDue,
+    quotations: after.quotations.map((q) => quotationOut(after, q)).sort(byDocNo),
+    vatCloses,
+    yearCloses,
+    bankAccounts,
+    bankStatements,
+    bankMatches,
+    result,
     lockedThrough: after.company.lockedThrough ?? null,
     openingDate: after.openingBalance?.date ?? null,
   };
@@ -335,7 +711,7 @@ function observe(before: AccountingData, after: AccountingData) {
 
 // ---------------- replay ----------------
 
-const withIds = (lines: ScenarioLine[], tag: string) => lines.map((l, i) => ({ ...l, id: `${tag}-${i + 1}` }));
+const withIds = <T extends ScenarioLine>(lines: T[], tag: string) => lines.map((l, i) => ({ ...l, id: `${tag}-${i + 1}` }));
 
 function contactId(state: AccountingData, code: string): string {
   // รหัสที่ไม่มี = id ที่ไม่มีจริง (action ตอบ "ไม่พบผู้ติดต่อ")
@@ -346,44 +722,150 @@ function docId(state: AccountingData, docNo: string): string {
   return [...state.sales, ...state.receipts].find((d) => d.docNo === docNo)?.id ?? `missing:${docNo}`;
 }
 
-function apply(state: AccountingData, step: ScenarioStep, tag: string): AccountingData {
+function purchaseOf(state: AccountingData, docNo: string): PurchaseDoc | undefined {
+  return state.purchases.find((p) => p.docNo === docNo);
+}
+
+function quotationId(state: AccountingData, docNo: string): string {
+  return state.quotations.find((q) => q.docNo === docNo)?.id ?? `missing:${docNo}`;
+}
+
+function journalId(state: AccountingData, docNo: string): string {
+  return state.journal.find((e) => e.docNo === docNo)?.id ?? `missing:${docNo}`;
+}
+
+function statementIds(ctx: ReplayContext, refs: number[]): string[] {
+  const byRef = new Map(Array.from(ctx.statementRefs.entries()).map(([id, n]) => [n, id]));
+  return refs.map((n) => byRef.get(n) ?? `missing:${n}`);
+}
+
+function apply(state: AccountingData, step: ScenarioStep, tag: string, ctx: ReplayContext): { state: AccountingData; result: StepResult } {
+  const plain = (next: AccountingData) => ({ state: next, result: null });
   switch (step.action) {
     case 'saveContact': {
       const { update, ...contact } = step.input;
       const id = update ? state.contacts.find((c) => c.code === contact.code)?.id : undefined;
-      return saveContact(state, { ...contact, ...(id ? { id } : {}) }).state;
+      return plain(saveContact(state, { ...contact, ...(id ? { id } : {}) }).state);
     }
     case 'issueTaxInvoice': {
       const { contact, lines, ...rest } = step.input;
-      return issueTaxInvoice(state, { ...rest, contactId: contactId(state, contact), lines: withIds(lines, tag) }).state;
+      return plain(issueTaxInvoice(state, { ...rest, contactId: contactId(state, contact), lines: withIds(lines, tag) }).state);
     }
     case 'issueCreditNote':
     case 'issueDebitNote': {
       const { invoice, lines, ...rest } = step.input;
       const fn = step.action === 'issueCreditNote' ? issueCreditNote : issueDebitNote;
-      return fn(state, { ...rest, invoiceId: docId(state, invoice), lines: withIds(lines, tag) }).state;
+      return plain(fn(state, { ...rest, invoiceId: docId(state, invoice), lines: withIds(lines, tag) }).state);
     }
     case 'receivePayment': {
       const { invoice, ...rest } = step.input;
-      return receivePayment(state, { ...rest, invoiceId: docId(state, invoice) }).state;
+      return plain(receivePayment(state, { ...rest, invoiceId: docId(state, invoice) }).state);
     }
     case 'refundCustomerCredit': {
       const { contact, ...rest } = step.input;
-      return refundCustomerCredit(state, { ...rest, contactId: contactId(state, contact) }).state;
+      return plain(refundCustomerCredit(state, { ...rest, contactId: contactId(state, contact) }).state);
     }
     case 'setETaxStatus': {
       const { docs, etax, at, reference } = step.input;
-      return setETaxStatus(state, docs.map((d) => docId(state, d)), etax, { at, reference });
+      return plain(setETaxStatus(state, docs.map((d) => docId(state, d)), etax, { at, reference }));
     }
     case 'lockPeriod':
-      return lockPeriod(state, step.input.through, step.input.today);
+      return plain(lockPeriod(state, step.input.through, step.input.today));
     case 'setOpeningBalances': {
       const { receivables, payables, ...rest } = step.input;
-      return setOpeningBalances(state, {
-        ...rest,
-        receivables: receivables.map(({ contact, ...r }) => ({ ...r, contactId: contactId(state, contact) })),
-        payables: payables.map(({ contact, ...p }) => ({ ...p, contactId: contactId(state, contact) })),
-      }).state;
+      return plain(
+        setOpeningBalances(state, {
+          ...rest,
+          receivables: receivables.map(({ contact, ...r }) => ({ ...r, contactId: contactId(state, contact) })),
+          payables: payables.map(({ contact, ...p }) => ({ ...p, contactId: contactId(state, contact) })),
+        }).state
+      );
+    }
+    case 'recordPurchase': {
+      const { contact, lines, ...rest } = step.input;
+      return plain(recordPurchase(state, { ...rest, contactId: contactId(state, contact), lines: withIds(lines, tag) }).state);
+    }
+    case 'payPurchase': {
+      const { purchase, ...rest } = step.input;
+      return plain(payPurchase(state, { ...rest, purchaseId: purchaseOf(state, purchase)?.id ?? `missing:${purchase}` }).state);
+    }
+    case 'recordSupplierCreditNote': {
+      const { purchase, lines, ...rest } = step.input;
+      const doc = purchaseOf(state, purchase);
+      const credit = withIds(lines, tag).map(({ purchaseLine, ...l }) => ({
+        ...l,
+        ...(purchaseLine ? { purchaseLineId: doc?.lines[purchaseLine - 1]?.id ?? `missing:${purchaseLine}` } : {}),
+      }));
+      const r = recordSupplierCreditNote(state, { ...rest, purchaseId: doc?.id ?? `missing:${purchase}`, lines: credit });
+      return { state: r.state, result: { warnings: r.warnings } };
+    }
+    case 'receiveSupplierRefund': {
+      const { contact, ...rest } = step.input;
+      return plain(receiveSupplierRefund(state, { ...rest, contactId: contactId(state, contact) }).state);
+    }
+    case 'recordPettyCashExpense': {
+      const { contact, lines, ...rest } = step.input;
+      return plain(
+        recordPettyCashExpense(state, {
+          ...rest,
+          ...(contact ? { contactId: contactId(state, contact) } : {}),
+          lines: lines.map((l, i) => ({ ...l, id: `${tag}-${i + 1}` })),
+        }).state
+      );
+    }
+    case 'transferFunds':
+      return plain(transferFunds(state, step.input).state);
+    case 'addManualJournal':
+      return plain(addManualJournal(state, step.input).state);
+    case 'addBankAccount':
+      return plain(addBankAccount(state, step.input).state);
+    case 'addBankStatementLines': {
+      const r = addBankStatementLines(state, step.input);
+      return { state: r.state, result: { added: r.added, skipped: r.skipped } };
+    }
+    case 'deleteBankStatementLines':
+      return plain(deleteBankStatementLines(state, statementIds(ctx, step.input.statementRefs)));
+    case 'matchBankItems': {
+      const { accountCode, statementRefs, journals } = step.input;
+      return plain(
+        matchBankItems(state, {
+          accountCode,
+          statementLineIds: statementIds(ctx, statementRefs),
+          journalIds: journals.map((no) => journalId(state, no)),
+        }).state
+      );
+    }
+    case 'autoMatchBank': {
+      const r = autoMatchBank(state, step.input.accountCode, step.input.windowDays);
+      return { state: r.state, result: { matched: r.matched } };
+    }
+    case 'unmatchBank': {
+      const [lineId] = statementIds(ctx, [step.input.statementRef]);
+      const match = state.bankMatches.find((m) => m.statementLineIds.includes(lineId));
+      return plain(unmatchBank(state, match?.id ?? `missing:${step.input.statementRef}`));
+    }
+    case 'saveQuotation': {
+      const { quotation, contact, lines, ...rest } = step.input;
+      return plain(
+        saveQuotation(state, {
+          ...rest,
+          ...(quotation ? { id: quotationId(state, quotation) } : {}),
+          contactId: contactId(state, contact),
+          lines: withIds(lines, tag),
+        }).state
+      );
+    }
+    case 'setQuotationStatus':
+      return plain(setQuotationStatus(state, quotationId(state, step.input.quotation), step.input.status));
+    case 'issueFromQuotation': {
+      const { quotation, contact, lines, ...rest } = step.input;
+      return plain(
+        issueFromQuotation(state, quotationId(state, quotation), { ...rest, contactId: contactId(state, contact), lines: withIds(lines, tag) }).state
+      );
+    }
+    case 'closeYear': {
+      const r = closeYear(state, step.input.fiscalYearEnd);
+      return { state: r.state, result: { already: r.already, netProfit: toSatang(r.close.netProfit) } };
     }
     default:
       throw new Error('unknown scenario action');
@@ -398,11 +880,12 @@ export type ScenarioStepResult =
 export function runScenario(scenario: Scenario): ScenarioStepResult[] {
   const base = emptyData();
   let state: AccountingData = { ...base, company: { ...base.company, ...scenario.company } };
+  const ctx: ReplayContext = { statementRefs: new Map(), nextRef: 1 };
   return scenario.steps.map((step, i) => {
     try {
-      const next = apply(state, step, `${scenario.name}-${i + 1}`);
-      const output = observe(state, next);
-      state = next;
+      const next = apply(state, step, `${scenario.name}-${i + 1}`, ctx);
+      const output = observe(state, next.state, ctx, next.result);
+      ({ state } = next);
       return { ok: true, output };
     } catch (error) {
       if (!(error instanceof BusinessRuleError)) throw error;
@@ -413,7 +896,7 @@ export function runScenario(scenario: Scenario): ScenarioStepResult[] {
 
 // ---------------- scenarios ----------------
 
-const VAT_CO: ScenarioCompany = {
+export const VAT_CO: ScenarioCompany = {
   name: 'บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด',
   taxId: '0105562077778',
   branchNo: '00000',
@@ -421,7 +904,7 @@ const VAT_CO: ScenarioCompany = {
   address: { addressNo: '918/288', province: 'สมุทรปราการ', postalCode: '10290' },
 };
 
-const NON_VAT_CO: ScenarioCompany = {
+export const NON_VAT_CO: ScenarioCompany = {
   name: 'ร้าน สมใจการค้า',
   taxId: '3100500123456',
   branchNo: '00000',
@@ -429,7 +912,7 @@ const NON_VAT_CO: ScenarioCompany = {
   address: { addressNo: '12', province: 'นนทบุรี', postalCode: '11000' },
 };
 
-const CUSTOMER: ScenarioContact = {
+export const CUSTOMER: ScenarioContact = {
   code: 'C001',
   kind: 'customer',
   legalForm: 'juristic',
@@ -442,7 +925,7 @@ const CUSTOMER: ScenarioContact = {
   creditDays: 30,
 };
 
-const PERSON: ScenarioContact = {
+export const PERSON: ScenarioContact = {
   code: 'C002',
   kind: 'both',
   legalForm: 'individual',
@@ -454,7 +937,7 @@ const PERSON: ScenarioContact = {
   creditDays: 0,
 };
 
-const VENDOR: ScenarioContact = {
+export const VENDOR: ScenarioContact = {
   code: 'V001',
   kind: 'vendor',
   legalForm: 'juristic',
@@ -466,7 +949,7 @@ const VENDOR: ScenarioContact = {
   creditDays: 30,
 };
 
-const L = (qty: number, unitPrice: number, accountCode = '4100', discount = 0, description = 'สินค้า'): ScenarioLine => ({
+export const L = (qty: number, unitPrice: number, accountCode = '4100', discount = 0, description = 'สินค้า'): ScenarioLine => ({
   description,
   qty,
   unitPrice,
@@ -474,11 +957,11 @@ const L = (qty: number, unitPrice: number, accountCode = '4100', discount = 0, d
   accountCode,
 });
 
-const S = (qty: number, unitPrice: number, description = 'ค่าบริการ'): ScenarioLine => L(qty, unitPrice, '4200', 0, description);
+export const S = (qty: number, unitPrice: number, description = 'ค่าบริการ'): ScenarioLine => L(qty, unitPrice, '4200', 0, description);
 
-const contact = (c: ScenarioContact): ScenarioStep => ({ action: 'saveContact', input: c });
+export const contact = (c: ScenarioContact): ScenarioStep => ({ action: 'saveContact', input: c });
 
-const invoice = (
+export const invoice = (
   date: string,
   lines: ScenarioLine[],
   vatMode: VatMode = 'exclusive',
@@ -496,32 +979,32 @@ const invoice = (
   },
 });
 
-const receive = (inv: string, date: string, amount: number, whtAmount = 0, depositAccountCode = '1120'): ScenarioStep => ({
+export const receive = (inv: string, date: string, amount: number, whtAmount = 0, depositAccountCode = '1120'): ScenarioStep => ({
   action: 'receivePayment',
   input: { invoice: inv, date, amount, whtAmount, depositAccountCode },
 });
 
-const credit = (inv: string, date: string, lines: ScenarioLine[], reason = 'ลดราคา'): ScenarioStep => ({
+export const credit = (inv: string, date: string, lines: ScenarioLine[], reason = 'ลดราคา'): ScenarioStep => ({
   action: 'issueCreditNote',
   input: { invoice: inv, date, reason, lines },
 });
 
-const debit = (inv: string, date: string, lines: ScenarioLine[], reason = 'เพิ่มราคา'): ScenarioStep => ({
+export const debit = (inv: string, date: string, lines: ScenarioLine[], reason = 'เพิ่มราคา'): ScenarioStep => ({
   action: 'issueDebitNote',
   input: { invoice: inv, date, reason, lines },
 });
 
-const refund = (date: string, amount: number, contactCode = 'C001', accountCode = '1120', note?: string): ScenarioStep => ({
+export const refund = (date: string, amount: number, contactCode = 'C001', accountCode = '1120', note?: string): ScenarioStep => ({
   action: 'refundCustomerCredit',
   input: { contact: contactCode, date, amount, accountCode, ...(note ? { note } : {}) },
 });
 
-const etax = (docs: string[], status: ETaxStatus, at?: string, reference?: string): ScenarioStep => ({
+export const etax = (docs: string[], status: ETaxStatus, at?: string, reference?: string): ScenarioStep => ({
   action: 'setETaxStatus',
   input: { docs, etax: status, ...(at ? { at } : {}), ...(reference ? { reference } : {}) },
 });
 
-const lock = (through: string, today = '2026-10-24'): ScenarioStep => ({ action: 'lockPeriod', input: { through, today } });
+export const lock = (through: string, today = '2026-10-24'): ScenarioStep => ({ action: 'lockPeriod', input: { through, today } });
 
 export const SALES_SCENARIOS: Scenario[] = [
   {
