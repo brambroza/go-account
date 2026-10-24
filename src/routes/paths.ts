@@ -9,6 +9,8 @@ export const paths = {
   sales: {
     root: '/sales',
     new: '/sales/new',
+    /** ออกเอกสารขายจากใบเสนอราคา (คัดลอกรายการ) */
+    fromQuotation: (quotationId: string) => `/sales/new?quotation=${quotationId}`,
     view: (id: string) => `/sales/${id}`,
     creditNote: (invoiceId: string) => `/sales/${invoiceId}/credit-note`,
     debitNote: (invoiceId: string) => `/sales/${invoiceId}/debit-note`,
@@ -23,6 +25,18 @@ export const paths = {
     view: (id: string) => `/purchases/${id}`,
     /** ใบลดหนี้จากผู้ขาย อ้างเอกสารซื้อ */
     creditNote: (purchaseId: string) => `/purchases/${purchaseId}/credit-note`,
+  },
+  /** ใบเสนอราคา (ไม่ลงบัญชี) */
+  quotations: {
+    root: '/quotations',
+    new: '/quotations/new',
+    view: (id: string) => `/quotations/${id}`,
+    edit: (id: string) => `/quotations/${id}/edit`,
+  },
+  /** ธนาคาร / เงินสดย่อย / กระทบยอด */
+  bank: {
+    root: '/bank',
+    reconcile: (accountCode: string) => `/bank/reconcile/${accountCode}`,
   },
   contacts: '/contacts',
   tax: '/tax',

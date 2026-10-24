@@ -22,6 +22,12 @@ const PaymentPage = lazy(() => import('src/pages/purchases/payment'));
 const PurchaseDetailPage = lazy(() => import('src/pages/purchases/detail'));
 const SupplierCreditNotePage = lazy(() => import('src/pages/purchases/credit-note'));
 const OpeningBalancePage = lazy(() => import('src/pages/settings/opening'));
+const QuotationListPage = lazy(() => import('src/pages/quotations/list'));
+const QuotationNewPage = lazy(() => import('src/pages/quotations/new'));
+const QuotationEditPage = lazy(() => import('src/pages/quotations/edit'));
+const QuotationDetailPage = lazy(() => import('src/pages/quotations/detail'));
+const BankPage = lazy(() => import('src/pages/bank'));
+const BankReconcilePage = lazy(() => import('src/pages/bank/reconcile'));
 const ContactsPage = lazy(() => import('src/pages/contacts'));
 const TaxPage = lazy(() => import('src/pages/tax'));
 const LedgerPage = lazy(() => import('src/pages/ledger'));
@@ -65,6 +71,22 @@ export function Router() {
             { path: 'payments/:id', element: <PaymentPage /> },
             { path: ':id', element: <PurchaseDetailPage /> },
             { path: ':id/credit-note', element: <SupplierCreditNotePage /> },
+          ],
+        },
+        {
+          path: 'quotations',
+          children: [
+            { index: true, element: <QuotationListPage /> },
+            { path: 'new', element: <QuotationNewPage /> },
+            { path: ':id', element: <QuotationDetailPage /> },
+            { path: ':id/edit', element: <QuotationEditPage /> },
+          ],
+        },
+        {
+          path: 'bank',
+          children: [
+            { index: true, element: <BankPage /> },
+            { path: 'reconcile/:code', element: <BankReconcilePage /> },
           ],
         },
         { path: 'contacts', element: <ContactsPage /> },

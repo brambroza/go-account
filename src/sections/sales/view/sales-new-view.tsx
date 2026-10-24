@@ -15,12 +15,12 @@ import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 
 import { paths } from 'src/routes/paths';
-import { useRouter } from 'src/routes/hooks';
+import { useRouter, useSearchParams } from 'src/routes/hooks';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { SalesInvoiceSchema } from 'src/schemas/accounting/doc-schemas';
-import { useAccounting, issueTaxInvoice, useAccountLookup, useContactLookup } from 'src/store';
+import { uid, useAccounting, issueTaxInvoice, useAccountLookup, useContactLookup, issueFromQuotation } from 'src/store';
 import {
   ACC,
   addDays,
@@ -36,6 +36,8 @@ import {
   formatThaiDate,
   isValidISODate,
   buyerTaxIdWarning,
+  quotationToSalesDraft,
+  quotationConvertProblem,
 } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
@@ -43,13 +45,14 @@ import { Form, Field } from 'src/components/hook-form';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
+import { ContactAutocomplete } from 'src/sections/shared/contact-autocomplete';
 import {
   newLine,
   TotalsSummary,
   ConfirmSummary,
   DocLinesEditor,
+  formKeyHandler,
   LockedDateAlert,
-  preventEnterSubmit,
 } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
@@ -65,19 +68,23 @@ export function SalesNewView() {
   const confirm = useBoolean();
   const [pending, setPending] = useState<SalesInvoiceSchemaType | null>(null);
 
-  const customers = useMemo(() => data.contacts.filter((c) => c.kind !== 'vendor'), [data.contacts]);
   const today = todayISO();
+  // แปลงจากใบเสนอราคา (?quotation=<id>): คัดลอกลูกค้า ประเภทการขาย VAT หมายเหตุ และทุกบรรทัด — แก้ได้ก่อนออก
+  const params = useSearchParams();
+  const quotation = data.quotations.find((q) => q.id === params.get('quotation'));
+  const quotationProblem = quotation ? quotationConvertProblem(quotation, today) : null;
+  const [fromQuotation] = useState(() => (quotation && !quotationProblem ? quotationToSalesDraft(quotation, uid) : null));
 
   const methods = useForm<SalesInvoiceSchemaType>({
     resolver: zodResolver(SalesInvoiceSchema),
     defaultValues: {
-      contactId: '',
-      saleType: 'goods',
+      contactId: fromQuotation?.contactId ?? '',
+      saleType: fromQuotation?.saleType ?? 'goods',
       date: today,
       dueDate: addDays(today, 30),
-      vatMode: vatRegistered ? 'exclusive' : 'none',
-      note: '',
-      lines: [newLine(ACC.sales)],
+      vatMode: vatRegistered ? (fromQuotation?.vatMode ?? 'exclusive') : 'none',
+      note: fromQuotation?.note ?? '',
+      lines: fromQuotation?.lines ?? [newLine(ACC.sales)],
     },
   });
 
@@ -134,17 +141,16 @@ export function SalesNewView() {
     const values = pending;
     if (!values) return;
     try {
-      const result = run((s) =>
-        issueTaxInvoice(s, {
-          saleType: values.saleType,
-          contactId: values.contactId,
-          date: values.date.slice(0, 10),
-          dueDate: values.dueDate.slice(0, 10),
-          vatMode: values.vatMode,
-          note: values.note,
-          lines: values.lines.map((l) => ({ ...l, description: l.description.trim() })),
-        })
-      );
+      const input = {
+        saleType: values.saleType,
+        contactId: values.contactId,
+        date: values.date.slice(0, 10),
+        dueDate: values.dueDate.slice(0, 10),
+        vatMode: values.vatMode,
+        note: values.note,
+        lines: values.lines.map((l) => ({ ...l, description: l.description.trim() })),
+      };
+      const result = run((s) => (fromQuotation && quotation ? issueFromQuotation(s, quotation.id, input) : issueTaxInvoice(s, input)));
       confirm.onFalse();
       toast.success(`ออก${salesDocTitle(result.doc)} ${result.doc.docNo} แล้ว`);
       router.push(paths.sales.view(result.doc.id));
@@ -166,8 +172,16 @@ export function SalesNewView() {
         sx={{ mb: { xs: 3, md: 4 } }}
       />
 
+      {quotation && (
+        <Alert severity={quotationProblem ? 'error' : 'info'} variant="outlined" sx={{ mb: 3 }}>
+          {quotationProblem
+            ? `${quotationProblem} — ออกเอกสารขายใหม่โดยไม่อ้างใบเสนอราคา`
+            : `คัดลอกรายการจากใบเสนอราคา ${quotation.docNo} แล้ว — ตรวจ/แก้ก่อนออก ออกแล้วใบเสนอราคาจะถูกล็อกเป็น "ออกเอกสารขายแล้ว" (ลูกค้าต้องตรงกับใบเสนอราคา)`}
+        </Alert>
+      )}
+
       <Form methods={methods} onSubmit={onSubmit}>
-        <Grid container spacing={3} onKeyDown={preventEnterSubmit}>
+        <Grid container spacing={3} onKeyDown={formKeyHandler(onSubmit)}>
           <Grid item xs={12} lg={8}>
             <Card>
               <CardHeader title="ลูกค้าและวันที่" />
@@ -197,13 +211,13 @@ export function SalesNewView() {
                   </Alert>
                 )}
 
-                <Field.Select name="contactId" label="ลูกค้า" size="small" sx={{ gridColumn: { sm: 'span 2' } }}>
-                  {customers.map((c) => (
-                    <MenuItem key={c.id} value={c.id}>
-                      {c.code} · {contacts.name(c.id)}
-                    </MenuItem>
-                  ))}
-                </Field.Select>
+                <ContactAutocomplete
+                  name="contactId"
+                  label="ลูกค้า"
+                  side="customer"
+                  disabled={!!fromQuotation}
+                  sx={{ gridColumn: { sm: 'span 2' } }}
+                />
 
                 {customer && vatRegistered && (
                   <Alert
@@ -283,6 +297,7 @@ export function SalesNewView() {
             <ConfirmSummary
               rows={[
                 { label: 'ชนิดเอกสาร', value: docTitle },
+                { label: 'จากใบเสนอราคา', value: quotation?.docNo ?? '', hidden: !fromQuotation },
                 { label: 'ลูกค้า', value: contacts.name(pending.contactId) },
                 { label: 'วันที่เอกสาร', value: formatThaiDate(pending.date.slice(0, 10)) },
                 { label: 'ครบกำหนด', value: formatThaiDate(pending.dueDate.slice(0, 10)) },

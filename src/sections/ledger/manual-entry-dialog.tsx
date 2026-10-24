@@ -17,10 +17,9 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
-import { formatStr } from 'src/utils/format-time';
-
 import { sumBaht, todayISO, toSatang } from 'src/domain';
 import { useAccounting, addManualJournal } from 'src/store';
+import { PICKER_DATE_FORMAT } from 'src/locales/buddhist-era';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -76,7 +75,7 @@ export function ManualEntryDialog({ open, onClose }: Props) {
               label="วันที่"
               value={dayjs(date)}
               onChange={(v) => setDate(v && v.isValid() ? v.format('YYYY-MM-DD') : '')}
-              format={formatStr.split.date}
+              format={PICKER_DATE_FORMAT}
               slotProps={{ textField: { size: 'small', sx: { minWidth: 180 } } }}
             />
             <TextField

@@ -20,7 +20,7 @@ import { useRouter } from 'src/routes/hooks';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { PurchaseSchema } from 'src/schemas/accounting/doc-schemas';
-import { useAccounting, recordPurchase, useAccountLookup, useContactLookup, DEPOSIT_ACCOUNTS } from 'src/store';
+import { useAccounting, recordPurchase, useAccountLookup, useContactLookup, useCashAccountOptions } from 'src/store';
 import {
   ACC,
   VAT_RATE,
@@ -45,13 +45,14 @@ import { Form, Field } from 'src/components/hook-form';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
+import { ContactAutocomplete } from 'src/sections/shared/contact-autocomplete';
 import {
   TotalsSummary,
   ConfirmSummary,
   DocLinesEditor,
+  formKeyHandler,
   newPurchaseLine,
   LockedDateAlert,
-  preventEnterSubmit,
 } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
@@ -62,10 +63,10 @@ export function PurchaseNewView() {
   const { data, run } = useAccounting();
   const contacts = useContactLookup();
   const accounts = useAccountLookup();
+  const cashAccounts = useCashAccountOptions();
   const { vatRegistered, lockedThrough } = data.company;
   const confirm = useBoolean();
   const [pending, setPending] = useState<PurchaseSchemaType | null>(null);
-  const vendors = useMemo(() => data.contacts.filter((c) => c.kind !== 'customer'), [data.contacts]);
 
   const methods = useForm<PurchaseSchemaType>({
     resolver: zodResolver(PurchaseSchema),
@@ -73,7 +74,7 @@ export function PurchaseNewView() {
       contactId: '',
       supplierInvoiceNo: '',
       supplierInvoiceDate: todayISO(),
-      vatClaimPeriod: vatClaimPeriodOptions(todayISO(), lockedThrough)[0] ?? '',
+      vatClaimPeriod: vatClaimPeriodOptions(todayISO(), lockedThrough, data.openingBalance?.date)[0] ?? '',
       date: todayISO(),
       vatMode: 'exclusive',
       claimVat: vatRegistered,
@@ -108,8 +109,8 @@ export function PurchaseNewView() {
 
   // เดือนใช้สิทธิภาษีซื้อ: เดือนในใบกำกับ ถึง +6 เดือน ที่ยังไม่ปิดงวด (ม.82/3)
   const claimOptions = useMemo(
-    () => vatClaimPeriodOptions(supplierInvoiceDate?.slice(0, 10), lockedThrough),
-    [supplierInvoiceDate, lockedThrough]
+    () => vatClaimPeriodOptions(supplierInvoiceDate?.slice(0, 10), lockedThrough, data.openingBalance?.date),
+    [supplierInvoiceDate, lockedThrough, data.openingBalance?.date]
   );
   useEffect(() => {
     const current = getValues('vatClaimPeriod') ?? '';
@@ -191,18 +192,12 @@ export function PurchaseNewView() {
       />
 
       <Form methods={methods} onSubmit={onSubmit}>
-        <Grid container spacing={3} onKeyDown={preventEnterSubmit}>
+        <Grid container spacing={3} onKeyDown={formKeyHandler(onSubmit)}>
           <Grid item xs={12} lg={8}>
             <Card>
               <CardHeader title="ผู้ขายและใบกำกับภาษี" />
               <Box sx={{ p: 3, display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' } }}>
-                <Field.Select name="contactId" label="ผู้ขาย / ผู้รับเงิน" size="small" sx={{ gridColumn: { sm: 'span 2' } }}>
-                  {vendors.map((c) => (
-                    <MenuItem key={c.id} value={c.id}>
-                      {c.code} · {contacts.name(c.id)} {c.legalForm === 'individual' ? '(บุคคลธรรมดา)' : ''}
-                    </MenuItem>
-                  ))}
-                </Field.Select>
+                <ContactAutocomplete name="contactId" label="ผู้ขาย / ผู้รับเงิน" side="vendor" sx={{ gridColumn: { sm: 'span 2' } }} />
                 <Field.DatePicker
                   name="date"
                   label="วันที่บันทึก"
@@ -322,11 +317,11 @@ export function PurchaseNewView() {
                       </Alert>
                     )}
                     <Field.Select name="paymentAccountCode" label="จ่ายจากบัญชี" size="small">
-                      {DEPOSIT_ACCOUNTS.map((code) => (
-                        <MenuItem key={code} value={code}>
-                          {code} {accounts.name(code)}
-                        </MenuItem>
-                      ))}
+                      {cashAccounts.map((a) => (
+                  <MenuItem key={a.code} value={a.code}>
+                    {a.label}
+                  </MenuItem>
+                ))}
                     </Field.Select>
                   </>
                 )}

@@ -52,8 +52,8 @@ import {
   TotalsSummary,
   ConfirmSummary,
   DocLinesEditor,
+  formKeyHandler,
   LockedDateAlert,
-  preventEnterSubmit,
 } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
@@ -175,7 +175,7 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
       />
 
       <Form methods={methods}>
-        <Grid container spacing={3} onKeyDown={preventEnterSubmit}>
+        <Grid container spacing={3} onKeyDown={formKeyHandler(save)}>
           <Grid item xs={12} lg={8}>
             <Card>
               <CardHeader

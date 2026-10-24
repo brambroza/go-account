@@ -26,10 +26,22 @@ export const NAV: NavSection[] = [
         keywords: 'invoice ใบแจ้งหนี้ ลูกหนี้ รับชำระ ใบลดหนี้',
       },
       {
+        title: 'ใบเสนอราคา',
+        path: paths.quotations.root,
+        icon: 'solar:document-add-bold-duotone',
+        keywords: 'quotation quote เสนอราคา QT',
+      },
+      {
         title: 'ซื้อ / ค่าใช้จ่าย',
         path: paths.purchases.root,
         icon: 'solar:cart-large-2-bold-duotone',
         keywords: 'purchase expense เจ้าหนี้ จ่ายชำระ หัก ณ ที่จ่าย',
+      },
+      {
+        title: 'ธนาคาร / เงินสดย่อย',
+        path: paths.bank.root,
+        icon: 'solar:card-2-bold-duotone',
+        keywords: 'bank cash petty กระทบยอด reconcile statement โอนเงิน เงินสดย่อย',
       },
       {
         title: 'ศูนย์ภาษี',
@@ -67,4 +79,5 @@ export const NAV: NavSection[] = [
 export const QUICK_ACTIONS: NavItem[] = [
   { title: 'ออกใบกำกับภาษีใหม่', path: paths.sales.new, icon: 'solar:add-circle-bold-duotone', keywords: 'new invoice' },
   { title: 'บันทึกซื้อ / ค่าใช้จ่ายใหม่', path: paths.purchases.new, icon: 'solar:add-circle-bold-duotone', keywords: 'new expense' },
+  { title: 'สร้างใบเสนอราคาใหม่', path: paths.quotations.new, icon: 'solar:add-circle-bold-duotone', keywords: 'new quotation QT' },
 ];

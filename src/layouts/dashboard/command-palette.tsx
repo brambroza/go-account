@@ -12,8 +12,8 @@ import InputAdornment from '@mui/material/InputAdornment';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
-import { receiptTitle, salesDocTitle } from 'src/domain';
 import { useAccounting, useContactLookup } from 'src/store';
+import { todayISO, receiptTitle, salesDocTitle, quotationStatusOf, QUOTATION_STATUS_LABEL } from 'src/domain';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -85,6 +85,23 @@ export function CommandPalette({ open, onClose }: Props) {
       path: paths.purchases.view(c.purchaseId),
       haystack: `${c.docNo} ${c.supplierCreditNoteNo} ${contacts.name(c.contactId)}`.toLowerCase(),
     }));
+    const today = todayISO();
+    const quotations = data.quotations.map((qt) => ({
+      key: `qt-${qt.id}`,
+      title: `${qt.docNo} · ${contacts.name(qt.contactId)}`,
+      caption: `ใบเสนอราคา · ${QUOTATION_STATUS_LABEL[quotationStatusOf(qt, today)]}`,
+      icon: 'solar:document-add-bold-duotone',
+      path: paths.quotations.view(qt.id),
+      haystack: `${qt.docNo} ${contacts.name(qt.contactId)} ใบเสนอราคา`.toLowerCase(),
+    }));
+    const transfers = data.transfers.map((t) => ({
+      key: `tr-${t.id}`,
+      title: `${t.docNo} · โอน ${t.fromAccountCode} → ${t.toAccountCode}`,
+      caption: `โอนเงินระหว่างบัญชี${t.note ? ` · ${t.note}` : ''}`,
+      icon: 'solar:transfer-horizontal-bold',
+      path: paths.bank.root,
+      haystack: `${t.docNo} ${t.note ?? ''} โอนเงิน`.toLowerCase(),
+    }));
     const people = data.contacts.map((c) => ({
       key: `c-${c.id}`,
       title: contacts.name(c.id),
@@ -94,10 +111,21 @@ export function CommandPalette({ open, onClose }: Props) {
       haystack: `${c.code} ${contacts.name(c.id)} ${c.taxId ?? ''}`.toLowerCase(),
     }));
 
-    return [...menus, ...docs, ...receipts, ...purchases, ...payments, ...supplierCredits, ...people]
+    return [...menus, ...docs, ...quotations, ...receipts, ...purchases, ...payments, ...supplierCredits, ...transfers, ...people]
       .filter((r) => r.haystack.includes(q))
       .slice(0, 12);
-  }, [query, data.sales, data.receipts, data.purchases, data.payments, data.purchaseCredits, data.contacts, contacts]);
+  }, [
+    query,
+    data.sales,
+    data.quotations,
+    data.receipts,
+    data.purchases,
+    data.payments,
+    data.purchaseCredits,
+    data.transfers,
+    data.contacts,
+    contacts,
+  ]);
 
   const go = (r: Result | undefined) => {
     if (!r) return;
@@ -113,7 +141,7 @@ export function CommandPalette({ open, onClose }: Props) {
         autoFocus
         fullWidth
         value={query}
-        placeholder="ค้นหาเมนู เลขที่เอกสารขาย/ซื้อ/ใบสำคัญจ่าย ผู้ติดต่อ หรือเลขผู้เสียภาษี"
+        placeholder="ค้นหาเมนู เลขที่เอกสารขาย/ใบเสนอราคา/ซื้อ/ใบสำคัญจ่าย ผู้ติดต่อ หรือเลขผู้เสียภาษี"
         onChange={(e) => {
           setQuery(e.target.value);
           setCursor(0);

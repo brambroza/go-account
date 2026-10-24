@@ -10,23 +10,34 @@ import {
   calcDocument,
   balanceSheet,
   shiftMonthKey,
+  bankMovements,
+  cashBalanceOf,
+  unmatchedItems,
   customerCreditOf,
   receiptWhtAmount,
   endOfPreviousMonth,
   trialBalanceTotals,
   purchaseOutstanding,
+  quotationToSalesDraft,
   hasNegativeOutstanding,
   validateAccountingData,
+  quotationConvertProblem,
 } from 'src/domain';
 
 import { emptyData } from '../seed';
 import { ln, pln, demo, TODAY } from './fixtures';
 import {
+  uid,
   closeYear,
   lockPeriod,
+  unmatchBank,
   payPurchase,
+  autoMatchBank,
+  saveQuotation,
+  transferFunds,
   outstandingOf,
   setETaxStatus,
+  matchBankItems,
   recordPurchase,
   receivePayment,
   issueDebitNote,
@@ -34,8 +45,12 @@ import {
   issueTaxInvoice,
   addManualJournal,
   BusinessRuleError,
+  setQuotationStatus,
+  issueFromQuotation,
   setOpeningBalances,
   refundCustomerCredit,
+  addBankStatementLines,
+  recordPettyCashExpense,
   recordSupplierCreditNote,
 } from '../actions';
 
@@ -89,7 +104,7 @@ export function openingStart(): AccountingData {
   ).state;
 }
 
-function run(seed: number, steps: number, start: () => AccountingData = demo) {
+function run(seed: number, steps: number, start: () => AccountingData = demo, withBatch4 = false) {
   const rnd = prng(seed);
   const pick = <T,>(items: T[]): T => items[Math.floor(rnd() * items.length)];
   const money = (max: number) => Math.max(0.01, Math.floor(rnd() * max * 100) / 100);
@@ -209,6 +224,101 @@ function run(seed: number, steps: number, start: () => AccountingData = demo) {
     },
     () => closeYear(state, '2026-12-31').state,
   ];
+  // batch 4 (ธนาคาร/เงินสดย่อย ×3, ใบเสนอราคา ×2) — แยกชุดสุ่มเพื่อไม่ให้ความถี่ของ action เดิมใน seed เดิมเปลี่ยน
+  if (withBatch4) {
+    actions.push(
+      () => pick(bankActions)(),
+      () => pick(bankActions)(),
+      () => pick(bankActions)(),
+      () => pick(quotationActions)(),
+      () => pick(quotationActions)()
+    );
+  }
+
+  // ---- batch 4: โอนเงิน / เงินสดย่อย / กระทบยอด ----
+  const pettyExpense = () => {
+      invoiceNo += 1;
+      const claim = rnd() < 0.5;
+      // ยอดเหลือน้อยส่วนใหญ่เบิกชดเชยก่อนจ่าย — บางครั้งจ่ายจากยอดที่มี (ไม่พอ = ถูกปฏิเสธ)
+      const low = cashBalanceOf(state, ACC.pettyCash) < 1500;
+      const base = low && rnd() < 0.85 ? transferFunds(state, { date, fromAccountCode: ACC.bank, toAccountCode: ACC.pettyCash, amount: 1500 + money(5000) }).state : state;
+      return recordPettyCashExpense(base, {
+        pettyAccountCode: ACC.pettyCash,
+        date,
+        contactId: claim ? pick(['v-resin', 'v-express']) : undefined,
+        vatMode: claim ? 'exclusive' : pick(['none', 'inclusive'] as const),
+        claimVat: claim,
+        supplierInvoiceNo: claim ? `PC-${invoiceNo}` : '',
+        supplierInvoiceDate: claim ? date : undefined,
+        vatClaimPeriod: claim ? date.slice(0, 7) : undefined,
+        lines: [{ description: 'สุ่มเงินสดย่อย', accountCode: pick([ACC.supplies, ACC.misc, ACC.freight]), amount: money(1500) }],
+      }).state;
+    };
+
+  const bankActions: (() => AccountingData)[] = [
+    () => {
+      // ส่วนใหญ่เบิกชดเชยเงินสดย่อย บางครั้งโอนออกจากเงินสดย่อยเกินยอด (ต้องถูกปฏิเสธ)
+      const [from, to] = pick([
+        [ACC.bank, ACC.pettyCash],
+        [ACC.bank, ACC.pettyCash],
+        [ACC.bank, ACC.cash],
+        [ACC.cash, ACC.bank],
+        [ACC.pettyCash, ACC.bank],
+      ]);
+      const amount = from === ACC.pettyCash ? Math.max(0.01, cashBalanceOf(state, from) * (rnd() < 0.3 ? 1.5 : 0.5)) : money(20000);
+      return transferFunds(state, { date, fromAccountCode: from, toAccountCode: to, amount }).state;
+    },
+    pettyExpense,
+    pettyExpense,
+    pettyExpense,
+    () => {
+      // statement จากรายการในสมุดที่ยังไม่จับคู่ (วันที่ธนาคารช้า 0–4 วัน) + ค่าธรรมเนียมบ้าง
+      const { movements } = unmatchedItems(state, ACC.bank);
+      const picked = movements.filter(() => rnd() < 0.3).slice(0, 6);
+      const lines = picked.map((m) => ({ date: addDays(m.date, Math.floor(rnd() * 5)), description: m.docNo, amount: m.amount }));
+      if (rnd() < 0.4) lines.push({ date, description: 'ค่าธรรมเนียม', amount: -money(50) });
+      return addBankStatementLines(state, { accountCode: ACC.bank, lines, imported: true }).state;
+    },
+    () => autoMatchBank(state, ACC.bank, pick([1, 3, 5])).state,
+    () => {
+      const { lines, movements } = unmatchedItems(state, ACC.bank);
+      const line = pick(lines);
+      const same = movements.filter((m) => toSatang(m.amount) === toSatang(line.amount));
+      // บางครั้งตั้งใจจับคู่ยอดไม่เท่ากัน (ต้องถูกปฏิเสธ)
+      const movement = same.length && rnd() < 0.8 ? pick(same) : pick(bankMovements(state, ACC.bank));
+      return matchBankItems(state, { accountCode: ACC.bank, statementLineIds: [line.id], journalIds: [movement.journalId] }).state;
+    },
+    () => unmatchBank(state, pick(state.bankMatches).id),
+  ];
+
+  // ---- batch 4: ใบเสนอราคา (สร้าง / แก้ / เปลี่ยนสถานะ / แปลงเป็นเอกสารขาย) ----
+  const convertQuotation = () => {
+      // ส่วนใหญ่เลือกใบที่ยังแปลงได้ ณ วันนี้ บางครั้งเลือกใบใดก็ได้ (หมดอายุ/ปฏิเสธ = ถูกปฏิเสธ)
+      const open = state.quotations.filter((x) => !x.convertedSalesId);
+      const convertible = open.filter((x) => !quotationConvertProblem(x, date));
+      const q = pick(convertible.length && rnd() < 0.7 ? convertible : open);
+      return issueFromQuotation(state, q.id, { ...quotationToSalesDraft(q, uid), date, dueDate: addDays(date, 30) }).state;
+    };
+
+  const quotationActions: (() => AccountingData)[] = [
+    () =>
+      saveQuotation(state, {
+        date,
+        validDays: pick([7, 15, 30]),
+        contactId: pick(CUSTOMERS),
+        vatMode: pick(['exclusive', 'inclusive', 'none'] as const),
+        saleType: pick(['goods', 'service'] as const),
+        lines: [ln(Math.ceil(rnd() * 10), money(3000)), ...(rnd() < 0.3 ? [ln(1, money(9000), ACC.service)] : [])],
+      }).state,
+    () => {
+      const q = pick(state.quotations);
+      return rnd() < 0.5
+        ? setQuotationStatus(state, q.id, pick(['sent', 'accepted', 'rejected', 'expired', 'draft'] as const))
+        : saveQuotation(state, { ...q, id: q.id, date: rnd() < 0.2 ? addDays(q.date, 40) : q.date, lines: [ln(1, money(5000))] }).state;
+    },
+    convertQuotation,
+    convertQuotation,
+  ];
 
   for (let i = 0; i < steps; i += 1) {
     if (rnd() < 0.4) date = addDays(date, 1 + Math.floor(rnd() * 2));
@@ -255,6 +365,32 @@ describe('random action sequences keep every invariant', () => {
     expect(state.vatCloses.length).toBeGreaterThan(0);
     expect(state.purchases.some((p) => state.payments.filter((pv) => pv.purchaseId === p.id).length > 1)).toBe(true);
     expect(state.sales.some((s) => s.kind === 'debit-note')).toBe(true);
+  });
+});
+
+describe('random sequences mixing batch 4 (transfers, petty cash, reconciliation, quotations) with every action', () => {
+  it.each([5, 19, 2027])('seed %i', (seed) => {
+    const { state, outcome } = run(seed, 300, demo, true);
+    expect(validateAccountingData(state)).toEqual([]);
+    expect(hasNegativeOutstanding(state)).toBe(false);
+    expect(trialBalanceTotals(trialBalance(state.accounts, state.journal)).balanced).toBe(true);
+    ['2026-10-31', '2026-12-31', TODAY].forEach((asOf) => expect(balanceSheet(state.accounts, state.journal, asOf).balanced).toBe(true));
+    // โอนเงิน, เงินสดย่อยจ่ายจริงและไม่ติดลบ, statement + จับคู่กระทบยอด, ใบเสนอราคาที่แปลงเป็นเอกสารขาย
+    expect(state.transfers.length).toBeGreaterThan(0);
+    expect(state.payments.some((pv) => pv.accountCode === ACC.pettyCash)).toBe(true);
+    expect(toSatang(cashBalanceOf(state, ACC.pettyCash))).toBeGreaterThanOrEqual(0);
+    expect(state.bankStatements.length).toBeGreaterThan(0);
+    expect(state.bankMatches.length).toBeGreaterThan(0);
+    expect(state.quotations.some((q) => q.convertedSalesId)).toBe(true);
+    expect(outcome.ok).toBeGreaterThan(120);
+    expect(outcome.rejected).toBeGreaterThan(5);
+  });
+
+  it('after opening balances from Express', () => {
+    const { state } = run(13, 200, openingStart, true);
+    expect(validateAccountingData(state)).toEqual([]);
+    expect(balanceSheet(state.accounts, state.journal, '2027-12-31').balanced).toBe(true);
+    expect(state.transfers.length + state.quotations.length).toBeGreaterThan(0);
   });
 });
 

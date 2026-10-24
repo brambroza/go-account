@@ -41,7 +41,7 @@ import { EmptyContent } from 'src/components/empty-content';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-import { Money, TotalsSummary, ConfirmSummary, DocLinesEditor, LockedDateAlert, preventEnterSubmit } from 'src/sections/shared';
+import { Money, TotalsSummary, ConfirmSummary, DocLinesEditor, formKeyHandler, LockedDateAlert } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
@@ -149,7 +149,7 @@ export function SupplierCreditNoteView() {
       />
 
       <Form methods={methods}>
-        <Grid container spacing={3} onKeyDown={preventEnterSubmit}>
+        <Grid container spacing={3} onKeyDown={formKeyHandler(save)}>
           <Grid item xs={12} lg={8}>
             <Card>
               <CardHeader

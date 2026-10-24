@@ -1,4 +1,4 @@
-import type { ISODate, DocLine, Payment, SalesDoc, PurchaseDoc, JournalEntry, AccountingData } from 'src/domain';
+import type { ISODate, DocLine, Payment, SalesDoc, BankAccount, PurchaseDoc, JournalEntry, AccountingData } from 'src/domain';
 
 import { formatSchemaIssues, AccountingDataSchema } from 'src/schemas/accounting/data-schema';
 import {
@@ -9,6 +9,8 @@ import {
   DATA_VERSION,
   partySnapshot,
   docPeriodCode,
+  isCashAccount,
+  isBankKindCode,
   companySnapshot,
   DEFAULT_ACCOUNTS,
   dateOrderInversions,
@@ -46,6 +48,12 @@ import {
 //   - ผังบัญชีเพิ่ม 2151 ภาษีขายยังไม่ถึงกำหนด (งานบริการ ม.78/1)
 //   - purchaseCredits = [], yearCloses = [] (ยังไม่มีใบลดหนี้ผู้ขาย/การปิดปี) ไม่มี openingBalance
 //   - เอกสารเดิมทั้งหมดเป็น "ขายสินค้า" (ไม่มี saleType) ใบเสร็จเดิมเป็นใบเสร็จธรรมดา (RE) — ตัวเลขทุกรายงานเท่าเดิม
+//
+// v5 → v6 (Sprint B batch 4 — ธนาคาร / เงินสดย่อย / ใบเสนอราคา)
+//   - ผังบัญชีเพิ่ม 1111 เงินสดย่อย (ถ้ายังไม่มี)
+//   - bankAccounts: ลงทะเบียนบัญชีเงินที่มีอยู่ตามช่วงรหัส — 112x = ธนาคาร (ชื่อธนาคาร/เลขที่บัญชีว่าง ให้ผู้ใช้กรอก),
+//     1111–1119 = เงินสดย่อย; 1110 เงินสด ไม่ลงทะเบียน
+//   - transfers / bankStatements / bankMatches / quotations = [] — ไม่มีรายการบัญชีใหม่ ตัวเลขทุกรายงานเท่าเดิม
 // ----------------------------------------------------------------------
 
 /** เอกสารซื้อโครง v3 (หัก ณ ที่จ่ายระดับเอกสาร + ข้อมูลการจ่ายครั้งเดียว) */
@@ -63,8 +71,13 @@ type PurchaseV3 = Omit<PurchaseDoc, 'lines' | 'supplierInvoiceDate' | 'vatClaimP
 
 type PaymentV3 = Omit<Payment, 'whtItems'>;
 
-/** โครง v4 = ปัจจุบันที่ยังไม่มีใบลดหนี้ผู้ขาย / ปิดปี / ยอดยกมา */
-export type DataV4 = Omit<AccountingData, 'version' | 'purchaseCredits' | 'yearCloses' | 'openingBalance'> & { version: 4 };
+/** โครง v5 = ปัจจุบันที่ยังไม่มีทะเบียนธนาคาร / โอนเงิน / กระทบยอด / ใบเสนอราคา */
+export type DataV5 = Omit<AccountingData, 'version' | 'bankAccounts' | 'transfers' | 'bankStatements' | 'bankMatches' | 'quotations'> & {
+  version: 5;
+};
+
+/** โครง v4 = v5 ที่ยังไม่มีใบลดหนี้ผู้ขาย / ปิดปี / ยอดยกมา */
+export type DataV4 = Omit<DataV5, 'version' | 'purchaseCredits' | 'yearCloses' | 'openingBalance'> & { version: 4 };
 
 export type DataV3 = Omit<DataV4, 'version' | 'purchases' | 'payments' | 'vatCloses'> & {
   version: 3;
@@ -241,14 +254,38 @@ export function migrateV3(data: DataV3): DataV4 {
 }
 
 /** v4 → v5 (pure): บัญชี 2151, purchaseCredits / yearCloses ว่าง */
-export function migrateV4(data: DataV4): AccountingData {
+export function migrateV4(data: DataV4): DataV5 {
   const knownAccounts = new Set(data.accounts.map((a) => a.code));
   return {
     ...data,
-    version: DATA_VERSION,
+    version: 5,
     accounts: [...data.accounts, ...DEFAULT_ACCOUNTS.filter((a) => !knownAccounts.has(a.code))],
     purchaseCredits: [],
     yearCloses: [],
+  };
+}
+
+/** v5 → v6 (pure): บัญชี 1111 เงินสดย่อย, ทะเบียนบัญชีเงินจากผังบัญชีเดิม, รายการธนาคาร/ใบเสนอราคาว่าง */
+export function migrateV5(data: DataV5): AccountingData {
+  const knownAccounts = new Set(data.accounts.map((a) => a.code));
+  const accounts = [...data.accounts, ...DEFAULT_ACCOUNTS.filter((a) => !knownAccounts.has(a.code))];
+  const bankAccounts: BankAccount[] = accounts
+    .filter((a) => isCashAccount(a) && (isBankKindCode(a.code, 'bank') || isBankKindCode(a.code, 'petty-cash')))
+    .sort((a, b) => a.code.localeCompare(b.code))
+    .map((a) =>
+      isBankKindCode(a.code, 'bank')
+        ? { accountCode: a.code, kind: 'bank' as const, bankName: '', accountNo: '' }
+        : { accountCode: a.code, kind: 'petty-cash' as const, bankName: a.name, accountNo: '' }
+    );
+  return {
+    ...data,
+    version: DATA_VERSION,
+    accounts,
+    bankAccounts,
+    transfers: [],
+    bankStatements: [],
+    bankMatches: [],
+    quotations: [],
   };
 }
 
@@ -279,6 +316,16 @@ function looksLikeV4(value: Record<string, unknown>): value is DataV4 {
   return value.version === 4 && Array.isArray(value.vatCloses) && looksLikeV3(value);
 }
 
+function looksLikeV5(value: Record<string, unknown>): value is DataV5 {
+  return (
+    value.version === 5 &&
+    Array.isArray(value.vatCloses) &&
+    Array.isArray(value.purchaseCredits) &&
+    Array.isArray(value.yearCloses) &&
+    looksLikeV3(value)
+  );
+}
+
 export type LoadResult = {
   /** null = อ่านไม่ได้/รูปแบบผิด ห้ามนำไปใช้ */
   data: AccountingData | null;
@@ -300,7 +347,7 @@ export function readAccountingData(raw: unknown): LoadResult {
   if (raw.version === 1) {
     if (!looksLikeV1(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 1 ไม่ครบ (ขาดรายการบางส่วน)'] };
     try {
-      candidate = migrateV4(migrateV3(migrateV1(raw)));
+      candidate = migrateV5(migrateV4(migrateV3(migrateV1(raw))));
       migratedFrom = 1;
     } catch (error) {
       return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน 1 ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
@@ -310,7 +357,7 @@ export function readAccountingData(raw: unknown): LoadResult {
     const from = raw.version;
     if (!looksLikeV3(raw)) return { data: null, problems: [`ข้อมูลเวอร์ชัน ${from} ไม่ครบ (ขาดรายการบางส่วน)`] };
     try {
-      candidate = migrateV4(migrateV3({ ...raw, version: 3 }));
+      candidate = migrateV5(migrateV4(migrateV3({ ...raw, version: 3 })));
       migratedFrom = from;
     } catch (error) {
       return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน ${from} ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
@@ -318,11 +365,15 @@ export function readAccountingData(raw: unknown): LoadResult {
   } else if (raw.version === 4) {
     if (!looksLikeV4(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 4 ไม่ครบ (ขาดรายการบางส่วน)'] };
     try {
-      candidate = migrateV4(raw);
+      candidate = migrateV5(migrateV4(raw));
       migratedFrom = 4;
     } catch (error) {
       return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน 4 ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
     }
+  } else if (raw.version === 5) {
+    if (!looksLikeV5(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 5 ไม่ครบ (ขาดรายการบางส่วน)'] };
+    candidate = migrateV5(raw);
+    migratedFrom = 5;
   } else if (raw.version !== DATA_VERSION) {
     return { data: null, problems: [`ไม่รองรับข้อมูลเวอร์ชัน ${String(raw.version)}`] };
   }

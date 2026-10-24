@@ -26,6 +26,10 @@ export const DOC_PREFIX = {
   whtCert: 'WT',
   /** คืนเงินลูกค้า */
   refund: 'RF',
+  /** โอนเงินระหว่างบัญชีของบริษัท */
+  transfer: 'TR',
+  /** ใบเสนอราคา (ไม่ใช่เอกสารภาษี ไม่ลงบัญชี — ไม่บังคับเรียงตามวันที่) */
+  quotation: 'QT',
   journal: 'JV',
 } as const;
 
@@ -51,6 +55,7 @@ export const DATE_ORDERED_PREFIXES: readonly DocPrefix[] = [
   'PV',
   'WT',
   'RF',
+  'TR',
 ];
 
 const DOC_NO_PATTERN = /^([A-Z]{2})(\d{4})-(\d{4,})$/;

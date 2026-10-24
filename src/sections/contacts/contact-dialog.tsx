@@ -1,7 +1,7 @@
-import type { Contact } from 'src/domain';
+import type { Contact, ContactKind } from 'src/domain';
 import type { ContactSchemaType } from 'src/schemas/accounting/doc-schemas';
 
-import { useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -15,9 +15,16 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 
-import { useAccounting, upsertContact } from 'src/store';
+import { saveContact, useAccounting } from 'src/store';
 import { ContactSchema } from 'src/schemas/accounting/doc-schemas';
-import { normalizeTaxId, normalizeBranch5, contactDisplayName, contactsWithSameTaxId } from 'src/domain';
+import {
+  normalizeTaxId,
+  nextContactCode,
+  normalizeBranch5,
+  contactCodePrefix,
+  contactDisplayName,
+  contactsWithSameTaxId,
+} from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
@@ -26,16 +33,26 @@ import { RHFAmountField, preventEnterSubmit } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
-type Props = { open: boolean; onClose: () => void; contact?: Contact | null; nextCode: string };
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  contact?: Contact | null;
+  /** ผู้ติดต่อใหม่: ประเภทเริ่มต้น (จากฟอร์มขาย = ลูกค้า, ซื้อ = ผู้ขาย) */
+  defaultKind?: ContactKind;
+  /** ผู้ติดต่อใหม่: ชื่อที่พิมพ์ค้นไว้ในช่องค้นหา */
+  defaultName?: string;
+  /** เรียกหลังบันทึกสำเร็จ — ฟอร์มที่เปิด "+ เพิ่มใหม่" ใช้เลือกผู้ติดต่อนี้ทันที */
+  onSaved?: (contact: Contact) => void;
+};
 
-function toForm(c: Contact | null | undefined, nextCode: string): ContactSchemaType {
+function toForm(c: Contact | null | undefined, nextCode: string, defaults: { kind?: ContactKind; name?: string } = {}): ContactSchemaType {
   return {
     id: c?.id,
     code: c?.code ?? nextCode,
-    kind: c?.kind ?? 'customer',
+    kind: c?.kind ?? defaults.kind ?? 'customer',
     legalForm: c?.legalForm ?? 'juristic',
     title: c?.title ?? 'บริษัท',
-    name: c?.name ?? '',
+    name: c?.name ?? defaults.name ?? '',
     lastName: c?.lastName ?? '',
     taxId: c?.taxId ?? '',
     branchNo: c?.branchNo ?? '00000',
@@ -56,10 +73,15 @@ function toForm(c: Contact | null | undefined, nextCode: string): ContactSchemaT
   };
 }
 
-export function ContactDialog({ open, onClose, contact, nextCode }: Props) {
+/** เพิ่ม/แก้ผู้ติดต่อ — รหัสใหม่ = ค่าสูงสุดของรหัสประเภทเดียวกัน + 1 (C = ลูกค้า, V = ผู้ขาย) */
+export function ContactDialog({ open, onClose, contact, defaultKind, defaultName, onSaved }: Props) {
   const { data, run } = useAccounting();
-  const methods = useForm<ContactSchemaType>({ resolver: zodResolver(ContactSchema), defaultValues: toForm(contact, nextCode) });
-  const [legalForm, taxId, branchNo] = useWatch({ control: methods.control, name: ['legalForm', 'taxId', 'branchNo'] });
+  const codeFor = (kind: ContactKind) => nextContactCode(data.contacts, contactCodePrefix(kind));
+  const initial = () => toForm(contact, codeFor(defaultKind ?? 'customer'), { kind: defaultKind, name: defaultName });
+  const methods = useForm<ContactSchemaType>({ resolver: zodResolver(ContactSchema), defaultValues: initial() });
+  const [legalForm, taxId, branchNo, kind] = useWatch({ control: methods.control, name: ['legalForm', 'taxId', 'branchNo', 'kind'] });
+  // ผู้ติดต่อใหม่: เปลี่ยนประเภทแล้วรหัสอัตโนมัติเปลี่ยนตาม (ถ้ายังไม่ได้แก้รหัสเอง)
+  const autoCode = useRef('');
   // เตือน (ไม่บล็อก) เมื่อมีผู้ติดต่ออื่นเลขผู้เสียภาษี + สาขาเดียวกัน — ผู้ขายซ้ำทำให้ตรวจใบกำกับซ้ำยาก
   const sameTaxId = contactsWithSameTaxId(data.contacts, {
     id: contact?.id,
@@ -68,14 +90,26 @@ export function ContactDialog({ open, onClose, contact, nextCode }: Props) {
   });
 
   useEffect(() => {
-    if (open) methods.reset(toForm(contact, nextCode));
-  }, [open, contact, nextCode, methods]);
+    if (!open) return;
+    const values = initial();
+    autoCode.current = contact ? '' : values.code;
+    methods.reset(values);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, contact, defaultKind, defaultName]);
+
+  useEffect(() => {
+    if (contact || !kind || !autoCode.current || methods.getValues('code') !== autoCode.current) return;
+    const code = codeFor(kind);
+    autoCode.current = code;
+    methods.setValue('code', code);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind]);
 
   const onSubmit = methods.handleSubmit((v) => {
     const clean = (s?: string) => (s && s.trim() ? s.trim() : undefined);
     try {
-      run((s) => ({
-        state: upsertContact(s, {
+      const saved = run((s) =>
+        saveContact(s, {
           id: v.id,
           code: v.code.trim(),
           kind: v.kind,
@@ -89,20 +123,27 @@ export function ContactDialog({ open, onClose, contact, nextCode }: Props) {
           phone: clean(v.phone),
           creditDays: v.creditDays,
           address: Object.fromEntries(Object.entries(v.address).map(([k, val]) => [k, clean(val)])),
-        }),
-      }));
-      toast.success(contact ? 'บันทึกการแก้ไขแล้ว' : 'เพิ่มผู้ติดต่อแล้ว');
+        })
+      );
+      toast.success(contact ? 'บันทึกการแก้ไขแล้ว' : `เพิ่มผู้ติดต่อ ${saved.contact.code} แล้ว`);
+      onSaved?.(saved.contact);
       onClose();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ');
     }
   });
 
+  // dialog อยู่ใน portal แต่ event ของ React ยังส่งต่อไปฟอร์มแม่ (เช่นฟอร์มขายที่กด "+ เพิ่มใหม่") — หยุดไว้ที่นี่
+  const submit = (event?: React.BaseSyntheticEvent) => {
+    event?.stopPropagation();
+    return onSubmit(event);
+  };
+
   const grid = { display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' } };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <Form methods={methods} onSubmit={onSubmit}>
+      <Form methods={methods} onSubmit={submit}>
         <DialogTitle>{contact ? `แก้ไข ${contact.code}` : 'เพิ่มลูกค้า / ผู้ขาย'}</DialogTitle>
         <DialogContent onKeyDown={preventEnterSubmit}>
           <Box sx={{ ...grid, pt: 1 }}>

@@ -1,5 +1,7 @@
 import type { LabelColor } from 'src/components/label';
-import type { ETaxStatus, SalesDocStatus } from 'src/domain';
+import type { ETaxStatus, SalesDocStatus, QuotationStatus } from 'src/domain';
+
+import { QUOTATION_STATUS_LABEL } from 'src/domain';
 
 import { Label } from 'src/components/label';
 
@@ -50,6 +52,24 @@ export function PaidLabel({ paid }: { paid: boolean }) {
   return (
     <Label variant="soft" color={paid ? 'success' : 'warning'}>
       {paid ? 'จ่ายแล้ว' : 'รอจ่าย'}
+    </Label>
+  );
+}
+
+const QUOTATION_COLOR: Record<QuotationStatus | 'converted', LabelColor> = {
+  draft: 'default',
+  sent: 'info',
+  accepted: 'success',
+  rejected: 'error',
+  expired: 'warning',
+  converted: 'primary',
+};
+
+/** สถานะใบเสนอราคา (ใช้ค่าจาก `quotationStatusOf` — รวม "หมดอายุ" อัตโนมัติ และ "ออกเอกสารขายแล้ว") */
+export function QuotationStatusLabel({ status }: { status: QuotationStatus | 'converted' }) {
+  return (
+    <Label variant="soft" color={QUOTATION_COLOR[status]}>
+      {QUOTATION_STATUS_LABEL[status]}
     </Label>
   );
 }

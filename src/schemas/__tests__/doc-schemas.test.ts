@@ -5,12 +5,17 @@ import {
   CompanySchema,
   ContactSchema,
   PurchaseSchema,
+  TransferSchema,
   CloseYearSchema,
   makeRefundSchema,
   makeReceiptSchema,
   SalesInvoiceSchema,
+  QuotationFormSchema,
+  StatementLineSchema,
   makeLockPeriodSchema,
   makePayPurchaseSchema,
+  BankAccountFormSchema,
+  PettyCashExpenseSchema,
   SupplierCreditNoteSchema,
   OpeningBalanceFormSchema,
 } from '../accounting/doc-schemas';
@@ -148,5 +153,38 @@ describe('dialog schemas', () => {
     const noType = { ...base, payables: [{ ...base.payables[0], whtRate: 3 }] };
     expect(OpeningBalanceFormSchema.safeParse(noType).success).toBe(false);
     expect(OpeningBalanceFormSchema.safeParse({ ...base, lines: [{ accountCode: ACC.bank, debit: -1, credit: 0 }] }).success).toBe(false);
+  });
+
+  it('batch 4 forms: quotation, transfer, bank account, petty cash, statement line', () => {
+    const q = { contactId: 'c', date: '2026-10-24', validDays: 30, vatMode: 'exclusive', lines: [line] };
+    expect(QuotationFormSchema.safeParse(q).success).toBe(true);
+    expect(QuotationFormSchema.safeParse({ ...q, validDays: 1.5 }).success).toBe(false);
+    expect(QuotationFormSchema.safeParse({ ...q, validDays: 400 }).success).toBe(false);
+    expect(QuotationFormSchema.safeParse({ ...q, contactId: '' }).success).toBe(false);
+
+    const t = { date: '2026-10-24', fromAccountCode: ACC.bank, toAccountCode: ACC.cash, amount: 100 };
+    expect(TransferSchema.safeParse(t).success).toBe(true);
+    expect(TransferSchema.safeParse({ ...t, toAccountCode: ACC.bank }).success).toBe(false);
+    expect(TransferSchema.safeParse({ ...t, amount: 0 }).success).toBe(false);
+
+    expect(BankAccountFormSchema.safeParse({ kind: 'bank', bankName: 'กสิกร', accountNo: '1' }).success).toBe(true);
+    expect(BankAccountFormSchema.safeParse({ kind: 'bank', bankName: 'กสิกร', accountNo: ' ' }).success).toBe(false);
+    expect(BankAccountFormSchema.safeParse({ kind: 'petty-cash', bankName: 'ฝ่ายขาย', accountNo: '' }).success).toBe(true);
+
+    const p = {
+      pettyAccountCode: ACC.pettyCash,
+      date: '2026-10-24',
+      contactId: '',
+      vatMode: 'none',
+      claimVat: false,
+      supplierInvoiceNo: '',
+      lines: [{ id: 'x', description: 'ค่าน้ำมัน', accountCode: ACC.misc, amount: 100 }],
+    };
+    expect(PettyCashExpenseSchema.safeParse(p).success).toBe(true);
+    expect(PettyCashExpenseSchema.safeParse({ ...p, vatMode: 'exclusive', claimVat: true }).success).toBe(false);
+    expect(PettyCashExpenseSchema.safeParse({ ...p, lines: [{ ...p.lines[0], amount: 0 }] }).success).toBe(false);
+
+    expect(StatementLineSchema.safeParse({ date: '2026-10-24', description: 'ค่าธรรมเนียม', direction: 'out', amount: 25 }).success).toBe(true);
+    expect(StatementLineSchema.safeParse({ date: '', description: '', direction: 'in', amount: 25 }).success).toBe(false);
   });
 });

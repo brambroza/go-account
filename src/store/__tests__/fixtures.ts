@@ -35,12 +35,24 @@ function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K
   return copy;
 }
 
-/** แปลงข้อมูลปัจจุบัน (v5) กลับเป็นโครง v4 — ไม่มีใบลดหนี้ผู้ขาย / ปิดปี / ยอดยกมา / บัญชี 2151 */
-export function toV4(data: AccountingData): Record<string, unknown> {
+/** แปลงข้อมูลปัจจุบัน (v6) กลับเป็นโครง v5 — ไม่มีทะเบียนธนาคาร / โอนเงิน / กระทบยอด / ใบเสนอราคา / บัญชี 1111 */
+export function toV5(data: AccountingData): AccountingData & Record<string, unknown> {
+  const quotationKeys = Object.keys(data.sequences).filter((k) => k.startsWith('QT'));
   return {
-    ...omit(data, ['purchaseCredits', 'yearCloses', 'openingBalance']),
+    ...(omit(data, ['bankAccounts', 'transfers', 'bankStatements', 'bankMatches', 'quotations']) as AccountingData),
+    version: 5,
+    accounts: data.accounts.filter((a) => a.code !== ACC.pettyCash),
+    sequences: Object.fromEntries(Object.entries(data.sequences).filter(([k]) => !quotationKeys.includes(k))),
+  } as unknown as AccountingData & Record<string, unknown>;
+}
+
+/** แปลงข้อมูลปัจจุบันกลับเป็นโครง v4 — ไม่มีใบลดหนี้ผู้ขาย / ปิดปี / ยอดยกมา / บัญชี 2151 */
+export function toV4(data: AccountingData): Record<string, unknown> {
+  const v5 = toV5(data);
+  return {
+    ...omit(v5, ['purchaseCredits', 'yearCloses', 'openingBalance']),
     version: 4,
-    accounts: data.accounts.filter((a) => a.code !== ACC.deferredOutputVat),
+    accounts: v5.accounts.filter((a) => a.code !== ACC.deferredOutputVat),
   };
 }
 
@@ -48,7 +60,8 @@ export function toV4(data: AccountingData): Record<string, unknown> {
  * แปลงข้อมูลปัจจุบัน (v5) กลับเป็นโครง v3 — หัก ณ ที่จ่ายระดับเอกสาร + ข้อมูลการจ่ายครั้งเดียวในเอกสารซื้อ
  * (ใช้ได้กับข้อมูลที่ทุกเอกสารซื้อมีหัก ณ ที่จ่ายประเภทเดียวและจ่ายครั้งเดียว เช่นข้อมูลตัวอย่าง)
  */
-export function toV3(data: AccountingData): Record<string, unknown> {
+export function toV3(source: AccountingData): Record<string, unknown> {
+  const data = toV5(source);
   const pvByPurchase = new Map(data.payments.map((p) => [p.purchaseId, p]));
   return {
     ...omit(data, ['vatCloses', 'purchaseCredits', 'yearCloses', 'openingBalance']),
@@ -82,7 +95,8 @@ export function toV3(data: AccountingData): Record<string, unknown> {
 type V3Purchase = { id: string; whtCertNo?: string; paymentJournalId?: string; docNo: string };
 
 /** แปลงข้อมูลปัจจุบันกลับเป็นรูปแบบ v1 (ไม่มี snapshot / payments / refunds / WT) เพื่อทดสอบ migration */
-export function toV1(data: AccountingData): Record<string, unknown> {
+export function toV1(source: AccountingData): Record<string, unknown> {
+  const data = toV5(source);
   const v3 = toV3(data) as { purchases: (V3Purchase & Record<string, unknown>)[] };
   const pvByPurchase = new Map(data.payments.map((p) => [p.purchaseId, p]));
   return {

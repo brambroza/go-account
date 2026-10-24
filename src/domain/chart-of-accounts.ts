@@ -5,6 +5,8 @@ import type { Account } from './types';
 /** รหัสบัญชีที่ posting engine ใช้ — เปลี่ยนรหัสต้องแก้ที่นี่ที่เดียว */
 export const ACC = {
   cash: '1110',
+  /** เงินสดย่อย (ตั้งต้น) — บัญชีเงินสดย่อยเพิ่มได้ 1112–1119 */
+  pettyCash: '1111',
   bank: '1120',
   receivable: '1130',
   whtReceivable: '1160',
@@ -40,6 +42,7 @@ export const ACC = {
 /** ผังบัญชีตั้งต้นสำหรับ SME ไทย (ปรับเพิ่มได้ในหน้าผังบัญชี) */
 export const DEFAULT_ACCOUNTS: Account[] = [
   { code: ACC.cash, name: 'เงินสด', nameEn: 'Cash', type: 'asset', system: true },
+  { code: ACC.pettyCash, name: 'เงินสดย่อย', nameEn: 'Petty cash', type: 'asset' },
   { code: ACC.bank, name: 'เงินฝากธนาคาร', nameEn: 'Bank deposits', type: 'asset', system: true },
   { code: ACC.receivable, name: 'ลูกหนี้การค้า', nameEn: 'Accounts receivable', type: 'asset', system: true },
   {

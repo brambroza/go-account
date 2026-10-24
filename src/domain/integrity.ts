@@ -1,12 +1,13 @@
 import { calcDocument } from './document-calc';
 import { subBaht, sumBaht, toSatang } from './money';
+import { isBankKindCode, bankMatchProblem } from './bank';
 import { taxedPartsOf, deferredVatOf } from './service-vat';
 import { parseDocNo, DATE_ORDERED_PREFIXES } from './numbering';
 import { normalizeTaxId, normalizeBranch5 } from './thai-tax-id';
 import { salesVatReport, purchaseVatReport } from './vat-report';
-import { ACC, isControlAccount, lineAccountProblem } from './chart-of-accounts';
 import { isTaxDocument, isServiceInvoice, isDeferredVatDoc } from './sales-doc';
 import { sortedYearCloses, yearCloseBalances, openingItemTotals } from './year-end';
+import { ACC, isCashAccount, isControlAccount, lineAccountProblem } from './chart-of-accounts';
 import { vatCloseDraft, latestVatCredit, vatCloseFigures, vatActivityMonths } from './vat-close';
 import { endOfMonth, monthKeyOf, docPeriodCode, shiftMonthKey, formatThaiDate, isValidISODate } from './thai-date';
 import {
@@ -36,6 +37,7 @@ import {
   postDebitNote,
   postCreditNote,
   postSalesInvoice,
+  postBankTransfer,
   postCustomerRefund,
   postOpeningBalance,
   postPurchasePayment,
@@ -82,6 +84,8 @@ function collectNumberedDocs(data: AccountingData): NumberedDoc[] {
       .filter((p) => p.whtCertNo)
       .map((p) => ({ docNo: p.whtCertNo as string, date: p.date, prefixes: ['WT'], label: 'หนังสือรับรอง 50 ทวิ' })),
     ...data.refunds.map((r) => ({ docNo: r.docNo, date: r.date, prefixes: ['RF'], label: 'ใบคืนเงิน' })),
+    ...data.transfers.map((t) => ({ docNo: t.docNo, date: t.date, prefixes: ['TR'], label: 'ใบโอนเงิน' })),
+    ...data.quotations.map((q) => ({ docNo: q.docNo, date: q.date, prefixes: ['QT'], label: 'ใบเสนอราคา' })),
     ...data.journal.map((e) => ({ docNo: e.docNo, date: e.date, prefixes: ['JV'], label: 'สมุดรายวัน' })),
   ];
 }
@@ -190,6 +194,20 @@ function checkReferences(data: AccountingData, problems: string[]) {
     needContact(r.docNo, r.contactId);
     needJournal(r.docNo, r.journalId);
   });
+  data.transfers.forEach((t) => needJournal(t.docNo, t.journalId));
+  const convertedFrom = new Map<string, string>();
+  data.quotations.forEach((q) => {
+    needContact(q.docNo, q.contactId);
+    if (q.convertedSalesId === undefined) return;
+    const doc = sales.get(q.convertedSalesId);
+    if (!doc || doc.kind !== 'tax-invoice') problems.push(`${q.docNo}: ไม่พบเอกสารขายที่แปลงจากใบเสนอราคา`);
+    else if (doc.contactId !== q.contactId) problems.push(`${q.docNo}: ลูกค้าไม่ตรงกับเอกสารขาย ${doc.docNo}`);
+    else if (doc.date < q.date) problems.push(`${q.docNo}: เอกสารขาย ${doc.docNo} ลงวันที่ก่อนใบเสนอราคา`);
+    if (q.status !== 'accepted') problems.push(`${q.docNo}: แปลงเป็นเอกสารขายแล้วแต่สถานะไม่ใช่ "ลูกค้าตอบรับ"`);
+    const other = convertedFrom.get(q.convertedSalesId);
+    if (other) problems.push(`${q.docNo}: เอกสารขายเดียวกันถูกแปลงจาก ${other} ด้วย`);
+    convertedFrom.set(q.convertedSalesId, q.docNo);
+  });
   data.purchaseCredits.forEach((c) => {
     needContact(c.docNo, c.contactId);
     needJournal(c.docNo, c.journalId);
@@ -265,6 +283,7 @@ function checkLineAccounts(data: AccountingData, problems: string[]) {
     });
   };
   data.sales.forEach((s) => check(s.docNo, s.lines.map((l) => l.accountCode), 'sales'));
+  data.quotations.forEach((q) => check(q.docNo, q.lines.map((l) => l.accountCode), 'sales'));
   data.purchaseCredits.forEach((c) => check(c.docNo, c.lines.map((l) => l.accountCode), 'purchase'));
   data.purchases.forEach((p) => {
     check(p.docNo, p.lines.map((l) => l.accountCode), 'purchase');
@@ -354,6 +373,7 @@ function checkDocumentPostings(data: AccountingData, problems: string[]) {
     });
   });
   data.refunds.forEach((r) => expected.set(r.journalId, { docNo: r.docNo, build: () => postCustomerRefund(r, meta(r.journalId), '') }));
+  data.transfers.forEach((t) => expected.set(t.journalId, { docNo: t.docNo, build: () => postBankTransfer(t, meta(t.journalId)) }));
 
   data.journal.forEach((entry) => {
     if (entry.source === 'manual') {
@@ -690,6 +710,9 @@ function checkOpening(data: AccountingData, problems: string[]) {
   });
   if (data.sales.some((s) => s.opening && (s.isTaxInvoice || s.etax !== 'not-required'))) problems.push('ยอดยกมา: ใบค้างรับต้องไม่ใช่ใบกำกับภาษีของระบบนี้');
   if (data.purchases.some((p) => p.opening && p.claimVat)) problems.push('ยอดยกมา: ใบค้างจ่ายต้องไม่ขอคืนภาษีซื้อซ้ำ');
+  data.purchases
+    .filter((p) => !p.opening && p.claimVat && p.vatClaimPeriod && p.vatClaimPeriod <= monthKeyOf(opening.date))
+    .forEach((p) => problems.push(`${p.docNo}: ใช้สิทธิภาษีซื้อเดือน ${p.vatClaimPeriod} ซึ่งยื่นในระบบเดิมแล้ว (ยอดยกมา)`));
   opening.lines.forEach((l) => {
     if (OPENING_FIELD_CODES.includes(l.accountCode) || isControlAccount(l.accountCode)) {
       problems.push(`ยอดยกมา: บรรทัดใช้บัญชีคุม ${l.accountCode}`);
@@ -699,6 +722,54 @@ function checkOpening(data: AccountingData, problems: string[]) {
   data.journal
     .filter((e) => e.id !== opening.journalId && e.date <= opening.date)
     .forEach((e) => problems.push(`${e.docNo}: ลงวันที่ไม่หลังวันยอดยกมา ${opening.date}`));
+}
+
+/**
+ * ธนาคาร/เงินสดย่อย: ทะเบียนบัญชีอ้างบัญชีเงินในผังบัญชีตามช่วงรหัส ไม่ซ้ำ, ใบโอนเงินระหว่างบัญชีเงินคนละบัญชี ยอด > 0,
+ * รายการ statement อยู่ในบัญชีธนาคารที่ลงทะเบียน, การจับคู่กระทบยอดอ้างรายการที่มีอยู่จริง ใช้ได้ครั้งเดียว และยอดเท่ากัน
+ * ใบเสนอราคา: จำนวนวันยืนราคาเป็นจำนวนเต็มไม่ติดลบ
+ */
+function checkBanking(data: AccountingData, problems: string[]) {
+  const accounts = new Map(data.accounts.map((a) => [a.code, a]));
+  const registered = new Set<string>();
+  data.bankAccounts.forEach((b) => {
+    const label = `บัญชีเงิน ${b.accountCode}`;
+    if (registered.has(b.accountCode)) problems.push(`${label}: ลงทะเบียนซ้ำ`);
+    registered.add(b.accountCode);
+    if (!isCashAccount(accounts.get(b.accountCode))) problems.push(`${label}: ไม่ใช่บัญชีเงินสด/ธนาคารในผังบัญชี`);
+    if (!isBankKindCode(b.accountCode, b.kind)) problems.push(`${label}: รหัสไม่ตรงกับประเภท (ธนาคาร 112x, เงินสดย่อย 1111–1119)`);
+    if (b.reconcileFrom !== undefined && !isValidISODate(b.reconcileFrom)) problems.push(`${label}: วันที่เริ่มกระทบยอดไม่ถูกต้อง`);
+  });
+  data.transfers.forEach((t) => {
+    if (!isCashAccount(accounts.get(t.fromAccountCode)) || !isCashAccount(accounts.get(t.toAccountCode))) {
+      problems.push(`${t.docNo}: โอนได้เฉพาะระหว่างบัญชีเงินสด/ธนาคาร`);
+    }
+    if (t.fromAccountCode === t.toAccountCode) problems.push(`${t.docNo}: บัญชีต้นทางและปลายทางเป็นบัญชีเดียวกัน`);
+    if (!(toSatang(t.amount) > 0)) problems.push(`${t.docNo}: ยอดโอนต้องมากกว่า 0`);
+  });
+  const bankCodes = new Set(data.bankAccounts.filter((b) => b.kind === 'bank').map((b) => b.accountCode));
+  const lineIds = new Set<string>();
+  data.bankStatements.forEach((l) => {
+    if (lineIds.has(l.id)) problems.push(`statement ${l.date}: รหัสรายการซ้ำ`);
+    lineIds.add(l.id);
+    if (!bankCodes.has(l.accountCode)) problems.push(`statement ${l.date} ${l.description}: ไม่ใช่บัญชีธนาคารที่ลงทะเบียน (${l.accountCode})`);
+    if (toSatang(l.amount) === 0) problems.push(`statement ${l.date} ${l.description}: จำนวนเงินเป็นศูนย์`);
+  });
+  const matchIds = new Set<string>();
+  const entries = new Map(data.journal.map((e) => [e.id, e]));
+  data.bankMatches.forEach((m) => {
+    if (matchIds.has(m.id)) problems.push(`การจับคู่กระทบยอด ${m.id}: รหัสซ้ำ`);
+    matchIds.add(m.id);
+    // ตรวจแต่ละคู่เทียบกับคู่อื่นทั้งหมด (รายการใช้ได้ครั้งเดียว, ยอดเท่ากัน, อ้างรายการที่มีอยู่จริง)
+    const problem = bankMatchProblem(data, m, m.id);
+    if (problem) {
+      const docs = m.journalIds.map((id) => entries.get(id)?.docNo ?? id).join(', ');
+      problems.push(`กระทบยอด ${m.accountCode} (${docs}): ${problem}`);
+    }
+  });
+  data.quotations.forEach((q) => {
+    if (!Number.isInteger(q.validDays) || q.validDays < 0) problems.push(`${q.docNo}: จำนวนวันยืนราคาไม่ถูกต้อง`);
+  });
 }
 
 /**
@@ -723,6 +794,7 @@ export function validateAccountingData(data: AccountingData): string[] {
   checkYearCloses(data, problems);
   checkOpening(data, problems);
   checkLineAccounts(data, problems);
+  checkBanking(data, problems);
   checkDocumentPostings(data, problems);
   checkReconciliation(data, problems);
   return problems;

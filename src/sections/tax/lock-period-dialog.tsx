@@ -121,7 +121,7 @@ export function LockPeriodDialog({ open, onClose }: Props) {
                 label="ปิดถึงสิ้นเดือน"
                 views={['year', 'month']}
                 openTo="month"
-                format="MM/YYYY"
+                format="MM/BBBB"
               />
               {preview && (
                 <Typography variant="body2">

@@ -2,6 +2,8 @@ import 'src/global.css';
 
 // ----------------------------------------------------------------------
 
+import { lazy, useState, Suspense, useEffect } from 'react';
+
 import { Router } from 'src/routes/sections';
 
 import { useScrollToTop } from 'src/hooks/use-scroll-to-top';
@@ -14,7 +16,26 @@ import { ThemeProvider } from 'src/theme/theme-provider';
 import { Snackbar } from 'src/components/snackbar';
 import { ProgressBar } from 'src/components/progress-bar';
 import { MotionLazy } from 'src/components/animate/motion-lazy';
-import { SettingsDrawer, defaultSettings, SettingsProvider } from 'src/components/settings';
+import { defaultSettings, SettingsProvider, useSettingsContext } from 'src/components/settings';
+
+// แผงตั้งค่าหน้าตา (สี/ฟอนต์) โหลดเมื่อเปิดครั้งแรกเท่านั้น — ไม่อยู่ใน bundle หลัก
+const SettingsDrawer = lazy(() =>
+  import('src/components/settings/drawer/settings-drawer').then((m) => ({ default: m.SettingsDrawer }))
+);
+
+function LazySettingsDrawer() {
+  const { openDrawer } = useSettingsContext();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    if (openDrawer) setMounted(true);
+  }, [openDrawer]);
+  if (!mounted) return null;
+  return (
+    <Suspense fallback={null}>
+      <SettingsDrawer hideNavLayout hideNavColor hideCompact />
+    </Suspense>
+  );
+}
 
 // ----------------------------------------------------------------------
 
@@ -34,7 +55,7 @@ export default function App() {
             <MotionLazy>
               <Snackbar />
               <ProgressBar />
-              <SettingsDrawer hideNavLayout hideNavColor hideCompact />
+              <LazySettingsDrawer />
               <AccountingProvider>
                 <Router />
               </AccountingProvider>

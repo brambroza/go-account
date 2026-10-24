@@ -13,6 +13,7 @@ import type {
   JournalLine,
   AccountType,
   JournalEntry,
+  BankTransfer,
   CustomerRefund,
   OpeningBalance,
   PurchaseCreditNote,
@@ -352,6 +353,23 @@ export function postCustomerRefund(refund: CustomerRefund, meta: EntryMeta, cont
     source: 'refund',
     sourceId: refund.id,
     sourceDocNo: refund.docNo,
+    lines,
+  };
+}
+
+/** โอนเงินระหว่างบัญชีของบริษัท / เบิกชดเชยเงินสดย่อย: Dr บัญชีปลายทาง / Cr บัญชีต้นทาง */
+export function postBankTransfer(transfer: BankTransfer, meta: EntryMeta, title = 'โอนเงินระหว่างบัญชี'): JournalEntry {
+  const lines = finalize([
+    dr(transfer.toAccountCode, transfer.amount, 'รับโอน'),
+    cr(transfer.fromAccountCode, transfer.amount, 'โอนออก'),
+  ]);
+  return {
+    ...meta,
+    date: transfer.date,
+    description: `${title}${transfer.note ? ` — ${transfer.note}` : ''}`,
+    source: 'transfer',
+    sourceId: transfer.id,
+    sourceDocNo: transfer.docNo,
     lines,
   };
 }

@@ -5,11 +5,14 @@ import { ACC, addDays, todayISO, periodOf, shiftPeriod, DATA_VERSION, DEFAULT_AC
 import {
   payPurchase,
   setETaxStatus,
+  saveQuotation,
   recordPurchase,
   receivePayment,
   issueCreditNote,
   issueTaxInvoice,
   addManualJournal,
+  updateBankAccount,
+  setQuotationStatus,
 } from './actions';
 
 // ----------------------------------------------------------------------
@@ -129,6 +132,12 @@ function pline(description: string, qty: number, unitPrice: number, accountCode:
   return { ...line(description, qty, unitPrice, accountCode), whtIncomeType: wht?.[0] ?? '', whtRate: wht?.[1] ?? 0 };
 }
 
+/** ทะเบียนบัญชีเงินตั้งต้น: เงินฝากธนาคาร 1120 (ยังไม่ระบุธนาคาร) และเงินสดย่อย 1111 */
+export const DEFAULT_BANK_ACCOUNTS: AccountingData['bankAccounts'] = [
+  { accountCode: ACC.pettyCash, kind: 'petty-cash', bankName: 'เงินสดย่อยสำนักงาน', accountNo: '' },
+  { accountCode: ACC.bank, kind: 'bank', bankName: '', accountNo: '' },
+];
+
 export function emptyData(): AccountingData {
   return {
     version: DATA_VERSION,
@@ -157,6 +166,11 @@ export function emptyData(): AccountingData {
     vatCloses: [],
     purchaseCredits: [],
     yearCloses: [],
+    bankAccounts: DEFAULT_BANK_ACCOUNTS,
+    transfers: [],
+    bankStatements: [],
+    bankMatches: [],
+    quotations: [],
     journal: [],
     sequences: {},
   };
@@ -172,6 +186,12 @@ export function blankCompanyData(from: AccountingData): AccountingData {
     company: { ...from.company, lockedThrough: undefined },
     accounts: from.accounts,
     contacts: from.contacts,
+    // ทะเบียนบัญชีธนาคารคงไว้ (ผูกกับผังบัญชี) แต่เริ่มกระทบยอดใหม่
+    bankAccounts: from.bankAccounts.map((b) => {
+      const copy = { ...b };
+      delete copy.reconcileFrom;
+      return copy;
+    }),
   };
 }
 
@@ -371,6 +391,26 @@ export function buildDemoData(today: string = todayISO()): AccountingData {
     thisMonth.slice(0, 2).map((d) => d.id),
     'signed'
   );
+
+  // ทะเบียนธนาคาร + ใบเสนอราคา (ไม่ลงบัญชี — ตัวเลขทุกรายงานของข้อมูลตัวอย่างเท่าเดิม)
+  s = updateBankAccount(s, ACC.bank, { bankName: 'ธนาคารกสิกรไทย', accountNo: '123-4-56789-0', branch: 'บางนา' });
+  const qt = saveQuotation(s, {
+    date: ym(0, 2),
+    validDays: 30,
+    contactId: 'c-nakhon',
+    vatMode: 'exclusive',
+    lines: [line('ชิ้นส่วนพลาสติก รุ่น NK-9 (เสนอราคา)', 3000, 48.5), line('ค่าทำแม่พิมพ์', 1, 45000, ACC.service)],
+    note: 'ราคานี้รวมค่าขนส่งในเขตกรุงเทพฯ และปริมณฑล',
+  });
+  s = setQuotationStatus(qt.state, qt.quotation.id, 'sent');
+  s = saveQuotation(s, {
+    date: ym(0, 1),
+    validDays: 15,
+    contactId: 'c-thairung',
+    vatMode: 'exclusive',
+    saleType: 'service',
+    lines: [line('ค่าบริการฉีดขึ้นรูปตามแบบลูกค้า (รอบถัดไป)', 1, 92000, ACC.service)],
+  }).state;
 
   return s;
 }

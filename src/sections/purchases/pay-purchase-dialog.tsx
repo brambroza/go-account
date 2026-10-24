@@ -18,7 +18,7 @@ import DialogContent from '@mui/material/DialogContent';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { makePayPurchaseSchema } from 'src/schemas/accounting/doc-schemas';
-import { payPurchase, useAccounting, useAccountLookup, useContactLookup, DEPOSIT_ACCOUNTS } from 'src/store';
+import { payPurchase, useAccounting, useAccountLookup, useContactLookup, useCashAccountOptions } from 'src/store';
 import {
   ACC,
   toSatang,
@@ -38,7 +38,7 @@ import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 
-import { Money, ConfirmSummary, RHFAmountField, LockedDateAlert, preventEnterSubmit } from 'src/sections/shared';
+import { Money, ConfirmSummary, RHFAmountField, formKeyHandler, LockedDateAlert } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
@@ -51,6 +51,7 @@ type Props = { open: boolean; onClose: () => void; doc: PurchaseDoc | null };
 export function PayPurchaseDialog({ open, onClose, doc }: Props) {
   const { data, run } = useAccounting();
   const accounts = useAccountLookup();
+  const cashAccounts = useCashAccountOptions();
   const contacts = useContactLookup();
   const confirm = useBoolean();
   const [pending, setPending] = useState<PayPurchaseSchemaType | null>(null);
@@ -114,7 +115,7 @@ export function PayPurchaseDialog({ open, onClose, doc }: Props) {
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
         <Form methods={methods}>
           <DialogTitle>จ่ายชำระ {doc.docNo}</DialogTitle>
-          <DialogContent onKeyDown={preventEnterSubmit}>
+          <DialogContent onKeyDown={formKeyHandler(onReview)}>
             <Stack spacing={2.5} sx={{ pt: 1 }}>
               <Alert severity="info" variant="outlined">
                 ยอดเอกสาร <Money value={total} /> · ค้างจ่าย <Money value={outstanding} sx={{ fontWeight: 600 }} /> บาท
@@ -128,9 +129,9 @@ export function PayPurchaseDialog({ open, onClose, doc }: Props) {
               <LockedDateAlert date={date} />
               <RHFAmountField name="amount" label="ยอดตัดเจ้าหนี้ครั้งนี้ (รวม VAT)" />
               <Field.Select name="accountCode" label="จ่ายจากบัญชี" size="small">
-                {DEPOSIT_ACCOUNTS.map((code) => (
-                  <MenuItem key={code} value={code}>
-                    {code} {accounts.name(code)}
+                {cashAccounts.map((a) => (
+                  <MenuItem key={a.code} value={a.code}>
+                    {a.label}
                   </MenuItem>
                 ))}
               </Field.Select>

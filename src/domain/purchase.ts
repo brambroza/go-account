@@ -36,11 +36,16 @@ export function isMonthLocked(month: string, lockedThrough: ISODate | undefined)
 }
 
 /** เดือนที่เลือกใช้สิทธิได้ (อยู่ในช่วง 6 เดือน และยังไม่ปิดงวด) — ใช้ทำตัวเลือกในฟอร์ม */
-export function vatClaimPeriodOptions(supplierInvoiceDate: string | undefined, lockedThrough?: ISODate): string[] {
+export function vatClaimPeriodOptions(
+  supplierInvoiceDate: string | undefined,
+  lockedThrough?: ISODate,
+  /** วันยอดยกมา — เดือนนั้นและก่อนหน้ายื่น ภ.พ.30 ในระบบเดิมแล้ว ใช้สิทธิในระบบนี้ไม่ได้ */
+  openingDate?: ISODate
+): string[] {
   if (!supplierInvoiceDate || !isValidISODate(supplierInvoiceDate)) return [];
   const { first } = vatClaimWindow(supplierInvoiceDate);
   return Array.from({ length: VAT_CLAIM_WINDOW_MONTHS + 1 }, (_, i) => shiftMonthKey(first, i)).filter(
-    (m) => !isMonthLocked(m, lockedThrough)
+    (m) => !isMonthLocked(m, lockedThrough) && !(openingDate && m <= openingDate.slice(0, 7))
   );
 }
 
@@ -48,8 +53,12 @@ export function vatClaimPeriodOptions(supplierInvoiceDate: string | undefined, l
  * เดือนที่ระบบเสนอให้ใช้สิทธิ: เดือนในใบกำกับถ้ายังไม่ปิดงวด ไม่อย่างนั้นเดือนแรกที่ยังเปิดอยู่ในช่วง 6 เดือน
  * (ไม่มีเดือนที่ใช้ได้ = ใบกำกับเกิน 6 เดือนแล้ว คืน undefined)
  */
-export function defaultVatClaimPeriod(supplierInvoiceDate: string | undefined, lockedThrough?: ISODate): string | undefined {
-  return vatClaimPeriodOptions(supplierInvoiceDate, lockedThrough)[0];
+export function defaultVatClaimPeriod(
+  supplierInvoiceDate: string | undefined,
+  lockedThrough?: ISODate,
+  openingDate?: ISODate
+): string | undefined {
+  return vatClaimPeriodOptions(supplierInvoiceDate, lockedThrough, openingDate)[0];
 }
 
 /**

@@ -12,7 +12,6 @@ import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
 import { paths } from 'src/routes/paths';
@@ -39,6 +38,7 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { useTable, rowInPage, TablePaginationCustom } from 'src/components/table';
 
 import { Money } from 'src/sections/shared';
+import { IsoDatePicker } from 'src/sections/shared/iso-date-picker';
 
 import { CloseYearDialog } from './close-year-dialog';
 import { ManualEntryDialog } from './manual-entry-dialog';
@@ -60,6 +60,7 @@ const SOURCE_LABEL: Record<JournalSource, string> = {
   'purchase-credit-note': 'ลดหนี้จากผู้ขาย',
   'year-close': 'ปิดบัญชีสิ้นปี',
   opening: 'ยอดยกมา',
+  transfer: 'โอนเงิน',
   manual: 'ปรับปรุง',
 };
 
@@ -85,10 +86,8 @@ export function LedgerView() {
 
   const dateRange = (
     <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-      {tab === 'pl' && (
-        <TextField type="date" size="small" label="ตั้งแต่" value={from} onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
-      )}
-      <TextField type="date" size="small" label={tab === 'pl' ? 'ถึง' : 'ณ วันที่'} value={to} onChange={(e) => setTo(e.target.value)} InputLabelProps={{ shrink: true }} />
+      {tab === 'pl' && <IsoDatePicker label="ตั้งแต่" value={from} onChange={setFrom} />}
+      <IsoDatePicker label={tab === 'pl' ? 'ถึง' : 'ณ วันที่'} value={to} onChange={setTo} />
     </Stack>
   );
 
@@ -267,7 +266,7 @@ export function LedgerView() {
           {tab === 'bs' && (
             <>
               <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
-                <TextField type="date" size="small" label="ณ วันที่" value={to} onChange={(e) => setTo(e.target.value)} InputLabelProps={{ shrink: true }} />
+                <IsoDatePicker label="ณ วันที่" value={to} onChange={setTo} />
                 <Box sx={{ flexGrow: 1 }} />
                 <Button variant="outlined" startIcon={<Iconify icon="solar:printer-minimalistic-bold" />} onClick={() => window.print()}>
                   พิมพ์

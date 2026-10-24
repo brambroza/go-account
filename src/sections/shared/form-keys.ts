@@ -1,3 +1,5 @@
+import { isSubmitShortcut } from 'src/domain';
+
 // ----------------------------------------------------------------------
 
 /**
@@ -11,4 +13,20 @@ export function preventEnterSubmit(event: React.KeyboardEvent) {
   if (target instanceof HTMLInputElement && target.type !== 'checkbox' && target.type !== 'radio') {
     event.preventDefault();
   }
+}
+
+/**
+ * ตัวจัดการคีย์บอร์ดของฟอร์ม: Ctrl+Enter (⌘+Enter) = ส่งฟอร์ม → เปิดหน้ายืนยัน, Enter ในช่องกรอกไม่ส่งฟอร์มเอง
+ * ไม่รับ event ที่มาจาก dialog ลูก (portal) ซึ่ง React ส่งต่อขึ้นมาถึงฟอร์มแม่
+ */
+export function formKeyHandler(onSubmit: () => void) {
+  return (event: React.KeyboardEvent) => {
+    if (!(event.currentTarget as Node).contains(event.target as Node)) return;
+    if (isSubmitShortcut(event)) {
+      event.preventDefault();
+      onSubmit();
+      return;
+    }
+    preventEnterSubmit(event);
+  };
 }

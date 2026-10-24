@@ -64,8 +64,6 @@ export function ContactsView() {
   const importDialog = useBoolean();
   const [refundFor, setRefundFor] = useState<string | null>(null);
 
-  const nextCode = useMemo(() => `C${String(data.contacts.length + 1).padStart(4, '0')}`, [data.contacts.length]);
-
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     return data.contacts
@@ -197,7 +195,7 @@ export function ContactsView() {
         />
       </Card>
 
-      <ContactDialog open={dialog.value} onClose={dialog.onFalse} contact={editing} nextCode={nextCode} />
+      <ContactDialog open={dialog.value} onClose={dialog.onFalse} contact={editing} defaultKind={kind === 'vendor' ? 'vendor' : 'customer'} />
       <ImportContactsDialog open={importDialog.value} onClose={importDialog.onFalse} />
       {refundFor && <RefundDialog open={!!refundFor} onClose={() => setRefundFor(null)} contactId={refundFor} />}
     </>

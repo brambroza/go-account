@@ -10,6 +10,30 @@ const PORT = 8081;
 
 const env = loadEnv('all', process.cwd());
 
+/**
+ * แยก vendor เป็นก้อนตามกลุ่ม (B12) — cache ได้นานเพราะเปลี่ยนน้อยกว่าโค้ดแอป และ bundle หลักเล็กลง
+ * ลำดับมีผล: เช็ค path ที่เฉพาะกว่าก่อน (x-date-pickers ก่อน @mui)
+ */
+const VENDOR_CHUNKS: [string, RegExp][] = [
+  ['vendor-pickers', /node_modules\/(@mui\/x-date-pickers|dayjs)\//],
+  ['vendor-mui', /node_modules\/(@mui|@emotion|@popperjs|stylis|stylis-plugin-rtl|react-transition-group|clsx|mui-one-time-password-input)\//],
+  ['vendor-forms', /node_modules\/(react-hook-form|@hookform|zod|react-number-format)\//],
+  ['vendor-i18n', /node_modules\/(i18next|react-i18next|i18next-[^/]+)\//],
+  ['vendor-motion', /node_modules\/framer-motion\//],
+  ['vendor-icons', /node_modules\/@iconify\//],
+  // พื้นฐานที่ทุกก้อนใช้ร่วม (react + helper) — รวมไว้ก้อนเดียวกันเพื่อไม่ให้เกิดการอ้างกันเป็นวงระหว่างก้อน
+  [
+    'vendor-react',
+    /node_modules\/(react|react-dom|scheduler|react-is|prop-types|object-assign|@babel\/runtime|hoist-non-react-statics|use-sync-external-store|react-router|react-router-dom|@remix-run|react-helmet-async|react-fast-compare|invariant|shallowequal)\//,
+  ],
+];
+
+function manualChunks(id: string): string | undefined {
+  if (!id.includes('node_modules')) return undefined;
+  const hit = VENDOR_CHUNKS.find(([, pattern]) => pattern.test(id.replace(/\\/g, '/')));
+  return hit ? hit[0] : 'vendor';
+}
+
 export default defineConfig(({ mode }) =>({
   // base: env.VITE_BASE_PATH,
 
@@ -53,6 +77,7 @@ export default defineConfig(({ mode }) =>({
         entryFileNames: 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
         assetFileNames: 'assets/[name].[hash].[ext]',
+        manualChunks,
       },
     },
   },

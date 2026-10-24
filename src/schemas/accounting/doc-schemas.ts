@@ -314,3 +314,89 @@ export const ETaxUploadSchema = zod.object({
 });
 
 export type ETaxUploadSchemaType = zod.input<typeof ETaxUploadSchema>;
+
+/** ใบเสนอราคา — ไม่ลงบัญชี ยืนราคา 0–365 วัน */
+export const QuotationFormSchema = zod.object({
+  contactId: zod.string().min(1, { message: 'เลือกลูกค้า' }),
+  saleType: zod.enum(['goods', 'service']).default('goods'),
+  date: isoDate('วันที่ใบเสนอราคา'),
+  validDays: zod
+    .number({ invalid_type_error: 'กรอกจำนวนวัน' })
+    .int({ message: 'จำนวนวันต้องเป็นจำนวนเต็ม' })
+    .min(0, { message: 'ไม่ติดลบ' })
+    .max(365, { message: 'ไม่เกิน 365 วัน' }),
+  vatMode: zod.enum(['exclusive', 'inclusive', 'none']),
+  note: zod.string().optional(),
+  lines: zod.array(DocLineSchema).min(1, { message: 'ต้องมีอย่างน้อย 1 รายการ' }),
+});
+
+export type QuotationFormSchemaType = zod.input<typeof QuotationFormSchema>;
+
+/** โอนเงินระหว่างบัญชี / เบิกชดเชยเงินสดย่อย */
+export const TransferSchema = zod
+  .object({
+    date: isoDate('วันที่โอน'),
+    fromAccountCode: zod.string().min(1, { message: 'เลือกบัญชีต้นทาง' }),
+    toAccountCode: zod.string().min(1, { message: 'เลือกบัญชีปลายทาง' }),
+    amount: zod.number({ invalid_type_error: 'กรอกจำนวนเงิน' }).refine((v) => toSatang(v) > 0, { message: 'ยอดต้องมากกว่า 0' }),
+    note: zod.string().optional(),
+  })
+  .refine((v) => v.fromAccountCode !== v.toAccountCode, { message: 'บัญชีต้นทางและปลายทางต้องต่างกัน', path: ['toAccountCode'] });
+
+export type TransferSchemaType = zod.input<typeof TransferSchema>;
+
+/** เพิ่มบัญชีธนาคาร / เงินสดย่อย */
+export const BankAccountFormSchema = zod
+  .object({
+    kind: zod.enum(['bank', 'petty-cash']),
+    bankName: zod.string().trim().min(1, { message: 'กรอกชื่อธนาคาร / ผู้ถือเงิน' }),
+    accountNo: zod.string(),
+    branch: zod.string().optional(),
+    reconcileFrom: zod.string().optional(),
+  })
+  .refine((v) => v.kind !== 'bank' || v.accountNo.trim().length > 0, { message: 'กรอกเลขที่บัญชี', path: ['accountNo'] });
+
+export type BankAccountFormSchemaType = zod.input<typeof BankAccountFormSchema>;
+
+/** ใบสำคัญจ่ายเงินสดย่อย — บรรทัดค่าใช้จ่าย + ขอคืนภาษีซื้อ (ถ้ามีใบกำกับเต็มรูป) */
+export const PettyCashExpenseSchema = zod
+  .object({
+    pettyAccountCode: zod.string().min(1, { message: 'เลือกเงินสดย่อย' }),
+    date: isoDate('วันที่จ่าย'),
+    contactId: zod.string(),
+    vatMode: zod.enum(['exclusive', 'inclusive', 'none']),
+    claimVat: zod.boolean(),
+    supplierInvoiceNo: zod.string(),
+    supplierInvoiceDate: zod.string().optional(),
+    note: zod.string().optional(),
+    lines: zod
+      .array(
+        zod.object({
+          id: zod.string(),
+          description: zod.string().trim().min(1, { message: 'กรอกรายการ' }),
+          accountCode: zod.string().min(1, { message: 'เลือกบัญชี' }),
+          amount: zod.number({ invalid_type_error: 'กรอกจำนวนเงิน' }).refine((v) => toSatang(v) > 0, { message: 'มากกว่า 0' }),
+        })
+      )
+      .min(1, { message: 'ต้องมีอย่างน้อย 1 รายการ' }),
+  })
+  .refine((v) => !(v.claimVat && v.vatMode !== 'none') || v.contactId.length > 0, {
+    message: 'ขอคืนภาษีซื้อต้องเลือกผู้ขาย',
+    path: ['contactId'],
+  })
+  .refine((v) => !(v.claimVat && v.vatMode !== 'none') || v.supplierInvoiceNo.trim().length > 0, {
+    message: 'กรอกเลขที่ใบกำกับภาษี',
+    path: ['supplierInvoiceNo'],
+  });
+
+export type PettyCashExpenseSchemaType = zod.input<typeof PettyCashExpenseSchema>;
+
+/** เพิ่มรายการ statement เอง */
+export const StatementLineSchema = zod.object({
+  date: isoDate('วันที่'),
+  description: zod.string(),
+  direction: zod.enum(['in', 'out']),
+  amount: zod.number({ invalid_type_error: 'กรอกจำนวนเงิน' }).refine((v) => toSatang(v) > 0, { message: 'ยอดต้องมากกว่า 0' }),
+});
+
+export type StatementLineSchemaType = zod.input<typeof StatementLineSchema>;

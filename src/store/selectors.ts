@@ -2,7 +2,7 @@ import type { Account, Contact, LineSide } from 'src/domain';
 
 import { useMemo } from 'react';
 
-import { lineAccountProblem, contactDisplayName } from 'src/domain';
+import { bankAccountOf, cashAccountsOf, cashAccountLabel, lineAccountProblem, contactDisplayName } from 'src/domain';
 
 import { useAccounting } from './accounting-provider';
 
@@ -31,4 +31,25 @@ export function useAccountLookup() {
       forLines: (side: LineSide) => data.accounts.filter((a) => !lineAccountProblem(a, side)),
     };
   }, [data.accounts]);
+}
+
+export type CashAccountOption = { code: string; label: string; kind: 'cash' | 'bank' | 'petty-cash' };
+
+/**
+ * บัญชีเงินสด/ธนาคารที่เลือกรับ/จ่ายเงินได้ (ทุกบัญชี 111x/112x ในผังบัญชี รวมบัญชีธนาคารที่เพิ่มเอง)
+ * ชื่อแสดงรวมชื่อธนาคาร/เลขที่บัญชีจากทะเบียน — `exclude` ใช้ตัดบัญชีต้นทางออกจากรายการปลายทาง
+ */
+export function useCashAccountOptions(exclude?: string): CashAccountOption[] {
+  const { data } = useAccounting();
+  return useMemo(
+    () =>
+      cashAccountsOf(data)
+        .filter((a) => a.code !== exclude)
+        .map((a) => {
+          const bank = bankAccountOf(data, a.code);
+          return { code: a.code, label: cashAccountLabel(a, bank), kind: bank?.kind ?? 'cash' };
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [data.accounts, data.bankAccounts, exclude]
+  );
 }

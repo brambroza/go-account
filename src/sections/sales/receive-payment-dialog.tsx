@@ -19,7 +19,7 @@ import DialogContent from '@mui/material/DialogContent';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { makeReceiptSchema } from 'src/schemas/accounting/doc-schemas';
-import { outstandingOf, useAccounting, receivePayment, useAccountLookup, DEPOSIT_ACCOUNTS } from 'src/store';
+import { outstandingOf, useAccounting, receivePayment, useAccountLookup, useCashAccountOptions } from 'src/store';
 import {
   ACC,
   subBaht,
@@ -34,13 +34,14 @@ import {
   isValidISODate,
   isServiceInvoice,
   receiptWhtAmount,
+  lastReceiptWhtRate,
 } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 
-import { Money, ConfirmSummary, RHFAmountField, LockedDateAlert, preventEnterSubmit } from 'src/sections/shared';
+import { Money, ConfirmSummary, RHFAmountField, formKeyHandler, LockedDateAlert } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
@@ -58,15 +59,22 @@ type Props = { open: boolean; onClose: () => void; invoice: SalesDoc };
 export function ReceivePaymentDialog({ open, onClose, invoice }: Props) {
   const { data, run } = useAccounting();
   const accounts = useAccountLookup();
+  const cashAccounts = useCashAccountOptions();
   const outstanding = outstandingOf(data, invoice);
   const totals = useMemo(() => calcDocument(invoice), [invoice]);
   const confirm = useBoolean();
   const [pending, setPending] = useState<ReceiptSchemaType | null>(null);
 
+  // จำอัตราหัก ณ ที่จ่ายที่ลูกค้ารายนี้หักครั้งล่าสุด (อนุมานจากใบรับชำระเดิม — ไม่ต้องเก็บค่าเพิ่ม)
+  const rememberedRate = lastReceiptWhtRate(
+    data,
+    invoice.contactId,
+    WHT_RATES.map((w) => w.rate)
+  );
   const defaultValues: ReceiptSchemaType = {
     date: todayISO(),
     amount: outstanding,
-    whtRate: 0,
+    whtRate: rememberedRate ?? 0,
     whtAmount: 0,
     depositAccountCode: ACC.bank,
   };
@@ -130,7 +138,7 @@ export function ReceivePaymentDialog({ open, onClose, invoice }: Props) {
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
         <Form methods={methods}>
           <DialogTitle>รับชำระ {invoice.docNo}</DialogTitle>
-          <DialogContent onKeyDown={preventEnterSubmit}>
+          <DialogContent onKeyDown={formKeyHandler(onReview)}>
             <Stack spacing={2.5} sx={{ pt: 1 }}>
               <Stack direction="row" justifyContent="space-between">
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -144,7 +152,12 @@ export function ReceivePaymentDialog({ open, onClose, invoice }: Props) {
 
               <RHFAmountField name="amount" label="ยอดที่ตัดลูกหนี้ (รับบางส่วนได้)" />
 
-              <Field.Select name="whtRate" label="ลูกค้าหักภาษี ณ ที่จ่าย" size="small">
+              <Field.Select
+                name="whtRate"
+                label="ลูกค้าหักภาษี ณ ที่จ่าย"
+                size="small"
+                helperText={rememberedRate ? `ตามที่ลูกค้ารายนี้หักครั้งล่าสุด (${rememberedRate}%) — เปลี่ยนได้` : undefined}
+              >
                 {WHT_RATES.map((w) => (
                   <MenuItem key={w.rate} value={w.rate}>
                     {w.label}
@@ -155,9 +168,9 @@ export function ReceivePaymentDialog({ open, onClose, invoice }: Props) {
               {!!whtRate && <RHFAmountField name="whtAmount" label="ภาษีที่ถูกหัก (ตาม 50 ทวิ ที่ได้รับ)" />}
 
               <Field.Select name="depositAccountCode" label="รับเข้าบัญชี" size="small">
-                {DEPOSIT_ACCOUNTS.map((code) => (
-                  <MenuItem key={code} value={code}>
-                    {code} {accounts.name(code)}
+                {cashAccounts.map((a) => (
+                  <MenuItem key={a.code} value={a.code}>
+                    {a.label}
                   </MenuItem>
                 ))}
               </Field.Select>

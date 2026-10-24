@@ -5,20 +5,28 @@ import type {
   Receipt,
   DocLine,
   ISODate,
+  VatMode,
   SaleType,
   SalesDoc,
   VatClose,
   LineSide,
+  Quotation,
+  BankMatch,
   YearClose,
   DocPrefix,
   ETaxStatus,
+  BankAccount,
   PurchaseDoc,
   JournalLine,
+  BankTransfer,
   PurchaseLine,
   JournalEntry,
   AccountingData,
   CustomerRefund,
   OpeningBalance,
+  QuotationStatus,
+  BankAccountKind,
+  BankStatementLine,
   PurchaseCreditNote,
 } from 'src/domain';
 
@@ -51,9 +59,13 @@ import {
   isTaxDocument,
   isCashAccount,
   postYearClose,
+  bankAccountOf,
+  docPeriodCode,
+  transferTitle,
   postCreditNote,
   formatThaiDate,
   isValidISODate,
+  unmatchedItems,
   companySnapshot,
   creditedPartsOf,
   vatClaimProblem,
@@ -67,6 +79,8 @@ import {
   isServiceInvoice,
   yearCloseProblem,
   sortedYearCloses,
+  postBankTransfer,
+  bankMatchProblem,
   lastReceiptDateOf,
   yearCloseBalances,
   lastPaymentDateOf,
@@ -75,9 +89,13 @@ import {
   contactDisplayName,
   postCustomerRefund,
   postOpeningBalance,
+  autoMatchProposals,
+  minCashBalanceFrom,
+  QUOTATION_STATUSES,
   postPurchasePayment,
   purchaseOutstanding,
   planPurchasePayment,
+  nextBankAccountCode,
   RECEIPT_WHT_MAX_RATE,
   UnbalancedEntryError,
   openingBlockedReason,
@@ -88,7 +106,9 @@ import {
   purchaseCreditedParts,
   postPurchaseCreditNote,
   supplierVatClaimProblem,
+  quotationConvertProblem,
   purchaseAdjustedWhtGroups,
+  isValidISODate as isISODate,
 } from 'src/domain';
 
 // ----------------------------------------------------------------------
@@ -153,6 +173,8 @@ export function lastDocDate(state: AccountingData, prefix: DocPrefix): ISODate |
     ...state.payments.map((p) => ({ docNo: p.whtCertNo, date: p.date })),
     ...state.refunds,
     ...state.purchaseCredits,
+    ...state.transfers,
+    ...state.quotations,
     ...state.journal,
   ];
   return docs.reduce<ISODate | undefined>((latest, d) => {
@@ -185,6 +207,20 @@ function assertCashAccount(state: AccountingData, code: string) {
   const account = state.accounts.find((a) => a.code === code);
   if (!isCashAccount(account)) {
     throw new BusinessRuleError(`บัญชี ${code} ใช้รับ/จ่ายเงินไม่ได้ — เลือกบัญชีเงินสดหรือธนาคาร`);
+  }
+}
+
+/**
+ * เงินสดย่อยติดลบไม่ได้: จ่าย/โอนออก `amount` ณ วันที่ `date` แล้วยอดคงเหลือทุกวันตั้งแต่วันนั้นต้องไม่ติดลบ
+ * (บัญชีธนาคารเบิกเกินบัญชีได้ จึงไม่ตรวจ)
+ */
+function assertPettyCashAvailable(state: AccountingData, code: string, date: ISODate, amount: number) {
+  if (bankAccountOf(state, code)?.kind !== 'petty-cash') return;
+  const available = minCashBalanceFrom(state, code, date);
+  if (toSatang(amount) > toSatang(available)) {
+    throw new BusinessRuleError(
+      `เงินสดย่อย ${code} คงเหลือไม่พอ (ใช้ได้ ${Math.max(0, available).toFixed(2)} บาท ณ วันที่ ${formatThaiDate(date)}) — เบิกชดเชยจากธนาคารก่อน`
+    );
   }
 }
 
@@ -568,6 +604,7 @@ export function refundCustomerCredit(state: AccountingData, input: RefundInput) 
     );
   }
   assertCashAccount(state, input.accountCode);
+  assertPettyCashAvailable(state, input.accountCode, input.date, input.amount);
 
   const j = takeNumber({ ...state, sequences: n.sequences }, DOC_PREFIX.journal, input.date);
   const journalId = uid();
@@ -642,6 +679,13 @@ export function recordPurchase(
     if (problem) throw new BusinessRuleError(problem);
     if (vatClaimPeriod && isMonthLocked(vatClaimPeriod, state.company.lockedThrough)) {
       throw new BusinessRuleError(`เดือนภาษี ${vatClaimPeriod} ปิดงวดแล้ว (ยื่น ภ.พ.30 ไปแล้ว) — เลือกเดือนใช้สิทธิถัดไป`);
+    }
+    // เดือนของวันยอดยกมาและก่อนหน้า ยื่น ภ.พ.30 ในระบบเดิมแล้ว — ปิดภาษีเดือนนั้นในระบบนี้จะลงรายการก่อนวันยอดยกมา
+    const opening = state.openingBalance;
+    if (vatClaimPeriod && opening && vatClaimPeriod <= monthKeyOf(opening.date)) {
+      throw new BusinessRuleError(
+        `เดือนภาษี ${vatClaimPeriod} ยื่นในระบบเดิมแล้ว (ยอดยกมา ณ ${formatThaiDate(opening.date)}) — เลือกเดือนใช้สิทธิหลังวันยอดยกมา`
+      );
     }
   } else if (supplierInvoiceDate && supplierInvoiceDate > input.date) {
     throw new BusinessRuleError('วันที่ใบกำกับผู้ขายต้องไม่หลังวันที่บันทึก');
@@ -731,6 +775,7 @@ export function payPurchase(state: AccountingData, input: PayPurchaseInput) {
   const contact = contactOf(state, doc.contactId);
   const plan = planPurchasePayment(state, doc, amount);
   if (toSatang(plan.netPaid) < 0) throw new BusinessRuleError('ภาษีหัก ณ ที่จ่ายเกินยอดที่จ่ายครั้งนี้ — เพิ่มยอดจ่าย');
+  assertPettyCashAvailable(state, input.accountCode, input.date, plan.netPaid);
   const pv = takeNumber(state, DOC_PREFIX.payment, input.date);
   let { sequences } = pv;
   let whtCertNo: string | undefined;
@@ -805,14 +850,21 @@ export function addManualJournal(
   return { state: { ...state, journal: [...state.journal, entry], sequences: j.sequences }, entry };
 }
 
-export function upsertContact(state: AccountingData, contact: Omit<Contact, 'id'> & { id?: string }) {
+/** เพิ่ม/แก้ผู้ติดต่อ แล้วคืนผู้ติดต่อที่บันทึก (ใช้เลือกในฟอร์มทันทีหลัง "+ เพิ่มใหม่") */
+export function saveContact(state: AccountingData, contact: Omit<Contact, 'id'> & { id?: string }): { state: AccountingData; contact: Contact } {
   if (!contact.name.trim()) throw new BusinessRuleError('ต้องระบุชื่อ');
   const duplicate = state.contacts.find((c) => c.code === contact.code && c.id !== contact.id);
   if (duplicate) throw new BusinessRuleError(`รหัส ${contact.code} ซ้ำกับ ${duplicate.name}`);
   if (contact.id) {
-    return { ...state, contacts: state.contacts.map((c) => (c.id === contact.id ? (contact as Contact) : c)) };
+    const saved = contact as Contact;
+    return { state: { ...state, contacts: state.contacts.map((c) => (c.id === contact.id ? saved : c)) }, contact: saved };
   }
-  return { ...state, contacts: [...state.contacts, { ...contact, id: uid() }] };
+  const saved: Contact = { ...contact, id: uid() };
+  return { state: { ...state, contacts: [...state.contacts, saved] }, contact: saved };
+}
+
+export function upsertContact(state: AccountingData, contact: Omit<Contact, 'id'> & { id?: string }) {
+  return saveContact(state, contact).state;
 }
 
 export function importContacts(state: AccountingData, contacts: Omit<Contact, 'id'>[]) {
@@ -1300,4 +1352,383 @@ export function setOpeningBalances(state: AccountingData, input: OpeningBalanceI
   };
 }
 
+/** @deprecated ใช้ `cashAccountsOf(data)` — บัญชีเงินสด/ธนาคารทั้งหมดในผังบัญชี (รวมบัญชีธนาคารที่เพิ่มเอง) */
 export const DEPOSIT_ACCOUNTS = [ACC.bank, ACC.cash];
+
+// ---------------- ธนาคาร / เงินสดย่อย (B9) ----------------
+
+export type BankAccountInput = {
+  kind: BankAccountKind;
+  bankName: string;
+  accountNo: string;
+  branch?: string;
+  /** ชื่อบัญชีในผังบัญชี (ไม่ส่ง = ตั้งจากชื่อธนาคาร/เลขที่บัญชี) */
+  accountName?: string;
+};
+
+/**
+ * เพิ่มบัญชีธนาคาร (บัญชีแยกประเภท 1121–1129) หรือเงินสดย่อย (1112–1119) พร้อมลงทะเบียน
+ * เลขที่บัญชีธนาคารเดียวกันซ้ำไม่ได้
+ */
+export function addBankAccount(state: AccountingData, input: BankAccountInput): { state: AccountingData; bank: BankAccount } {
+  const bankName = input.bankName.trim();
+  const accountNo = input.accountNo.trim();
+  if (input.kind === 'bank' && (!bankName || !accountNo)) throw new BusinessRuleError('ระบุชื่อธนาคารและเลขที่บัญชี');
+  if (input.kind === 'petty-cash' && !bankName) throw new BusinessRuleError('ระบุชื่อผู้ถือเงินสดย่อย / แผนก');
+  const norm = (v: string) => v.replace(/[\s-]/g, '');
+  const dup = state.bankAccounts.find((b) => b.kind === 'bank' && input.kind === 'bank' && b.bankName === bankName && norm(b.accountNo) === norm(accountNo));
+  if (dup) throw new BusinessRuleError(`${bankName} เลขที่ ${accountNo} ลงทะเบียนแล้ว (บัญชี ${dup.accountCode})`);
+  const code = nextBankAccountCode(state.accounts, input.kind);
+  if (!code) throw new BusinessRuleError(`เพิ่ม${input.kind === 'bank' ? 'บัญชีธนาคาร' : 'เงินสดย่อย'}ได้ไม่เกิน 9 บัญชี`);
+  const name =
+    input.accountName?.trim() || (input.kind === 'bank' ? `เงินฝากธนาคาร ${bankName} ${accountNo}` : `เงินสดย่อย ${bankName}`);
+  const bank: BankAccount = { accountCode: code, kind: input.kind, bankName, accountNo, ...(input.branch?.trim() ? { branch: input.branch.trim() } : {}) };
+  return {
+    state: {
+      ...state,
+      accounts: [...state.accounts, { code, name, nameEn: input.kind === 'bank' ? 'Bank deposit' : 'Petty cash', type: 'asset' }],
+      bankAccounts: [...state.bankAccounts, bank],
+    },
+    bank,
+  };
+}
+
+/** แก้ข้อมูลประกอบของบัญชีธนาคาร (ชื่อธนาคาร เลขที่ สาขา วันเริ่มกระทบยอด) — ไม่กระทบรายการบัญชี */
+export function updateBankAccount(
+  state: AccountingData,
+  accountCode: string,
+  patch: Partial<Pick<BankAccount, 'bankName' | 'accountNo' | 'branch' | 'reconcileFrom'>>
+): AccountingData {
+  const current = bankAccountOf(state, accountCode);
+  if (!current) throw new BusinessRuleError(`ไม่พบบัญชี ${accountCode} ในทะเบียนธนาคาร`);
+  if (patch.reconcileFrom !== undefined && patch.reconcileFrom !== '' && !isISODate(patch.reconcileFrom)) {
+    throw new BusinessRuleError('วันที่เริ่มกระทบยอดไม่ถูกต้อง');
+  }
+  const next: BankAccount = { ...current };
+  if (patch.bankName !== undefined) next.bankName = patch.bankName.trim();
+  if (patch.accountNo !== undefined) next.accountNo = patch.accountNo.trim();
+  if (patch.branch !== undefined) {
+    if (patch.branch.trim()) next.branch = patch.branch.trim();
+    else delete next.branch;
+  }
+  if (patch.reconcileFrom !== undefined) {
+    if (patch.reconcileFrom) next.reconcileFrom = patch.reconcileFrom;
+    else delete next.reconcileFrom;
+  }
+  return { ...state, bankAccounts: state.bankAccounts.map((b) => (b.accountCode === accountCode ? next : b)) };
+}
+
+export type TransferInput = {
+  date: string;
+  fromAccountCode: string;
+  toAccountCode: string;
+  amount: number;
+  note?: string;
+};
+
+/**
+ * โอนเงินระหว่างบัญชีเงินสด/ธนาคารของบริษัท (รวมเบิกชดเชยเงินสดย่อยจากธนาคาร) — เลขที่ TR + รายการบัญชี JV
+ * Dr ปลายทาง / Cr ต้นทาง, เงินสดย่อยต้นทางต้องมียอดพอ
+ */
+export function transferFunds(state: AccountingData, input: TransferInput): { state: AccountingData; transfer: BankTransfer } {
+  assertPostingDate(state, input.date, 'วันที่โอน');
+  if (!Number.isFinite(input.amount) || !(toSatang(input.amount) > 0)) throw new BusinessRuleError('ยอดโอนต้องมากกว่า 0');
+  assertCashAccount(state, input.fromAccountCode);
+  assertCashAccount(state, input.toAccountCode);
+  if (input.fromAccountCode === input.toAccountCode) throw new BusinessRuleError('บัญชีต้นทางและปลายทางต้องต่างกัน');
+  const amount = round2(input.amount);
+  assertPettyCashAvailable(state, input.fromAccountCode, input.date, amount);
+  const n = takeNumber(state, DOC_PREFIX.transfer, input.date);
+  const j = takeNumber({ ...state, sequences: n.sequences }, DOC_PREFIX.journal, input.date);
+  const journalId = uid();
+  const transfer: BankTransfer = {
+    id: uid(),
+    docNo: n.docNo,
+    date: input.date,
+    fromAccountCode: input.fromAccountCode,
+    toAccountCode: input.toAccountCode,
+    amount,
+    ...(input.note?.trim() ? { note: input.note.trim() } : {}),
+    journalId,
+    createdAt: new Date().toISOString(),
+  };
+  const entry = postBankTransfer(transfer, { id: journalId, docNo: j.docNo }, transferTitle(transfer, state));
+  return {
+    state: { ...state, transfers: [...state.transfers, transfer], journal: [...state.journal, entry], sequences: j.sequences },
+    transfer,
+  };
+}
+
+/** รหัสผู้ติดต่อของผู้รับเงินทั่วไปของเงินสดย่อย (ค่าใช้จ่ายที่ไม่ขอคืนภาษีซื้อและไม่ระบุผู้ขาย) */
+export const PETTY_CASH_PAYEE_CODE = 'PETTY';
+
+export type PettyCashExpenseInput = {
+  pettyAccountCode: string;
+  date: string;
+  /** ผู้ขาย — บังคับเมื่อขอคืนภาษีซื้อ (ต้องมีเลขผู้เสียภาษี/สาขา) ไม่ส่ง = ผู้รับเงินทั่วไป */
+  contactId?: string;
+  lines: { id?: string; description: string; accountCode: string; amount: number }[];
+  vatMode: VatMode;
+  claimVat: boolean;
+  supplierInvoiceNo?: string;
+  supplierInvoiceDate?: string;
+  vatClaimPeriod?: string;
+  note?: string;
+};
+
+/**
+ * ใบสำคัญจ่ายเงินสดย่อย — บันทึกเป็นเอกสารซื้อ (PI) ที่จ่ายทันทีจากบัญชีเงินสดย่อย (PV) จึงใช้กติกาภาษีซื้อชุดเดียวกัน
+ * (ม.82/3 วันที่ใบกำกับ/เดือนใช้สิทธิ, ม.82/5 เลขผู้เสียภาษีผู้ขาย, กันเลขใบกำกับซ้ำ) ไม่มีหัก ณ ที่จ่าย
+ * ยอดเงินสดย่อยต้องพอจ่าย
+ */
+export function recordPettyCashExpense(state: AccountingData, input: PettyCashExpenseInput) {
+  const bank = bankAccountOf(state, input.pettyAccountCode);
+  if (!bank || bank.kind !== 'petty-cash') throw new BusinessRuleError(`บัญชี ${input.pettyAccountCode} ไม่ใช่เงินสดย่อย`);
+  if (!input.lines.length) throw new BusinessRuleError('ต้องมีอย่างน้อย 1 รายการ');
+  input.lines.forEach((l, i) => {
+    if (!Number.isFinite(l.amount) || !(toSatang(l.amount) > 0)) throw new BusinessRuleError(`รายการที่ ${i + 1}: จำนวนเงินต้องมากกว่า 0`);
+  });
+  const claimVat = state.company.vatRegistered && input.vatMode !== 'none' && input.claimVat;
+  let next = state;
+  let {contactId} = input;
+  if (claimVat) {
+    if (!contactId) throw new BusinessRuleError('ขอคืนภาษีซื้อต้องเลือกผู้ขาย (มีเลขผู้เสียภาษีและสาขา)');
+    const problem = supplierVatClaimProblem(partySnapshot(contactOf(state, contactId)));
+    if (problem) throw new BusinessRuleError(`${problem} — ขอคืนภาษีซื้อไม่ได้ (ม.82/5)`);
+  }
+  if (!contactId) {
+    const payee = state.contacts.find((c) => c.code === PETTY_CASH_PAYEE_CODE);
+    if (payee) contactId = payee.id;
+    else {
+      const created = saveContact(state, {
+        code: PETTY_CASH_PAYEE_CODE,
+        kind: 'vendor',
+        legalForm: 'juristic',
+        title: '',
+        name: 'ผู้รับเงินทั่วไป (เงินสดย่อย)',
+        address: {},
+        creditDays: 0,
+      });
+      next = created.state;
+      contactId = created.contact.id;
+    }
+  }
+  return recordPurchase(next, {
+    supplierInvoiceNo: input.supplierInvoiceNo ?? '',
+    supplierInvoiceDate: input.supplierInvoiceDate,
+    vatClaimPeriod: input.vatClaimPeriod,
+    date: input.date,
+    contactId,
+    vatMode: input.vatMode,
+    claimVat,
+    whtCondition: '1',
+    note: input.note?.trim() || `เงินสดย่อย ${bank.bankName}`.trim(),
+    lines: input.lines.map((l) => ({
+      id: l.id ?? uid(),
+      description: l.description,
+      qty: 1,
+      unitPrice: round2(l.amount),
+      discount: 0,
+      accountCode: l.accountCode,
+      whtIncomeType: '',
+      whtRate: 0,
+    })),
+    payNow: { date: input.date, accountCode: input.pettyAccountCode },
+  });
+}
+
+// ---------------- กระทบยอดธนาคาร ----------------
+
+export type StatementLineInput = { date: string; description: string; amount: number; balance?: number };
+
+const statementKey = (l: { date: string; amount: number; description: string }) =>
+  `${l.date}|${toSatang(l.amount)}|${l.description.trim()}`;
+
+/**
+ * เพิ่มรายการ statement (นำเข้า CSV / คีย์เอง) — รายการที่มีอยู่แล้ว (วันที่ + ยอด + คำอธิบายเดียวกัน) ถูกข้าม
+ * จึงนำเข้าไฟล์เดิมซ้ำได้โดยไม่เกิดรายการซ้ำ
+ */
+export function addBankStatementLines(
+  state: AccountingData,
+  input: { accountCode: string; lines: StatementLineInput[]; imported?: boolean }
+): { state: AccountingData; added: number; skipped: number } {
+  const bank = bankAccountOf(state, input.accountCode);
+  if (!bank || bank.kind !== 'bank') throw new BusinessRuleError(`บัญชี ${input.accountCode} ไม่ใช่บัญชีธนาคารที่ลงทะเบียน`);
+  if (!input.lines.length) throw new BusinessRuleError('ไม่มีรายการ statement');
+  const existing = new Map<string, number>();
+  state.bankStatements
+    .filter((l) => l.accountCode === input.accountCode)
+    .forEach((l) => existing.set(statementKey(l), (existing.get(statementKey(l)) ?? 0) + 1));
+  const batchId = input.imported ? uid() : undefined;
+  const createdAt = new Date().toISOString();
+  const fresh: BankStatementLine[] = [];
+  let skipped = 0;
+  input.lines.forEach((l, i) => {
+    const no = `แถวที่ ${i + 1}`;
+    assertISODate(l.date, `${no}: วันที่`);
+    if (!Number.isFinite(l.amount) || toSatang(l.amount) === 0) throw new BusinessRuleError(`${no}: จำนวนเงินต้องไม่เป็นศูนย์`);
+    if (l.balance !== undefined && !Number.isFinite(l.balance)) throw new BusinessRuleError(`${no}: ยอดคงเหลือไม่ถูกต้อง`);
+    const key = statementKey(l);
+    const seen = existing.get(key) ?? 0;
+    if (seen > 0) {
+      existing.set(key, seen - 1);
+      skipped += 1;
+      return;
+    }
+    fresh.push({
+      id: uid(),
+      accountCode: input.accountCode,
+      date: l.date,
+      description: l.description.trim(),
+      amount: round2(l.amount),
+      ...(l.balance !== undefined ? { balance: round2(l.balance) } : {}),
+      ...(batchId ? { batchId } : {}),
+      createdAt,
+    });
+  });
+  return { state: { ...state, bankStatements: [...state.bankStatements, ...fresh] }, added: fresh.length, skipped };
+}
+
+/** ลบรายการ statement ที่ยังไม่ได้จับคู่ (นำเข้าผิดไฟล์/คีย์ผิด) */
+export function deleteBankStatementLines(state: AccountingData, ids: string[]): AccountingData {
+  const set = new Set(ids);
+  const matched = state.bankMatches.some((m) => m.statementLineIds.some((id) => set.has(id)));
+  if (matched) throw new BusinessRuleError('รายการที่จับคู่แล้วลบไม่ได้ — ยกเลิกการจับคู่ก่อน');
+  return { ...state, bankStatements: state.bankStatements.filter((l) => !set.has(l.id)) };
+}
+
+/** จับคู่ด้วยมือ: statement ≥ 1 กับรายการในสมุด ≥ 1 ยอดรวมเท่ากัน (ไม่ลงบัญชี) */
+export function matchBankItems(
+  state: AccountingData,
+  input: { accountCode: string; statementLineIds: string[]; journalIds: string[] },
+  auto = false
+): { state: AccountingData; match: BankMatch } {
+  const problem = bankMatchProblem(state, input);
+  if (problem) throw new BusinessRuleError(problem);
+  const match: BankMatch = {
+    id: uid(),
+    accountCode: input.accountCode,
+    statementLineIds: input.statementLineIds.slice(),
+    journalIds: input.journalIds.slice(),
+    auto,
+    matchedAt: new Date().toISOString(),
+  };
+  return { state: { ...state, bankMatches: [...state.bankMatches, match] }, match };
+}
+
+/** จับคู่อัตโนมัติ (ยอดเท่ากัน + วันที่ห่างไม่เกิน `windowDays`) เฉพาะรายการที่ยังไม่จับคู่ */
+export function autoMatchBank(state: AccountingData, accountCode: string, windowDays = 3): { state: AccountingData; matched: number } {
+  const bank = bankAccountOf(state, accountCode);
+  if (!bank || bank.kind !== 'bank') throw new BusinessRuleError(`บัญชี ${accountCode} ไม่ใช่บัญชีธนาคารที่ลงทะเบียน`);
+  const { lines, movements } = unmatchedItems(state, accountCode);
+  const from = bank.reconcileFrom;
+  const proposals = autoMatchProposals(lines, movements.filter((m) => !from || m.date >= from), windowDays);
+  const matchedAt = new Date().toISOString();
+  const matches: BankMatch[] = proposals.map((p) => ({
+    id: uid(),
+    accountCode,
+    statementLineIds: [p.statementLineId],
+    journalIds: [p.journalId],
+    auto: true,
+    matchedAt,
+  }));
+  return { state: { ...state, bankMatches: [...state.bankMatches, ...matches] }, matched: matches.length };
+}
+
+export function unmatchBank(state: AccountingData, matchId: string): AccountingData {
+  if (!state.bankMatches.some((m) => m.id === matchId)) throw new BusinessRuleError('ไม่พบการจับคู่');
+  return { ...state, bankMatches: state.bankMatches.filter((m) => m.id !== matchId) };
+}
+
+// ---------------- ใบเสนอราคา ----------------
+
+export type QuotationInput = {
+  /** ไม่ส่ง = สร้างใหม่ */
+  id?: string;
+  date: string;
+  validDays: number;
+  contactId: string;
+  lines: DocLine[];
+  vatMode: VatMode;
+  saleType?: SaleType;
+  note?: string;
+};
+
+/**
+ * สร้าง/แก้ใบเสนอราคา (QT) — ไม่ลงบัญชี ไม่ตรวจงวดที่ปิด
+ * ข้อยกเว้นของกติกา "เอกสารที่ออกแล้วแก้ไม่ได้": ใบเสนอราคาไม่ใช่เอกสารภาษีและไม่มีผลทางบัญชี จึงแก้ได้
+ * จนกว่าจะแปลงเป็นเอกสารขาย (หลังแปลงแล้วล็อก เพื่อให้ตรงกับใบกำกับที่ออกไป) — แก้วันที่ได้ภายในเดือนของเลขที่เดิม
+ */
+export function saveQuotation(state: AccountingData, input: QuotationInput): { state: AccountingData; quotation: Quotation } {
+  assertISODate(input.date, 'วันที่ใบเสนอราคา');
+  if (!Number.isInteger(input.validDays) || input.validDays < 0 || input.validDays > 365) {
+    throw new BusinessRuleError('ยืนราคาได้ 0–365 วัน');
+  }
+  assertLines(state, input.lines, 'sales');
+  const contact = contactOf(state, input.contactId);
+  if (contact.kind === 'vendor') throw new BusinessRuleError(`${contactDisplayName(contact)} เป็นผู้ขายเท่านั้น — ตั้งเป็นลูกค้าหรือทั้งสองก่อน`);
+  const { vatRegistered } = state.company;
+  const vatMode = vatRegistered ? input.vatMode : 'none';
+  const vatRate = vatRegistered ? VAT_RATE : 0;
+  assertPositiveTotal(calcDocument({ lines: input.lines, vatMode, vatRate }).total);
+  const now = new Date().toISOString();
+  const fields = {
+    date: input.date,
+    validDays: input.validDays,
+    contactId: contact.id,
+    lines: input.lines.map((l) => ({ ...l, description: l.description.trim() })),
+    vatMode,
+    vatRate,
+    ...(input.saleType === 'service' ? { saleType: 'service' as const } : {}),
+    ...(input.note?.trim() ? { note: input.note.trim() } : {}),
+    buyer: partySnapshot(contact),
+    updatedAt: now,
+  };
+
+  if (input.id) {
+    const current = state.quotations.find((q) => q.id === input.id);
+    if (!current) throw new BusinessRuleError('ไม่พบใบเสนอราคา');
+    if (current.convertedSalesId) throw new BusinessRuleError(`${current.docNo} ออกเอกสารขายแล้ว แก้ไขไม่ได้ — ทำใบเสนอราคาใหม่`);
+    if (parseDocNo(current.docNo)?.period !== docPeriodCode(input.date)) {
+      throw new BusinessRuleError(`เลขที่ ${current.docNo} เป็นของเดือนเดิม — แก้วันที่ได้ภายในเดือนเดียวกัน หรือทำใบเสนอราคาใหม่`);
+    }
+    // คงเลขที่/สถานะ/วันที่สร้างเดิม — ฟิลด์ที่เหลือมาจากข้อมูลใหม่ทั้งหมด (ลบหมายเหตุ/ประเภทการขายได้)
+    const quotation: Quotation = { id: current.id, docNo: current.docNo, status: current.status, createdAt: current.createdAt, ...fields };
+    return { state: { ...state, quotations: state.quotations.map((q) => (q.id === current.id ? quotation : q)) }, quotation };
+  }
+
+  const n = takeNumber(state, DOC_PREFIX.quotation, input.date);
+  const quotation: Quotation = { id: uid(), docNo: n.docNo, ...fields, status: 'draft', createdAt: now };
+  return { state: { ...state, quotations: [...state.quotations, quotation], sequences: n.sequences }, quotation };
+}
+
+/** เปลี่ยนสถานะใบเสนอราคา (ร่าง → ส่งแล้ว → ตอบรับ/ไม่อนุมัติ/หมดอายุ) — แปลงแล้วเปลี่ยนไม่ได้ */
+export function setQuotationStatus(state: AccountingData, id: string, status: QuotationStatus): AccountingData {
+  const current = state.quotations.find((q) => q.id === id);
+  if (!current) throw new BusinessRuleError('ไม่พบใบเสนอราคา');
+  if (!QUOTATION_STATUSES.includes(status)) throw new BusinessRuleError('สถานะไม่ถูกต้อง');
+  if (current.convertedSalesId) throw new BusinessRuleError(`${current.docNo} ออกเอกสารขายแล้ว เปลี่ยนสถานะไม่ได้`);
+  const updated: Quotation = { ...current, status, updatedAt: new Date().toISOString() };
+  return { ...state, quotations: state.quotations.map((q) => (q.id === id ? updated : q)) };
+}
+
+/**
+ * ออกเอกสารขาย (ใบกำกับภาษี/ใบแจ้งหนี้ ตามประเภทการขาย) จากใบเสนอราคา — ลูกค้าต้องตรงกัน, ใบเสนอราคายังไม่หมดอายุ
+ * ณ วันที่เอกสาร / ไม่ถูกปฏิเสธ / ยังไม่เคยแปลง; หลังออกแล้วใบเสนอราคา = ตอบรับ + ผูกกับเอกสารขาย (ล็อก)
+ */
+export function issueFromQuotation(state: AccountingData, quotationId: string, input: SalesInput) {
+  const quotation = state.quotations.find((q) => q.id === quotationId);
+  if (!quotation) throw new BusinessRuleError('ไม่พบใบเสนอราคา');
+  assertISODate(input.date, 'วันที่เอกสาร');
+  const problem = quotationConvertProblem(quotation, input.date);
+  if (problem) throw new BusinessRuleError(problem);
+  if (input.contactId !== quotation.contactId) throw new BusinessRuleError(`ลูกค้าต้องตรงกับใบเสนอราคา ${quotation.docNo}`);
+  if (input.date < quotation.date) throw new BusinessRuleError(`วันที่เอกสารต้องไม่ก่อนวันที่ใบเสนอราคา ${quotation.docNo}`);
+  const r = issueTaxInvoice(state, input);
+  const updated: Quotation = { ...quotation, status: 'accepted', convertedSalesId: r.doc.id, updatedAt: new Date().toISOString() };
+  return {
+    state: { ...r.state, quotations: r.state.quotations.map((q) => (q.id === quotation.id ? updated : q)) },
+    doc: r.doc,
+    quotation: updated,
+  };
+}

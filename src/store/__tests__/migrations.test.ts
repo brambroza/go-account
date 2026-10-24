@@ -2,7 +2,7 @@ import type { AccountingData } from 'src/domain';
 
 import { ACC, DATA_VERSION, validateAccountingData } from 'src/domain';
 
-import { demo, toV1, toV3, toV4 } from './fixtures';
+import { demo, toV1, toV3, toV4, toV5 } from './fixtures';
 import { readAccountingJson, readAccountingData } from '../migrations';
 
 // ----------------------------------------------------------------------
@@ -28,7 +28,8 @@ describe('migration v1 → v2 (A5, A7)', () => {
     // เลข PV ที่ v1 ใช้ไปแล้วได้คืนมาตรงตัว, เลข 50 ทวิ ออกใหม่ต่อเนื่อง
     const pick = (list: typeof data.payments) => list.map((p) => [p.purchaseId, p.docNo, p.date, p.whtCertNo, p.netPaid]);
     expect(pick(data.payments)).toEqual(pick(original.payments));
-    expect(data.sequences).toEqual(original.sequences);
+    // ไฟล์เวอร์ชันเก่ายังไม่มีใบเสนอราคา (QT) — ตัวนับอื่นต้องเท่าเดิมทุกตัว
+    expect(data.sequences).toEqual(toV5(original).sequences);
     data.payments.forEach((pv) => {
       const entry = data.journal.find((e) => e.id === pv.journalId);
       expect(entry?.sourceDocNo).toBe(pv.docNo);
@@ -141,7 +142,8 @@ describe('migration v3 → v4 (Sprint B batch 2)', () => {
     const cn = data.sales.find((s) => s.kind === 'credit-note');
     const orig = original.sales.find((s) => s.kind === 'credit-note');
     expect([cn?.originalNet, cn?.correctNet]).toEqual([orig?.originalNet, orig?.correctNet]);
-    expect(data.sequences).toEqual(original.sequences);
+    // ไฟล์เวอร์ชันเก่ายังไม่มีใบเสนอราคา (QT) — ตัวนับอื่นต้องเท่าเดิมทุกตัว
+    expect(data.sequences).toEqual(toV5(original).sequences);
     expect(data.payments.map((p) => [p.docNo, p.amount, p.whtAmount, p.whtCertNo])).toEqual(
       original.payments.map((p) => [p.docNo, p.amount, p.whtAmount, p.whtCertNo])
     );
@@ -183,8 +185,7 @@ describe('migration v4 → v5 (Sprint B batch 3)', () => {
     expect(result.problems).toEqual([]);
     const { data } = result;
     if (!data) throw new Error('migrate failed');
-    expect(data.version).toBe(5);
-    expect(DATA_VERSION).toBe(5);
+    expect(data.version).toBe(DATA_VERSION);
     expect(data.accounts.find((a) => a.code === ACC.deferredOutputVat)).toMatchObject({ type: 'liability', system: true });
     expect(data.purchaseCredits).toEqual([]);
     expect(data.yearCloses).toEqual([]);
@@ -192,7 +193,8 @@ describe('migration v4 → v5 (Sprint B batch 3)', () => {
     expect(data.sales).toEqual(original.sales);
     expect(data.receipts).toEqual(original.receipts);
     expect(data.journal).toEqual(original.journal);
-    expect(data.sequences).toEqual(original.sequences);
+    // ไฟล์เวอร์ชันเก่ายังไม่มีใบเสนอราคา (QT) — ตัวนับอื่นต้องเท่าเดิมทุกตัว
+    expect(data.sequences).toEqual(toV5(original).sequences);
   });
 
   it('migrates v1 and v3 files all the way to v5', () => {
@@ -206,5 +208,59 @@ describe('migration v4 → v5 (Sprint B batch 3)', () => {
 
   it('rejects incomplete v4 data', () => {
     expect(readAccountingData({ ...v4, vatCloses: undefined }).problems[0]).toMatch(/เวอร์ชัน 4 ไม่ครบ/);
+  });
+});
+
+// ----------------------------------------------------------------------
+
+describe('migration v5 → v6 (Sprint B batch 4)', () => {
+  const original = demo();
+  const v5 = toV5(original);
+
+  it('adds petty cash 1111, registers existing cash accounts and empty bank / quotation lists, numbers unchanged', () => {
+    const result = readAccountingData(JSON.parse(JSON.stringify(v5)));
+    expect(result.migratedFrom).toBe(5);
+    expect(result.problems).toEqual([]);
+    const { data } = result;
+    if (!data) throw new Error('migrate failed');
+    expect(DATA_VERSION).toBe(6);
+    expect(data.version).toBe(6);
+    expect(data.accounts.find((a) => a.code === ACC.pettyCash)).toMatchObject({ type: 'asset', name: 'เงินสดย่อย' });
+    expect(data.bankAccounts).toEqual([
+      { accountCode: ACC.pettyCash, kind: 'petty-cash', bankName: 'เงินสดย่อย', accountNo: '' },
+      { accountCode: ACC.bank, kind: 'bank', bankName: '', accountNo: '' },
+    ]);
+    expect([data.transfers, data.bankStatements, data.bankMatches, data.quotations]).toEqual([[], [], [], []]);
+    expect(data.journal).toEqual(original.journal);
+    expect(data.sales).toEqual(original.sales);
+    expect(data.purchases).toEqual(original.purchases);
+    expect(data.sequences).toEqual(v5.sequences);
+  });
+
+  it('registers extra 112x bank accounts from older charts and keeps 1110 cash unregistered', () => {
+    const custom = { ...v5, accounts: [...v5.accounts, { code: '1121', name: 'เงินฝาก SCB', nameEn: 'SCB', type: 'asset' }] };
+    const {data} = readAccountingData(JSON.parse(JSON.stringify(custom)));
+    expect(data?.bankAccounts.map((b) => [b.accountCode, b.kind])).toEqual([
+      ['1111', 'petty-cash'],
+      ['1120', 'bank'],
+      ['1121', 'bank'],
+    ]);
+    expect(data?.bankAccounts.some((b) => b.accountCode === ACC.cash)).toBe(false);
+  });
+
+  it('migrates v1 / v3 / v4 files all the way to v6 and rejects incomplete v5 data', () => {
+    [toV1(original), toV3(original), toV4(original)].forEach((old) => {
+      const result = readAccountingData(JSON.parse(JSON.stringify(old)));
+      expect(result.problems).toEqual([]);
+      expect(result.data?.version).toBe(DATA_VERSION);
+      expect(result.data?.bankAccounts.length).toBe(2);
+    });
+    expect(readAccountingData({ ...v5, yearCloses: undefined }).problems[0]).toMatch(/เวอร์ชัน 5 ไม่ครบ/);
+  });
+
+  it('current-version files without the new lists fail the schema check', () => {
+    const rest: Record<string, unknown> = { ...original };
+    delete rest.quotations;
+    expect(readAccountingData(rest).data).toBeNull();
   });
 });

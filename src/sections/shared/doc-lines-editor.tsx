@@ -1,6 +1,6 @@
 import type { Account, DocLine, PurchaseLine } from 'src/domain';
 
-import { useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { useWatch, useFieldArray, useFormContext } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
@@ -14,7 +14,7 @@ import TableHead from '@mui/material/TableHead';
 import IconButton from '@mui/material/IconButton';
 
 import { uid } from 'src/store';
-import { lineAmount, WHT_INCOME_TYPES } from 'src/domain';
+import { lineAmount, WHT_INCOME_TYPES, shouldAppendLineOnEnter } from 'src/domain';
 
 import { Iconify } from 'src/components/iconify';
 import { Field } from 'src/components/hook-form';
@@ -89,13 +89,38 @@ function LineAmount({ index }: { index: number }) {
   return <Money value={line ? lineAmount(line) : 0} sx={{ fontWeight: 'fontWeightMedium' }} />;
 }
 
-/** ตารางกรอกรายการสินค้า/บริการ ใช้ร่วมกันทั้งขาย ซื้อ และใบลดหนี้ (ไล่ด้วยปุ่ม Tab ได้ทั้งแถว) */
+/**
+ * ตารางกรอกรายการสินค้า/บริการ ใช้ร่วมกันทั้งขาย ซื้อ ใบเสนอราคา และใบลดหนี้ (ไล่ด้วยปุ่ม Tab ได้ทั้งแถว)
+ * Enter ในช่องกรอกของบรรทัดสุดท้าย = เพิ่มบรรทัดใหม่แล้วไปที่ช่องคำอธิบาย (แบบ Express)
+ */
 export function DocLinesEditor({ accounts, defaultAccountCode, accountLabel, hideAccount, withWht }: Props) {
   const { control } = useFormContext();
   const { fields, append, remove } = useFieldArray({ control, name: 'lines', keyName: 'key' });
+  const container = useRef<HTMLDivElement>(null);
+  const focusRow = useRef<number | null>(null);
+
+  const addLine = () => append(withWht ? newPurchaseLine(defaultAccountCode) : newLine(defaultAccountCode));
+
+  // หลังเพิ่มบรรทัดด้วย Enter: โฟกัสช่องคำอธิบายของบรรทัดใหม่
+  useEffect(() => {
+    if (focusRow.current === null) return;
+    const input = container.current?.querySelector<HTMLInputElement>(`input[aria-label="รายการที่ ${focusRow.current + 1}"]`);
+    if (input) {
+      input.focus();
+      focusRow.current = null;
+    }
+  }, [fields.length]);
+
+  const onRowKeyDown = (index: number) => (event: React.KeyboardEvent) => {
+    const isTextInput = event.target instanceof HTMLInputElement && event.target.type !== 'checkbox';
+    if (!shouldAppendLineOnEnter(event, index, fields.length, isTextInput)) return;
+    event.preventDefault();
+    focusRow.current = fields.length;
+    addLine();
+  };
 
   return (
-    <Box>
+    <Box ref={container}>
       <Scrollbar>
         <Table size="small" sx={{ minWidth: (hideAccount ? 640 : 860) + (withWht ? 300 : 0) }}>
           <TableHead>
@@ -122,7 +147,7 @@ export function DocLinesEditor({ accounts, defaultAccountCode, accountLabel, hid
           </TableHead>
           <TableBody>
             {fields.map((field, index) => (
-              <TableRow key={field.key}>
+              <TableRow key={field.key} onKeyDown={onRowKeyDown(index)}>
                 <TableCell sx={{ color: 'text.secondary' }}>{index + 1}</TableCell>
                 <TableCell>
                   <Field.Text
@@ -175,11 +200,14 @@ export function DocLinesEditor({ accounts, defaultAccountCode, accountLabel, hid
         size="small"
         color="primary"
         startIcon={<Iconify icon="mingcute:add-line" />}
-        onClick={() => append(withWht ? newPurchaseLine(defaultAccountCode) : newLine(defaultAccountCode))}
+        onClick={addLine}
         sx={{ mt: 1.5 }}
       >
         เพิ่มรายการ
       </Button>
+      <Box component="span" sx={{ ml: 1.5, typography: 'caption', color: 'text.secondary' }}>
+        Enter ที่บรรทัดสุดท้าย = เพิ่มบรรทัด · Ctrl+Enter = บันทึก
+      </Box>
     </Box>
   );
 }

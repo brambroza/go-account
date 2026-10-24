@@ -248,11 +248,71 @@ const JournalEntrySchema = zod.object({
     'purchase-credit-note',
     'year-close',
     'opening',
+    'transfer',
     'manual',
   ]),
   sourceId: zod.string().optional(),
   sourceDocNo: zod.string().optional(),
   lines: zod.array(JournalLineSchema),
+});
+
+const BankAccountSchema = zod.object({
+  accountCode: zod.string(),
+  kind: zod.enum(['bank', 'petty-cash']),
+  bankName: zod.string(),
+  accountNo: zod.string(),
+  branch: zod.string().optional(),
+  reconcileFrom: isoDate.optional(),
+});
+
+const BankTransferSchema = zod.object({
+  id: zod.string(),
+  docNo: zod.string(),
+  date: isoDate,
+  fromAccountCode: zod.string(),
+  toAccountCode: zod.string(),
+  amount: money,
+  note: zod.string().optional(),
+  journalId: zod.string(),
+  createdAt: zod.string(),
+});
+
+const BankStatementLineSchema = zod.object({
+  id: zod.string(),
+  accountCode: zod.string(),
+  date: isoDate,
+  description: zod.string(),
+  amount: money,
+  balance: money.optional(),
+  batchId: zod.string().optional(),
+  createdAt: zod.string(),
+});
+
+const BankMatchSchema = zod.object({
+  id: zod.string(),
+  accountCode: zod.string(),
+  statementLineIds: zod.array(zod.string()),
+  journalIds: zod.array(zod.string()),
+  auto: zod.boolean(),
+  matchedAt: zod.string(),
+});
+
+const QuotationSchema = zod.object({
+  id: zod.string(),
+  docNo: zod.string(),
+  date: isoDate,
+  validDays: zod.number().finite(),
+  contactId: zod.string(),
+  lines: zod.array(DocLineSchema),
+  vatMode,
+  vatRate: zod.number().finite(),
+  saleType: zod.enum(['goods', 'service']).optional(),
+  note: zod.string().optional(),
+  status: zod.enum(['draft', 'sent', 'accepted', 'rejected', 'expired']),
+  convertedSalesId: zod.string().optional(),
+  buyer: PartySnapshotSchema.optional(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
 });
 
 export const AccountingDataSchema: zod.ZodType<AccountingData, zod.ZodTypeDef, unknown> = zod.object({
@@ -303,6 +363,11 @@ export const AccountingDataSchema: zod.ZodType<AccountingData, zod.ZodTypeDef, u
   purchaseCredits: zod.array(PurchaseCreditNoteSchema),
   yearCloses: zod.array(YearCloseSchema),
   openingBalance: OpeningBalanceSchema.optional(),
+  bankAccounts: zod.array(BankAccountSchema),
+  transfers: zod.array(BankTransferSchema),
+  bankStatements: zod.array(BankStatementLineSchema),
+  bankMatches: zod.array(BankMatchSchema),
+  quotations: zod.array(QuotationSchema),
   journal: zod.array(JournalEntrySchema),
   sequences: zod.record(zod.number().int().nonnegative()),
   legacyOrderThrough: isoDate.optional(),

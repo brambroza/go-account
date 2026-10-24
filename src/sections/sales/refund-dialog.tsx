@@ -18,13 +18,13 @@ import { useBoolean } from 'src/hooks/use-boolean';
 
 import { makeRefundSchema } from 'src/schemas/accounting/doc-schemas';
 import { ACC, subBaht, todayISO, formatThaiDate, customerCreditOf } from 'src/domain';
-import { useAccounting, useAccountLookup, useContactLookup, DEPOSIT_ACCOUNTS, refundCustomerCredit } from 'src/store';
+import { useAccounting, useAccountLookup, useContactLookup, refundCustomerCredit, useCashAccountOptions } from 'src/store';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 
-import { Money, ConfirmSummary, RHFAmountField, LockedDateAlert, preventEnterSubmit } from 'src/sections/shared';
+import { Money, ConfirmSummary, RHFAmountField, formKeyHandler, LockedDateAlert } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
@@ -34,6 +34,7 @@ type Props = { open: boolean; onClose: () => void; contactId: string };
 export function RefundDialog({ open, onClose, contactId }: Props) {
   const { data, run } = useAccounting();
   const accounts = useAccountLookup();
+  const cashAccounts = useCashAccountOptions();
   const contacts = useContactLookup();
   const confirm = useBoolean();
   const [pending, setPending] = useState<RefundSchemaType | null>(null);
@@ -82,7 +83,7 @@ export function RefundDialog({ open, onClose, contactId }: Props) {
       <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
         <Form methods={methods}>
           <DialogTitle>คืนเงินลูกค้า</DialogTitle>
-          <DialogContent onKeyDown={preventEnterSubmit}>
+          <DialogContent onKeyDown={formKeyHandler(onReview)}>
             <Stack spacing={2.5} sx={{ pt: 1 }}>
               <Stack direction="row" justifyContent="space-between" spacing={2}>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -94,9 +95,9 @@ export function RefundDialog({ open, onClose, contactId }: Props) {
               <LockedDateAlert date={date} />
               <RHFAmountField name="amount" label="ยอดคืนเงิน" />
               <Field.Select name="accountCode" label="จ่ายคืนจากบัญชี" size="small">
-                {DEPOSIT_ACCOUNTS.map((code) => (
-                  <MenuItem key={code} value={code}>
-                    {code} {accounts.name(code)}
+                {cashAccounts.map((a) => (
+                  <MenuItem key={a.code} value={a.code}>
+                    {a.label}
                   </MenuItem>
                 ))}
               </Field.Select>

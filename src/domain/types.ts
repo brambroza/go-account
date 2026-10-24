@@ -371,6 +371,7 @@ export type JournalSource =
   | 'purchase-credit-note'
   | 'year-close'
   | 'opening'
+  | 'transfer'
   | 'manual';
 
 export type JournalLine = {
@@ -413,8 +414,98 @@ export type VatClose = {
   journalId?: string;
 };
 
+// ---------------- ธนาคาร / เงินสดย่อย / กระทบยอด (B9) ----------------
+
+/** bank = เงินฝากธนาคาร (บัญชี 112x), petty-cash = เงินสดย่อย (บัญชี 111x) */
+export type BankAccountKind = 'bank' | 'petty-cash';
+
+/**
+ * ทะเบียนบัญชีธนาคาร/เงินสดย่อย — 1 รายการต่อ 1 บัญชีแยกประเภท (`accountCode` ในผังบัญชี)
+ * เป็นข้อมูลประกอบ (ชื่อธนาคาร เลขที่บัญชี) แก้ไขได้ ไม่กระทบรายการบัญชี
+ */
+export type BankAccount = {
+  accountCode: string;
+  kind: BankAccountKind;
+  /** ชื่อธนาคาร (เงินสดย่อย = ชื่อผู้ถือเงิน/แผนก) */
+  bankName: string;
+  accountNo: string;
+  branch?: string;
+  /** กระทบยอดตั้งแต่วันที่นี้ — รายการบัญชีก่อนวันนี้ถือว่ากระทบยอดแล้ว (ไม่แสดงเป็นรายการค้าง) */
+  reconcileFrom?: ISODate;
+};
+
+/** โอนเงินระหว่างบัญชีของบริษัท (รวมเบิกชดเชยเงินสดย่อยจากธนาคาร) — Dr ปลายทาง / Cr ต้นทาง เลขที่ TR */
+export type BankTransfer = {
+  id: string;
+  docNo: string;
+  date: ISODate;
+  fromAccountCode: string;
+  toAccountCode: string;
+  amount: number;
+  note?: string;
+  journalId: string;
+  createdAt: string;
+};
+
+/** รายการใน statement ธนาคาร (นำเข้าจาก CSV หรือคีย์เอง) — บวก = เงินเข้า, ลบ = เงินออก */
+export type BankStatementLine = {
+  id: string;
+  accountCode: string;
+  date: ISODate;
+  description: string;
+  amount: number;
+  /** ยอดคงเหลือตาม statement หลังรายการนี้ (ถ้าไฟล์มี) */
+  balance?: number;
+  /** ชุดที่นำเข้าพร้อมกัน (ไม่มี = คีย์เอง) */
+  batchId?: string;
+  createdAt: string;
+};
+
+/**
+ * จับคู่กระทบยอด: รายการ statement ≥ 1 รายการ กับรายการเคลื่อนไหวในบัญชีแยกประเภท ≥ 1 รายการ (ยอดรวมเท่ากัน)
+ * `journalIds` = รายการบัญชีที่ลงบัญชี `accountCode` (ยอดเคลื่อนไหว = เดบิต − เครดิตของบัญชีนี้ในรายการนั้น)
+ */
+export type BankMatch = {
+  id: string;
+  accountCode: string;
+  statementLineIds: string[];
+  journalIds: string[];
+  /** จับคู่อัตโนมัติ (ยอดเท่ากัน + วันที่ใกล้กัน) */
+  auto: boolean;
+  matchedAt: string;
+};
+
+// ---------------- ใบเสนอราคา ----------------
+
+export type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
+
+/**
+ * ใบเสนอราคา (prefix QT) — ไม่ใช่เอกสารภาษีและไม่ลงบัญชี
+ * ข้อยกเว้นของกติกา "เอกสารที่ออกแล้วแก้ไม่ได้": แก้ไขได้จนกว่าจะแปลงเป็นเอกสารขาย (`convertedSalesId`)
+ */
+export type Quotation = {
+  id: string;
+  docNo: string;
+  date: ISODate;
+  /** ยืนราคา (วัน) นับจากวันที่ */
+  validDays: number;
+  contactId: string;
+  lines: DocLine[];
+  vatMode: VatMode;
+  vatRate: number;
+  /** ประเภทการขายเมื่อแปลงเป็นเอกสารขาย (ไม่มีค่า = ขายสินค้า) */
+  saleType?: SaleType;
+  note?: string;
+  status: QuotationStatus;
+  /** เอกสารขายที่แปลงจากใบเสนอราคานี้ (มีแล้วแก้ไข/เปลี่ยนสถานะไม่ได้) */
+  convertedSalesId?: string;
+  buyer?: PartySnapshot;
+  createdAt: string;
+  updatedAt: string;
+};
+
 /** เวอร์ชันโครงข้อมูลปัจจุบัน — เปลี่ยนเมื่อไรต้องเพิ่ม migration ใน `store/migrations.ts` */
-export const DATA_VERSION = 5;
+export const DATA_VERSION = 6;
 
 export type AccountingData = {
   version: typeof DATA_VERSION;
@@ -433,6 +524,16 @@ export type AccountingData = {
   yearCloses: YearClose[];
   /** ยอดยกมาจากระบบเดิม (มีได้ครั้งเดียว) */
   openingBalance?: OpeningBalance;
+  /** ทะเบียนบัญชีธนาคาร/เงินสดย่อย */
+  bankAccounts: BankAccount[];
+  /** โอนเงินระหว่างบัญชี */
+  transfers: BankTransfer[];
+  /** รายการ statement ธนาคารสำหรับกระทบยอด */
+  bankStatements: BankStatementLine[];
+  /** ผลการจับคู่กระทบยอด */
+  bankMatches: BankMatch[];
+  /** ใบเสนอราคา (ไม่ลงบัญชี) */
+  quotations: Quotation[];
   journal: JournalEntry[];
   /** เลขที่ล่าสุดต่อ prefix+งวด เช่น { 'IV6910': 43 } */
   sequences: Record<string, number>;
