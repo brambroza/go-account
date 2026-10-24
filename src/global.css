@@ -79,12 +79,27 @@ input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
 }
 
-/* พิมพ์เอกสาร: ซ่อนเมนู/แถบด้านบน พิมพ์เฉพาะตัวเอกสาร */
+/* พิมพ์เอกสาร: ซ่อนเมนู/แถบด้านบน พิมพ์เฉพาะตัวเอกสาร
+ * - ตัดทุก element ที่ไม่ใช่ .print-area หรือบรรพบุรุษของมันออกจาก layout (display: none) ไม่ใช่แค่ซ่อน
+ *   เดิมใช้ visibility อย่างเดียว ส่วนที่ซ่อนยังกินพื้นที่ → หน้า 2 ว่าง (UAT)
+ * - เบราว์เซอร์ที่ไม่รองรับ :has() ยังใช้ visibility + position เดิมเป็น fallback
+ */
+@page {
+  size: A4;
+  margin: 12mm;
+}
 @media print {
   aside,
   header,
   .MuiBreadcrumbs-root {
     display: none !important;
+  }
+  html,
+  body,
+  #root,
+  #root__layout {
+    height: auto !important;
+    min-height: 0 !important;
   }
   body * {
     visibility: hidden;
@@ -95,7 +110,25 @@ input[type='number']::-webkit-inner-spin-button {
   }
   .print-area {
     position: absolute;
-    inset: 0;
+    inset: 0 0 auto 0;
     box-shadow: none !important;
+    padding: 0 !important;
+  }
+  body *:not(:has(.print-area)):not(.print-area):not(.print-area *) {
+    display: none !important;
+  }
+  body:has(.print-area) .print-area {
+    position: static;
+  }
+  body:has(.print-area) *:has(.print-area) {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+  .print-area tr {
+    break-inside: avoid;
   }
 }

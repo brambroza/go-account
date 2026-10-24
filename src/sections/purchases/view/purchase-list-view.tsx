@@ -14,8 +14,19 @@ import Typography from '@mui/material/Typography';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
-import { calcDocument, formatThaiDate } from 'src/domain';
 import { useAccounting, useContactLookup } from 'src/store';
+import {
+  hasWht,
+  toSatang,
+  paymentsOf,
+  periodLabel,
+  periodFromKey,
+  formatThaiDate,
+  purchaseTotals,
+  whtSummaryLabel,
+  purchaseWhtGroups,
+  purchaseOutstanding,
+} from 'src/domain';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -45,7 +56,7 @@ const TABLE_HEAD = [
   { id: '' },
 ];
 
-/** ทะเบียนเอกสารซื้อ — แสดงเลขใบสำคัญจ่าย (PV) และเลข 50 ทวิ ของรายการที่จ่ายแล้ว */
+/** ทะเบียนเอกสารซื้อ — แสดงใบสำคัญจ่าย (PV) / 50 ทวิ ทุกครั้งที่จ่าย (กดเพื่อดู/พิมพ์), ยอดค้างเมื่อแบ่งจ่าย */
 export function PurchaseListView() {
   const { data } = useAccounting();
   const contacts = useContactLookup();
@@ -57,20 +68,29 @@ export function PurchaseListView() {
     const dir = table.order === 'asc' ? 1 : -1;
     return data.purchases
       .map((p) => {
-        const t = calcDocument(p);
-        return { p, t, date: p.date, docNo: p.docNo, vendor: contacts.name(p.contactId) };
+        const t = purchaseTotals(p);
+        return {
+          p,
+          t,
+          date: p.date,
+          docNo: p.docNo,
+          vendor: contacts.name(p.contactId),
+          outstanding: purchaseOutstanding(data, p),
+          pvs: paymentsOf(data, p.id),
+          wht: purchaseWhtGroups(p),
+        };
       })
       .filter(({ p }) => {
         if (filter === 'unpaid') return !p.paid;
         if (filter === 'paid') return p.paid;
-        if (filter === 'wht') return p.whtRate > 0;
+        if (filter === 'wht') return hasWht(p);
         return true;
       })
       .sort((a, b) => {
         const key = (table.orderBy === 'vendor' ? 'vendor' : table.orderBy === 'docNo' ? 'docNo' : 'date') as 'date';
         return a[key] === b[key] ? a.docNo.localeCompare(b.docNo) * dir : (a[key] > b[key] ? 1 : -1) * dir;
       });
-  }, [data.purchases, contacts, filter, table.order, table.orderBy]);
+  }, [data, contacts, filter, table.order, table.orderBy]);
 
   const unpaidCount = data.purchases.filter((p) => !p.paid).length;
 
@@ -111,12 +131,19 @@ export function PurchaseListView() {
           <Table size={table.dense ? 'small' : 'medium'} sx={{ minWidth: 1000 }}>
             <TableHeadCustom order={table.order} orderBy={table.orderBy} headLabel={TABLE_HEAD} onSort={table.onSort} />
             <TableBody>
-              {rowInPage(rows, table.page, table.rowsPerPage).map(({ p, t, vendor }) => (
+              {rowInPage(rows, table.page, table.rowsPerPage).map(({ p, t, vendor, outstanding, pvs, wht }) => (
                 <TableRow key={p.id} hover>
                   <TableCell>
                     <Typography variant="subtitle2">{p.docNo}</Typography>
                   </TableCell>
-                  <TableCell>{formatThaiDate(p.date)}</TableCell>
+                  <TableCell>
+                    {formatThaiDate(p.date)}
+                    {p.supplierInvoiceDate && p.supplierInvoiceDate !== p.date && (
+                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                        ใบกำกับ {formatThaiDate(p.supplierInvoiceDate)}
+                      </Typography>
+                    )}
+                  </TableCell>
                   <TableCell sx={{ maxWidth: 240 }}>
                     <Typography variant="body2" noWrap>
                       {vendor}
@@ -130,34 +157,59 @@ export function PurchaseListView() {
                     <Money value={t.total} />
                   </TableCell>
                   <TableCell align="right">
-                    {p.claimVat ? <Money value={t.vat} hideZero /> : <Typography variant="caption" sx={{ color: 'text.disabled' }}>ไม่ขอคืน</Typography>}
+                    {p.claimVat ? (
+                      <>
+                        <Money value={t.vat} hideZero />
+                        {p.vatClaimPeriod && (
+                          <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                            ใช้สิทธิ {periodLabel(periodFromKey(p.vatClaimPeriod))}
+                          </Typography>
+                        )}
+                      </>
+                    ) : (
+                      <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+                        ไม่ขอคืน
+                      </Typography>
+                    )}
                   </TableCell>
                   <TableCell align="right">
-                    {p.whtRate > 0 ? (
+                    {wht.length ? (
                       <>
                         <Money value={t.wht} />
                         <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                          {p.whtRate}% {p.whtIncomeType}
+                          {whtSummaryLabel(wht)}
                         </Typography>
                       </>
                     ) : null}
                   </TableCell>
                   <TableCell>
-                    <PaidLabel paid={p.paid} />
-                    {p.paidDate && (
+                    {p.paid || !pvs.length ? (
+                      <PaidLabel paid={p.paid} />
+                    ) : (
+                      <Label variant="soft" color="info">
+                        จ่ายบางส่วน
+                      </Label>
+                    )}
+                    {!p.paid && pvs.length > 0 && (
                       <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                        {formatThaiDate(p.paidDate)}
-                        {p.paymentDocNo ? ` · ${p.paymentDocNo}` : ''}
+                        ค้าง <Money value={outstanding} sx={{ typography: 'caption' }} />
                       </Typography>
                     )}
-                    {p.whtCertNo && (
-                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                        50 ทวิ {p.whtCertNo}
+                    {pvs.map((pv) => (
+                      <Typography
+                        key={pv.id}
+                        variant="caption"
+                        component={RouterLink}
+                        href={paths.purchases.payment(pv.id)}
+                        sx={{ display: 'block', color: 'text.secondary' }}
+                      >
+                        {formatThaiDate(pv.date)} · {pv.docNo}
+                        {pv.whtCertNo ? ` · 50 ทวิ ${pv.whtCertNo}` : ''}
                       </Typography>
-                    )}
+                    ))}
                   </TableCell>
                   <TableCell align="right">
-                    {!p.paid && (
+                    {!p.paid && toSatang(outstanding) > 0 && (
                       <Button size="small" variant="soft" color="primary" onClick={() => setPaying(p)}>
                         จ่ายชำระ
                       </Button>

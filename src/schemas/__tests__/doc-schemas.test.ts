@@ -24,23 +24,30 @@ describe('form schemas', () => {
     expect(SalesInvoiceSchema.safeParse({ ...base, lines: [{ ...line, qty: 0 }] }).success).toBe(false);
   });
 
-  it('requires income type and supplier invoice number when needed', () => {
+  it('requires income type per line, supplier invoice number / date and claim period when needed', () => {
+    const pline = { ...line, accountCode: ACC.misc, whtIncomeType: '', whtRate: 0 };
     const base = {
       contactId: 'v',
       supplierInvoiceNo: 'A1',
+      supplierInvoiceDate: '2026-10-20',
+      vatClaimPeriod: '2026-10',
       date: '2026-10-24',
       vatMode: 'exclusive',
       claimVat: true,
-      whtRate: 0,
-      whtIncomeType: '',
       whtCondition: '1',
       payNow: false,
       paymentAccountCode: ACC.bank,
-      lines: [line],
+      lines: [pline],
     };
     expect(PurchaseSchema.safeParse(base).success).toBe(true);
-    expect(PurchaseSchema.safeParse({ ...base, whtRate: 3 }).success).toBe(false);
+    expect(PurchaseSchema.safeParse({ ...base, lines: [{ ...pline, whtRate: 3 }] }).success).toBe(false);
+    expect(PurchaseSchema.safeParse({ ...base, lines: [{ ...pline, whtRate: 3, whtIncomeType: 'ค่าบริการ' }] }).success).toBe(true);
+    expect(PurchaseSchema.safeParse({ ...base, lines: [{ ...pline, whtRate: 20, whtIncomeType: 'x' }] }).success).toBe(false);
     expect(PurchaseSchema.safeParse({ ...base, supplierInvoiceNo: '' }).success).toBe(false);
+    expect(PurchaseSchema.safeParse({ ...base, supplierInvoiceDate: '' }).success).toBe(false);
+    expect(PurchaseSchema.safeParse({ ...base, supplierInvoiceDate: '2026-10-25' }).success).toBe(false);
+    expect(PurchaseSchema.safeParse({ ...base, vatClaimPeriod: '' }).success).toBe(false);
+    expect(PurchaseSchema.safeParse({ ...base, claimVat: false, supplierInvoiceDate: '', vatClaimPeriod: '' }).success).toBe(true);
   });
 
   it('checks tax ids and postcodes', () => {
@@ -73,9 +80,13 @@ describe('dialog schemas', () => {
   });
 
   it('pay purchase date not before document date', () => {
-    const schema = makePayPurchaseSchema('2026-10-10');
+    const schema = makePayPurchaseSchema('2026-10-10', 1070);
     expect(schema.safeParse({ date: '2026-10-10', accountCode: ACC.bank }).success).toBe(true);
     expect(schema.safeParse({ date: '2026-10-09', accountCode: ACC.bank }).success).toBe(false);
+    // แบ่งจ่าย: 0.01 ถึงยอดค้าง
+    expect(schema.safeParse({ date: '2026-10-10', accountCode: ACC.bank, amount: 500 }).success).toBe(true);
+    expect(schema.safeParse({ date: '2026-10-10', accountCode: ACC.bank, amount: 1070.01 }).success).toBe(false);
+    expect(schema.safeParse({ date: '2026-10-10', accountCode: ACC.bank, amount: 0 }).success).toBe(false);
   });
 
   it('period lock moves forward only, to month end', () => {

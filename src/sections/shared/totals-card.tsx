@@ -16,10 +16,12 @@ type Props = {
   showVat: boolean;
   whtRate?: number;
   whtLabel?: string;
+  /** ข้อความแทน "{whtLabel} {whtRate}%" เมื่อหักหลายอัตรา (เอกสารซื้อระดับบรรทัด) */
+  whtText?: string;
   payableLabel?: string;
 };
 
-export function TotalsSummary({ totals, vatRate, showVat, whtRate, whtLabel, payableLabel }: Props) {
+export function TotalsSummary({ totals, vatRate, showVat, whtRate, whtLabel, whtText, payableLabel }: Props) {
   const rows: Row[] = [
     { label: 'มูลค่าสินค้า/บริการ (ก่อนภาษี)', value: totals.net },
     ...(showVat ? [{ label: `ภาษีมูลค่าเพิ่ม ${vatRate}%`, value: totals.vat }] : []),
@@ -40,11 +42,11 @@ export function TotalsSummary({ totals, vatRate, showVat, whtRate, whtLabel, pay
         <Typography variant="subtitle1">รวมทั้งสิ้น</Typography>
         <Money value={totals.total} variant="subtitle1" />
       </Stack>
-      {!!whtRate && (
+      {(!!whtRate || !!whtText) && (
         <>
-          <Stack direction="row" justifyContent="space-between">
+          <Stack direction="row" justifyContent="space-between" spacing={2}>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {whtLabel ?? 'หัก ณ ที่จ่าย'} {whtRate}%
+              {whtText ?? `${whtLabel ?? 'หัก ณ ที่จ่าย'} ${whtRate}%`}
             </Typography>
             <Money value={-totals.wht} />
           </Stack>

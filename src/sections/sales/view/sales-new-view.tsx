@@ -35,6 +35,7 @@ import {
   salesDocTitle,
   formatThaiDate,
   isValidISODate,
+  buyerTaxIdWarning,
 } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
@@ -104,6 +105,9 @@ export function SalesNewView() {
   const docShortTitle = vatRegistered ? 'ใบกำกับภาษี' : 'ใบแจ้งหนี้';
 
   const readiness = customer && vatRegistered ? eTaxReadiness(data.company, customer) : [];
+  // ม.86/4: ใบกำกับเต็มรูปให้ลูกค้าที่ไม่มีเลขผู้เสียภาษี — เตือนอย่างเดียว (ลูกค้าบุคคลทั่วไปออกได้)
+  const buyerWarning = buyerTaxIdWarning(vatRegistered, customer);
+  const pendingBuyerWarning = pending ? buyerTaxIdWarning(vatRegistered, contacts.get(pending.contactId)) : null;
 
   // ผ่าน validation แล้วเปิดสรุปให้ยืนยันก่อน — ออกแล้วแก้ไม่ได้
   const onSubmit = handleSubmit((values) => {
@@ -185,6 +189,11 @@ export function SalesNewView() {
                     )}
                   </Alert>
                 )}
+                {buyerWarning && (
+                  <Alert severity="warning" variant="outlined" sx={{ gridColumn: { sm: 'span 2' } }}>
+                    {buyerWarning}
+                  </Alert>
+                )}
 
                 <Field.DatePicker name="date" label="วันที่เอกสาร" />
                 <Field.DatePicker name="dueDate" label="วันครบกำหนด" />
@@ -252,7 +261,13 @@ export function SalesNewView() {
                   hidden: !vatRegistered || vatMode === 'none',
                 },
               ]}
-              note="ออกแล้วระบบจะออกเลขที่ต่อเนื่องและลงบัญชีทันที แก้ไขหรือลบไม่ได้ — ถ้าผิดต้องออกใบลดหนี้"
+              note={
+                <>
+                  {pendingBuyerWarning && <strong>{pendingBuyerWarning} · </strong>}
+                  ออกแล้วระบบจะออกเลขที่ต่อเนื่องและลงบัญชีทันที แก้ไขหรือลบไม่ได้ — ถ้าผิดต้องออกใบลดหนี้/ใบเพิ่มหนี้
+                </>
+              }
+              severity={pendingBuyerWarning ? 'warning' : undefined}
             />
           )
         }

@@ -140,3 +140,35 @@ export function filingDueDates(period: Period): { wht: ISODate; vat: ISODate } {
   const ym = `${next.year}-${String(next.month).padStart(2, '0')}`;
   return { wht: `${ym}-15`, vat: `${ym}-23` };
 }
+
+// ---------------- เดือนภาษี `YYYY-MM` ----------------
+
+/** `2026-10-24` → `2026-10` */
+export function monthKeyOf(date: ISODate): string {
+  return date.slice(0, 7);
+}
+
+/** `{ year: 2026, month: 10 }` → `2026-10` */
+export function periodKey(period: Period): string {
+  return `${period.year}-${String(period.month).padStart(2, '0')}`;
+}
+
+/** `2026-10` → `{ year: 2026, month: 10 }` */
+export function periodFromKey(key: string): Period {
+  return { year: Number(key.slice(0, 4)), month: Number(key.slice(5, 7)) };
+}
+
+/** รูปแบบเดือนภาษี `YYYY-MM` (ค.ศ.) ที่ถูกต้อง */
+export function isMonthKey(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}$/.test(value) && isValidISODate(`${value}-01`);
+}
+
+/** เลื่อนเดือน `2026-10` + 3 → `2027-01` */
+export function shiftMonthKey(key: string, delta: number): string {
+  return periodKey(shiftPeriod(periodFromKey(key), delta));
+}
+
+/** วันสิ้นเดือน `2026-02` → `2026-02-28` */
+export function endOfMonth(key: string): ISODate {
+  return addDays(`${shiftMonthKey(key, 1)}-01`, -1);
+}

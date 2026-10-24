@@ -1,4 +1,4 @@
-import type { Address, Company, Contact, SalesDoc } from 'src/domain';
+import type { Company, Contact, SalesDoc } from 'src/domain';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -26,27 +26,12 @@ import {
 
 import { Scrollbar } from 'src/components/scrollbar';
 
-import { Money } from 'src/sections/shared';
+import { Money, formatAddress, AmountInWords, SignatureBlock } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
-/** ที่อยู่บรรทัดเดียวตามลำดับที่พิมพ์บนเอกสาร */
-export function formatAddress(a: Address | undefined): string {
-  if (!a) return '';
-  return [
-    a.addressNo,
-    a.moo && `หมู่ ${a.moo}`,
-    a.village,
-    a.soi && `ซ.${a.soi}`,
-    a.street && `ถ.${a.street}`,
-    a.subDistrict,
-    a.district,
-    a.province,
-    a.postalCode,
-  ]
-    .filter(Boolean)
-    .join(' ');
-}
+/** ที่อยู่บรรทัดเดียว — ย้ายไปอยู่ที่ `src/sections/shared/print-parts.tsx` คง export ไว้ให้ที่เดิม */
+export { formatAddress };
 
 type Props = {
   doc: SalesDoc;
@@ -54,17 +39,21 @@ type Props = {
   company: Company;
   /** ใช้เฉพาะเมื่อเอกสารไม่มี snapshot ผู้ซื้อ (ข้อมูลเก่า) */
   contact: Contact | undefined;
+  /** ใบลดหนี้/ใบเพิ่มหนี้: ใบกำกับเดิม */
   referenced?: SalesDoc;
 };
 
 /**
  * หน้าตาเอกสารสำหรับดูและพิมพ์ — มีองค์ประกอบใบกำกับภาษีเต็มรูปตาม ม.86/4
+ * ใบลดหนี้/ใบเพิ่มหนี้พิมพ์มูลค่าตามใบกำกับเดิม มูลค่าที่ถูกต้อง ผลต่าง ภาษีของผลต่าง และเหตุผล (ม.86/9, 86/10)
+ * ท้ายเอกสาร: จำนวนเงินเป็นตัวอักษร + ช่องลงชื่อ
  * ผู้ขาย/ผู้ซื้ออ่านจาก snapshot ณ วันออกเอกสาร (แก้ข้อมูลบริษัท/ลูกค้าภายหลังแล้วเอกสารเดิมไม่เปลี่ยน)
  * บริษัทไม่จด VAT พิมพ์เป็น "ใบแจ้งหนี้/ใบเสร็จรับเงิน" ไม่มีบรรทัด VAT
  */
 export function DocumentPreview({ doc, company, contact, referenced }: Props) {
   const t = calcDocument(doc);
   const isCredit = doc.kind === 'credit-note';
+  const isAdjustment = doc.kind !== 'tax-invoice';
   const title = salesDocTitle(doc);
   const showVat = isTaxDocument(doc) && doc.vatMode !== 'none';
   const seller = doc.seller ?? companySnapshot(company);
@@ -86,7 +75,7 @@ export function DocumentPreview({ doc, company, contact, referenced }: Props) {
           <Typography variant="h5">{title}</Typography>
           <Typography variant="subtitle1">{doc.docNo}</Typography>
           <Typography variant="body2">วันที่ {formatThaiDate(doc.date)}</Typography>
-          {!isCredit && <Typography variant="body2">ครบกำหนด {formatThaiDate(doc.dueDate)}</Typography>}
+          {!isAdjustment && <Typography variant="body2">ครบกำหนด {formatThaiDate(doc.dueDate)}</Typography>}
         </Box>
       </Stack>
 
@@ -107,8 +96,8 @@ export function DocumentPreview({ doc, company, contact, referenced }: Props) {
             </Typography>
           )}
         </Box>
-        {isCredit && referenced && (
-          <Box sx={{ maxWidth: 320 }}>
+        {isAdjustment && referenced && (
+          <Box sx={{ maxWidth: 360 }}>
             <Typography variant="overline" sx={{ color: 'text.disabled' }}>
               อ้างถึง
             </Typography>
@@ -116,7 +105,6 @@ export function DocumentPreview({ doc, company, contact, referenced }: Props) {
               {isTaxDocument(referenced) ? 'ใบกำกับภาษี' : 'ใบแจ้งหนี้'}เลขที่ {referenced.docNo} ลงวันที่{' '}
               {formatThaiDate(referenced.date)}
             </Typography>
-            <Typography variant="body2">มูลค่าเดิม <Money value={calcDocument(referenced).net} /> บาท</Typography>
             <Typography variant="body2">เหตุผล: {doc.reason}</Typography>
           </Box>
         )}
@@ -155,18 +143,36 @@ export function DocumentPreview({ doc, company, contact, referenced }: Props) {
         </Table>
       </Scrollbar>
 
-      <Stack alignItems="flex-end" sx={{ mt: 3 }}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={3} sx={{ mt: 3 }}>
+        {isAdjustment ? (
+          <Stack spacing={1} sx={{ width: { xs: 1, sm: 360 } }}>
+            {[
+              { label: 'มูลค่าสินค้า/บริการตามใบกำกับเดิม', value: doc.originalNet ?? 0 },
+              { label: 'มูลค่าที่ถูกต้องตามจริง', value: doc.correctNet ?? 0 },
+              { label: `ผลต่าง (${isCredit ? 'ลดลง' : 'เพิ่มขึ้น'})`, value: t.net },
+            ].map((r) => (
+              <Stack key={r.label} direction="row" justifyContent="space-between" spacing={2}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {r.label}
+                </Typography>
+                <Money value={r.value} />
+              </Stack>
+            ))}
+          </Stack>
+        ) : (
+          <Box />
+        )}
         <Stack spacing={1} sx={{ width: { xs: 1, sm: 320 } }}>
           <Stack direction="row" justifyContent="space-between">
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {isCredit ? 'มูลค่าที่ลดลง' : 'มูลค่าก่อนภาษี'}
+              {isAdjustment ? `มูลค่าผลต่าง${isCredit ? 'ที่ลดลง' : 'ที่เพิ่มขึ้น'}` : 'มูลค่าก่อนภาษี'}
             </Typography>
             <Money value={t.net} />
           </Stack>
           {showVat && (
             <Stack direction="row" justifyContent="space-between">
               <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                ภาษีมูลค่าเพิ่ม {doc.vatRate}%
+                {isAdjustment ? `ภาษีมูลค่าเพิ่มของผลต่าง ${doc.vatRate}%` : `ภาษีมูลค่าเพิ่ม ${doc.vatRate}%`}
               </Typography>
               <Money value={t.vat} />
             </Stack>
@@ -179,11 +185,17 @@ export function DocumentPreview({ doc, company, contact, referenced }: Props) {
         </Stack>
       </Stack>
 
+      <Box sx={{ mt: 2 }}>
+        <AmountInWords value={t.total} />
+      </Box>
+
       {doc.note && (
         <Typography variant="body2" sx={{ mt: 3, color: 'text.secondary' }}>
           หมายเหตุ: {doc.note}
         </Typography>
       )}
+
+      <SignatureBlock roles={isAdjustment ? ['ผู้รับเอกสาร', 'ผู้มีอำนาจลงนาม'] : ['ผู้รับสินค้า/บริการ', 'ผู้ส่งสินค้า', 'ผู้มีอำนาจลงนาม']} />
     </Card>
   );
 }

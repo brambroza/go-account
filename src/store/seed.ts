@@ -1,4 +1,4 @@
-import type { Contact, DocLine, AccountingData } from 'src/domain';
+import type { Contact, DocLine, PurchaseLine, AccountingData } from 'src/domain';
 
 import { ACC, addDays, todayISO, periodOf, shiftPeriod, DATA_VERSION, DEFAULT_ACCOUNTS } from 'src/domain';
 
@@ -124,6 +124,11 @@ function line(description: string, qty: number, unitPrice: number, accountCode: 
   return { id: `seed-l${lineSeq}`, description, qty, unitPrice, discount: 0, accountCode };
 }
 
+/** บรรทัดเอกสารซื้อ — `wht` = [ประเภทเงินได้, อัตรา] (ไม่ส่ง = สินค้า ไม่หัก) */
+function pline(description: string, qty: number, unitPrice: number, accountCode: string, wht?: [string, number]): PurchaseLine {
+  return { ...line(description, qty, unitPrice, accountCode), whtIncomeType: wht?.[0] ?? '', whtRate: wht?.[1] ?? 0 };
+}
+
 export function emptyData(): AccountingData {
   return {
     version: DATA_VERSION,
@@ -149,6 +154,7 @@ export function emptyData(): AccountingData {
     purchases: [],
     payments: [],
     refunds: [],
+    vatCloses: [],
     journal: [],
     sequences: {},
   };
@@ -203,42 +209,40 @@ export function buildDemoData(today: string = todayISO()): AccountingData {
     depositAccountCode: ACC.bank,
   }).state;
 
-  // จ่ายชำระเรียงตามวันที่ (เลข PV ต้องเรียงตามวันที่)
+  // บันทึก (PI) และจ่ายชำระ (PV) เรียงตามวันที่ — เลขที่ทั้งสองชุดต้องเรียงตามวันที่
   s = recordPurchase(s, {
     supplierInvoiceNo: '',
     date: ym(-1, 1),
     contactId: 'v-somsri',
     vatMode: 'none',
     claimVat: false,
-    whtRate: 5,
-    whtIncomeType: 'ค่าเช่าอาคาร',
     whtCondition: '1',
-    lines: [line('ค่าเช่าโกดังเก็บสินค้า', 1, 30000, ACC.rent)],
+    lines: [pline('ค่าเช่าโกดังเก็บสินค้า', 1, 30000, ACC.rent, ['ค่าเช่าอาคาร', 5])],
     payNow: { date: ym(-1, 5), accountCode: ACC.bank },
   }).state;
 
   s = recordPurchase(s, {
     supplierInvoiceNo: 'TP-2025-1180',
+    supplierInvoiceDate: ym(-1, 5),
+    vatClaimPeriod: ym(-1, 5).slice(0, 7),
     date: ym(-1, 5),
     contactId: 'v-resin',
     vatMode: 'exclusive',
     claimVat: true,
-    whtRate: 0,
-    whtIncomeType: '',
     whtCondition: '1',
-    lines: [line('เม็ดพลาสติก PP เกรดฉีด', 4000, 52, ACC.cogs)],
+    lines: [pline('เม็ดพลาสติก PP เกรดฉีด', 4000, 52, ACC.cogs)],
     payNow: { date: ym(-1, 20), accountCode: ACC.bank },
   }).state;
   s = recordPurchase(s, {
     supplierInvoiceNo: 'EX-0931',
+    supplierInvoiceDate: ym(-1, 15),
+    vatClaimPeriod: ym(-1, 15).slice(0, 7),
     date: ym(-1, 15),
     contactId: 'v-express',
     vatMode: 'exclusive',
     claimVat: true,
-    whtRate: 1,
-    whtIncomeType: 'ค่าขนส่ง',
     whtCondition: '1',
-    lines: [line('ค่าขนส่งสินค้าไปลูกค้า', 1, 18000, ACC.freight)],
+    lines: [pline('ค่าขนส่งสินค้าไปลูกค้า', 1, 18000, ACC.freight, ['ค่าขนส่ง', 1])],
     payNow: { date: ym(-1, 25), accountCode: ACC.bank },
   }).state;
   // ---------------- เดือนนี้ ----------------
@@ -293,19 +297,42 @@ export function buildDemoData(today: string = todayISO()): AccountingData {
     lines: [line('ชิ้นส่วนพลาสติกฉีด รุ่น PX-120 (คืน)', 100, 38)],
   }).state;
 
-  // จ่ายชำระเรียงตามวันที่ (เลข PV/WT ต้องเรียงตามวันที่)
+  // บันทึก (PI) และจ่ายชำระ (PV/WT) เรียงตามวันที่
   s = recordPurchase(s, {
     supplierInvoiceNo: '',
     date: ym(0, 1),
     contactId: 'v-somsri',
     vatMode: 'none',
     claimVat: false,
-    whtRate: 5,
-    whtIncomeType: 'ค่าเช่าอาคาร',
     whtCondition: '1',
-    lines: [line('ค่าเช่าโกดังเก็บสินค้า', 1, 30000, ACC.rent)],
+    lines: [pline('ค่าเช่าโกดังเก็บสินค้า', 1, 30000, ACC.rent, ['ค่าเช่าอาคาร', 5])],
     payNow: { date: ym(0, 5), accountCode: ACC.bank },
   }).state;
+
+  s = recordPurchase(s, {
+    supplierInvoiceNo: 'TP-2025-1302',
+    supplierInvoiceDate: ym(0, 6),
+    vatClaimPeriod: ym(0, 6).slice(0, 7),
+    date: ym(0, 6),
+    contactId: 'v-resin',
+    vatMode: 'exclusive',
+    claimVat: true,
+    whtCondition: '1',
+    lines: [pline('เม็ดพลาสติก PP เกรดฉีด', 6000, 52, ACC.cogs)],
+  }).state; // ยังไม่จ่าย
+
+  const express = recordPurchase(s, {
+    supplierInvoiceNo: 'EX-1017',
+    supplierInvoiceDate: ym(0, 10),
+    vatClaimPeriod: ym(0, 10).slice(0, 7),
+    date: ym(0, 10),
+    contactId: 'v-express',
+    vatMode: 'exclusive',
+    claimVat: true,
+    whtCondition: '1',
+    lines: [pline('ค่าขนส่งสินค้าไปลูกค้า', 1, 22000, ACC.freight, ['ค่าขนส่ง', 1])],
+  });
+  s = express.state;
 
   const somchai = recordPurchase(s, {
     supplierInvoiceNo: '',
@@ -313,38 +340,12 @@ export function buildDemoData(today: string = todayISO()): AccountingData {
     contactId: 'v-somchai',
     vatMode: 'none',
     claimVat: false,
-    whtRate: 3,
-    whtIncomeType: 'ค่าบริการซ่อมเครื่องฉีด',
     whtCondition: '1',
-    lines: [line('ค่าซ่อมบำรุงเครื่องฉีดพลาสติก', 1, 15000, ACC.misc)],
+    lines: [pline('ค่าซ่อมบำรุงเครื่องฉีดพลาสติก', 1, 15000, ACC.misc, ['ค่าบริการซ่อมเครื่องฉีด', 3])],
   });
   s = somchai.state;
   s = payPurchase(s, { purchaseId: somchai.doc.id, date: ym(0, 16), accountCode: ACC.bank }).state;
-
-  s = recordPurchase(s, {
-    supplierInvoiceNo: 'EX-1017',
-    date: ym(0, 10),
-    contactId: 'v-express',
-    vatMode: 'exclusive',
-    claimVat: true,
-    whtRate: 1,
-    whtIncomeType: 'ค่าขนส่ง',
-    whtCondition: '1',
-    lines: [line('ค่าขนส่งสินค้าไปลูกค้า', 1, 22000, ACC.freight)],
-    payNow: { date: ym(0, 18), accountCode: ACC.bank },
-  }).state;
-
-  s = recordPurchase(s, {
-    supplierInvoiceNo: 'TP-2025-1302',
-    date: ym(0, 6),
-    contactId: 'v-resin',
-    vatMode: 'exclusive',
-    claimVat: true,
-    whtRate: 0,
-    whtIncomeType: '',
-    whtCondition: '1',
-    lines: [line('เม็ดพลาสติก PP เกรดฉีด', 6000, 52, ACC.cogs)],
-  }).state; // ยังไม่จ่าย
+  s = payPurchase(s, { purchaseId: express.doc.id, date: ym(0, 18), accountCode: ACC.bank }).state;
 
   // สถานะ e-Tax: เอกสารเดือนก่อน ๆ นำส่งแล้ว เดือนนี้ลงนามแล้วบางส่วน
   const before = s.sales.filter((d) => d.date < ym(0, 1)).map((d) => d.id);

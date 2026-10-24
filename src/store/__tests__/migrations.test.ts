@@ -1,6 +1,8 @@
+import type { AccountingData } from 'src/domain';
+
 import { ACC, DATA_VERSION, validateAccountingData } from 'src/domain';
 
-import { demo, toV1 } from './fixtures';
+import { demo, toV1, toV3 } from './fixtures';
 import { readAccountingJson, readAccountingData } from '../migrations';
 
 // ----------------------------------------------------------------------
@@ -27,12 +29,13 @@ describe('migration v1 → v2 (A5, A7)', () => {
     const pick = (list: typeof data.payments) => list.map((p) => [p.purchaseId, p.docNo, p.date, p.whtCertNo, p.netPaid]);
     expect(pick(data.payments)).toEqual(pick(original.payments));
     expect(data.sequences).toEqual(original.sequences);
-    data.purchases
-      .filter((p) => p.paid)
-      .forEach((p) => {
-        const entry = data.journal.find((e) => e.id === p.paymentJournalId);
-        expect(entry?.sourceDocNo).toBe(p.paymentDocNo);
-      });
+    data.payments.forEach((pv) => {
+      const entry = data.journal.find((e) => e.id === pv.journalId);
+      expect(entry?.sourceDocNo).toBe(pv.docNo);
+    });
+    // v4: หัก ณ ที่จ่ายระดับบรรทัด และ whtItems ในใบสำคัญจ่ายตรงกับต้นฉบับ
+    expect(data.purchases.map((p) => p.lines)).toEqual(original.purchases.map((p) => p.lines));
+    expect(data.payments.map((p) => p.whtItems)).toEqual(original.payments.map((p) => p.whtItems));
   });
 
   it('accepts the current version as is and rejects unknown input', () => {
@@ -82,7 +85,7 @@ describe('migration v2 → v3 (legacy number order)', () => {
   }
 
   it('v2 data without inversions migrates unchanged except the version', () => {
-    const v2 = { ...demo(), version: 2 };
+    const v2 = { ...toV3(demo()), version: 2 };
     const result = readAccountingData(v2);
     expect(result.migratedFrom).toBe(2);
     expect(result.problems).toEqual([]);
@@ -92,7 +95,7 @@ describe('migration v2 → v3 (legacy number order)', () => {
 
   it('grandfathers inversions that came from v1 / v2 history, but not in current-version files', () => {
     const { data, laterDate } = outOfOrder();
-    const fromV2 = readAccountingData({ ...data, version: 2 });
+    const fromV2 = readAccountingData({ ...toV3(data), version: 2 });
     expect(fromV2.problems).toEqual([]);
     expect(fromV2.data?.legacyOrderThrough).toBe(laterDate);
 
@@ -107,7 +110,63 @@ describe('migration v2 → v3 (legacy number order)', () => {
 
   it('readAccountingJson round-trips the migrated data', () => {
     const { data } = outOfOrder();
-    const migrated = readAccountingJson(JSON.stringify({ ...data, version: 2 })).data;
+    const migrated = readAccountingJson(JSON.stringify({ ...toV3(data), version: 2 })).data;
     expect(migrated && readAccountingJson(JSON.stringify(migrated)).problems).toEqual([]);
+  });
+});
+
+// ----------------------------------------------------------------------
+
+describe('migration v3 → v4 (Sprint B batch 2)', () => {
+  const original = demo();
+  const v3 = toV3(original);
+
+  it('moves WHT to lines, backfills supplier invoice date / claim period, voucher WHT items and credit-note values', () => {
+    const result = readAccountingData(JSON.parse(JSON.stringify(v3)));
+    expect(result.migratedFrom).toBe(3);
+    expect(result.problems).toEqual([]);
+    const { data } = result;
+    if (!data) throw new Error('migrate failed');
+    expect(data.version).toBe(DATA_VERSION);
+    expect(data.vatCloses).toEqual([]);
+    expect(data.accounts.some((a) => a.code === ACC.vatCredit)).toBe(true);
+    data.purchases.forEach((p, i) => {
+      expect(p.lines).toEqual(original.purchases[i].lines);
+      expect(p.supplierInvoiceDate).toBe(p.date);
+      expect(p.vatClaimPeriod).toBe(p.claimVat ? p.date.slice(0, 7) : undefined);
+      expect(Object.keys(p)).not.toContain('whtRate');
+      expect(Object.keys(p)).not.toContain('paymentJournalId');
+    });
+    expect(data.payments.map((p) => p.whtItems)).toEqual(original.payments.map((p) => p.whtItems));
+    const cn = data.sales.find((s) => s.kind === 'credit-note');
+    const orig = original.sales.find((s) => s.kind === 'credit-note');
+    expect([cn?.originalNet, cn?.correctNet]).toEqual([orig?.originalNet, orig?.correctNet]);
+    expect(data.sequences).toEqual(original.sequences);
+    expect(data.payments.map((p) => [p.docNo, p.amount, p.whtAmount, p.whtCertNo])).toEqual(
+      original.payments.map((p) => [p.docNo, p.amount, p.whtAmount, p.whtCertNo])
+    );
+  });
+
+  it('grandfathers purchase numbers that were out of date order before PI was date-ordered', () => {
+    type Doc = { date: string; docNo: string; journalId: string; id: string };
+    const data = JSON.parse(JSON.stringify(toV3(original))) as { purchases: Doc[]; journal: Doc[] };
+    const pis = data.purchases.filter((p) => p.docNo.startsWith('PI6910')).sort((a, b) => a.docNo.localeCompare(b.docNo));
+    // PI ใบที่ 3 ลงวันที่ก่อนใบที่ 2 (ตามวันที่ใบกำกับผู้ขาย — v3 อนุญาต)
+    pis[2].date = '2026-10-02';
+    const entry = data.journal.find((e) => e.id === pis[2].journalId);
+    if (entry) entry.date = '2026-10-02';
+    const result = readAccountingData(data);
+    expect(result.problems).toEqual([]);
+    expect(result.data?.legacyOrderThrough).toBe(pis[1].date);
+    // ไฟล์ v4 ที่ PI เรียงผิด = ถูกแก้ไฟล์
+    expect(validateAccountingData({ ...(result.data as AccountingData), legacyOrderThrough: undefined }).join()).toMatch(
+      /เรียงตามวันที่/
+    );
+  });
+
+  it('rejects incomplete v3 data', () => {
+    expect(readAccountingData({ version: 3, company: {} }).problems[0]).toMatch(/เวอร์ชัน 3 ไม่ครบ/);
+    const broken = { ...v3, payments: [{ purchaseId: 'x' }], purchases: [{ id: 'x', lines: null, whtRate: 1 }] };
+    expect(readAccountingData(broken).problems[0]).toMatch(/ย้ายข้อมูลเวอร์ชัน 3 ไม่สำเร็จ/);
   });
 });

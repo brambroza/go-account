@@ -8,15 +8,17 @@ import {
   creditableOf,
   trialBalance,
   calcDocument,
+  shiftMonthKey,
   customerCreditOf,
   receiptWhtAmount,
   endOfPreviousMonth,
   trialBalanceTotals,
+  purchaseOutstanding,
   hasNegativeOutstanding,
   validateAccountingData,
 } from 'src/domain';
 
-import { ln, demo, TODAY } from './fixtures';
+import { ln, pln, demo, TODAY } from './fixtures';
 import {
   lockPeriod,
   payPurchase,
@@ -24,6 +26,7 @@ import {
   setETaxStatus,
   recordPurchase,
   receivePayment,
+  issueDebitNote,
   issueCreditNote,
   issueTaxInvoice,
   addManualJournal,
@@ -97,25 +100,38 @@ function run(seed: number, steps: number) {
       return refundCustomerCredit(state, { contactId, date, amount: rnd() < 0.2 ? available + 1 : money(available), accountCode: ACC.bank }).state;
     },
     () => {
+      const inv = pick(invoices());
+      return issueDebitNote(state, { invoiceId: inv.id, date, reason: 'สุ่มเพิ่มหนี้', lines: [ln(1, money(3000))] }).state;
+    },
+    () => {
       invoiceNo += 1;
-      const whtRate = pick([0, 0, 1, 3, 5]);
+      const wht = (): [string, number] | undefined => pick([undefined, undefined, ['ค่าบริการ', 3], ['ค่าขนส่ง', 1], ['ค่าเช่า', 5]]);
+      // ใบกำกับผู้ขายลงวันที่ย้อนหลัง 0–220 วัน, เดือนใช้สิทธิสุ่ม −1..+7 จากเดือนในใบกำกับ (บางครั้งนอกช่วง/ปิดงวดแล้ว)
+      const supplierInvoiceDate = addDays(date, -Math.floor(rnd() * 220));
       return recordPurchase(state, {
         // บางครั้งใช้เลขซ้ำเพื่อทดสอบการกันขอคืนภาษีซื้อซ้ำ
         supplierInvoiceNo: rnd() < 0.1 ? 'TP-2025-1302' : `R-${invoiceNo}`,
-        date: addDays(date, -Math.floor(rnd() * 5)),
+        supplierInvoiceDate,
+        vatClaimPeriod: shiftMonthKey(supplierInvoiceDate.slice(0, 7), Math.floor(rnd() * 9) - 1),
+        date,
         contactId: pick(VENDORS),
-        vatMode: pick(['exclusive', 'none'] as const),
+        vatMode: pick(['exclusive', 'inclusive', 'none'] as const),
         claimVat: rnd() < 0.8,
-        whtRate,
-        whtIncomeType: whtRate ? 'ค่าบริการ' : '',
         whtCondition: '1',
-        lines: [ln(1, money(30000), pick([ACC.cogs, ACC.freight, ACC.rent, ACC.misc]))],
-        payNow: rnd() < 0.4 ? { date, accountCode: ACC.bank } : undefined,
+        lines: [
+          pln(1, money(30000), pick([ACC.cogs, ACC.freight, ACC.rent, ACC.misc]), wht()),
+          ...(rnd() < 0.4 ? [pln(Math.ceil(rnd() * 5), money(3000), ACC.misc, wht())] : []),
+        ],
+        payNow: rnd() < 0.3 ? { date, accountCode: ACC.bank } : undefined,
       }).state;
     },
     () => {
-      const unpaid = state.purchases.filter((p) => !p.paid);
-      return payPurchase(state, { purchaseId: pick(unpaid).id, date, accountCode: pick([ACC.bank, ACC.cash]) }).state;
+      const doc = pick(state.purchases.filter((p) => !p.paid));
+      const outstanding = purchaseOutstanding(state, doc);
+      // จ่ายเต็ม / แบ่งจ่าย / บางครั้งตั้งใจจ่ายเกิน
+      const r = rnd();
+      const amount = r < 0.4 ? undefined : r < 0.9 ? Math.min(outstanding, money(outstanding)) : outstanding + 1;
+      return payPurchase(state, { purchaseId: doc.id, date, accountCode: pick([ACC.bank, ACC.cash]), amount }).state;
     },
     () => {
       const amount = money(5000);
@@ -163,5 +179,13 @@ describe('random action sequences keep every invariant', () => {
     expect(outcome.ok).toBeGreaterThan(80);
     expect(outcome.rejected).toBeGreaterThan(5);
     expect(state.refunds.length + state.payments.length).toBeGreaterThan(0);
+    // แบ่งจ่าย: ทุกเอกสารซื้อ ยอดจ่ายรวมไม่เกินยอดเอกสาร และสถานะจ่ายครบตรงกับยอด
+    state.purchases.forEach((p) => {
+      expect(toSatang(purchaseOutstanding(state, p))).toBeGreaterThanOrEqual(0);
+      expect(p.paid).toBe(toSatang(purchaseOutstanding(state, p)) === 0);
+    });
+    expect(state.vatCloses.length).toBeGreaterThan(0);
+    expect(state.purchases.some((p) => state.payments.filter((pv) => pv.purchaseId === p.id).length > 1)).toBe(true);
+    expect(state.sales.some((s) => s.kind === 'debit-note')).toBe(true);
   });
 });

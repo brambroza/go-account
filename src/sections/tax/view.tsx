@@ -22,7 +22,7 @@ import {
   whtTotals,
   periodLabel,
   shiftPeriod,
-  pp30Summary,
+  pp30ForPeriod,
   salesVatReport,
   filingDueDates,
   formatThaiDate,
@@ -58,18 +58,24 @@ export function TaxView() {
   const report = useMemo(() => {
     const sales = salesVatReport(data.sales, data.contacts, period);
     const purchases = purchaseVatReport(data.purchases, data.contacts, period);
-    const pnd3 = whtTotals(whtPayeesForPeriod(data.purchases, data.contacts, period, 'PND3'));
-    const pnd53 = whtTotals(whtPayeesForPeriod(data.purchases, data.contacts, period, 'PND53'));
+    const pnd3 = whtTotals(whtPayeesForPeriod(data, period, 'PND3'));
+    const pnd53 = whtTotals(whtPayeesForPeriod(data, period, 'PND53'));
     const etaxWaiting = data.sales.filter(
       (s) => (s.etax === 'pending-sign' || s.etax === 'signed') && periodOf(s.date).year === period.year && periodOf(s.date).month === period.month
     ).length;
-    return { sales, purchases, pp30: pp30Summary(sales, purchases), pnd3, pnd53, etaxWaiting };
+    return { sales, purchases, pp30: pp30ForPeriod(data, period), pnd3, pnd53, etaxWaiting };
   }, [data, period]);
 
   const due = filingDueDates(period);
 
   const cards = [
-    { key: 'pp30' as const, form: 'ภ.พ.30', desc: 'ภาษีมูลค่าเพิ่ม', amount: report.pp30.netVat, due: due.vat },
+    {
+      key: 'pp30' as const,
+      form: 'ภ.พ.30',
+      desc: report.pp30.payable > 0 ? 'ภาษีมูลค่าเพิ่มที่ต้องชำระ' : 'ภาษีชำระเกิน ยกไปเดือนถัดไป',
+      amount: report.pp30.payable > 0 ? report.pp30.payable : -report.pp30.carriedForward,
+      due: due.vat,
+    },
     { key: 'pnd3' as const, form: 'ภ.ง.ด.3', desc: `หัก ณ ที่จ่าย บุคคล ${report.pnd3.payees} ราย`, amount: report.pnd3.tax, due: due.wht },
     { key: 'pnd53' as const, form: 'ภ.ง.ด.53', desc: `หัก ณ ที่จ่าย นิติบุคคล ${report.pnd53.payees} ราย`, amount: report.pnd53.tax, due: due.wht },
     { key: 'etax' as const, form: 'e-Tax Invoice', desc: 'รอลงนาม / รอนำส่ง', count: report.etaxWaiting, due: undefined },
@@ -167,10 +173,15 @@ export function TaxView() {
                 ตัวเลขสำหรับกรอกแบบ ภ.พ.30 เดือน{periodLabel(period)} ที่ efiling.rd.go.th (คำนวณจากรายงานภาษีขายและภาษีซื้อของงวด)
               </Typography>
               {[
-                { label: 'ยอดขายที่ต้องเสียภาษี (สุทธิหลังลดหนี้)', value: report.pp30.salesNet },
+                { label: 'ยอดขายที่ต้องเสียภาษี (สุทธิหลังลด/เพิ่มหนี้)', value: report.pp30.salesNet },
                 { label: 'ภาษีขายเดือนนี้', value: report.pp30.outputVat },
-                { label: 'ยอดซื้อที่มีสิทธินำภาษีซื้อมาหัก', value: report.pp30.purchaseNet },
+                { label: 'ยอดซื้อที่มีสิทธินำภาษีซื้อมาหัก (ตามเดือนที่ใช้สิทธิ)', value: report.pp30.purchaseNet },
                 { label: 'ภาษีซื้อเดือนนี้', value: report.pp30.inputVat },
+                {
+                  label: report.pp30.netVat >= 0 ? 'ภาษีที่ต้องชำระเดือนนี้ (ช่อง 8)' : 'ภาษีที่ชำระเกินเดือนนี้ (ช่อง 9)',
+                  value: Math.abs(report.pp30.netVat),
+                },
+                { label: 'ภาษีที่ชำระเกินยกมา (ช่อง 10)', value: report.pp30.broughtForward },
               ].map((r) => (
                 <Stack key={r.label} direction="row" justifyContent="space-between" spacing={2}>
                   <Typography variant="body2">{r.label}</Typography>
@@ -179,13 +190,22 @@ export function TaxView() {
               ))}
               <Stack direction="row" justifyContent="space-between" sx={{ pt: 1.5, borderTop: (theme) => `dashed 1px ${theme.vars.palette.divider}` }}>
                 <Typography variant="subtitle1">
-                  {report.pp30.netVat >= 0 ? 'ภาษีที่ต้องชำระเดือนนี้' : 'ภาษีที่ชำระเกินเดือนนี้'}
+                  {report.pp30.payable > 0 ? 'ภาษีที่ต้องชำระสุทธิ (ช่อง 11)' : 'ภาษีที่ชำระเกินสุทธิ ยกไป (ช่อง 12)'}
                 </Typography>
-                <Money value={Math.abs(report.pp30.netVat)} variant="subtitle1" />
+                <Money value={report.pp30.payable > 0 ? report.pp30.payable : report.pp30.carriedForward} variant="subtitle1" />
               </Stack>
-              <Alert severity="info" variant="outlined">
-                ภาษีซื้อในต้นแบบนี้นับตามวันที่ในใบกำกับ ถ้าต้องการยกไปใช้เดือนหลัง (ภายใน 6 เดือน) ให้บันทึกในเดือนที่ต้องการใช้สิทธิ
-              </Alert>
+              {report.pp30.closed ? (
+                <Alert severity="success" variant="outlined">
+                  ปิดภาษีเดือนนี้แล้วพร้อมการปิดงวด — ลงบัญชีโอนภาษีขาย/ภาษีซื้อเข้า
+                  {report.pp30.closed.payable > 0 ? ' 2170 ภาษีมูลค่าเพิ่มค้างจ่าย' : ' 1180 ภาษีชำระเกินยกไป'} ณ วันที่{' '}
+                  {formatThaiDate(report.pp30.closed.date)} (ยกไปเดือนถัดไปอัตโนมัติ)
+                </Alert>
+              ) : (
+                <Alert severity="info" variant="outlined">
+                  ยอดยกมาคำนวณต่อจากเดือนก่อนหน้า (ยังไม่ปิดงวด) — เมื่อปิดงวดเดือนนี้ ระบบจะลงรายการปิดภาษีเดือน
+                  และยกยอดชำระเกินไปเดือนถัดไปให้ ภาษีซื้อนับตามเดือนที่เลือกใช้สิทธิในเอกสารซื้อ (ภายใน 6 เดือน ม.82/3)
+                </Alert>
+              )}
             </Stack>
           )}
           {tab === 'sales' && <VatReportTab rows={report.sales} period={period} kind="sales" />}

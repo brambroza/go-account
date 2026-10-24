@@ -2,7 +2,7 @@ import type { AccountingData } from 'src/domain';
 
 import { z as zod } from 'zod';
 
-import { DATA_VERSION, isValidISODate } from 'src/domain';
+import { isMonthKey, DATA_VERSION, isValidISODate } from 'src/domain';
 
 // ----------------------------------------------------------------------
 // โครงข้อมูลทั้งก้อน (backup / localStorage) — ตรวจรูปร่างก่อน แล้วค่อยตรวจกติกาด้วย validateAccountingData
@@ -11,6 +11,8 @@ import { DATA_VERSION, isValidISODate } from 'src/domain';
 const isoDate = zod.string().refine(isValidISODate, { message: 'วันที่ต้องเป็น ค.ศ. YYYY-MM-DD' });
 
 const money = zod.number().finite();
+
+const monthKey = zod.string().refine(isMonthKey, { message: 'เดือนต้องเป็น ค.ศ. YYYY-MM' });
 
 const AddressSchema = zod.object({
   buildingName: zod.string().optional(),
@@ -63,7 +65,7 @@ const vatMode = zod.enum(['exclusive', 'inclusive', 'none']);
 
 const SalesDocSchema = zod.object({
   id: zod.string(),
-  kind: zod.enum(['tax-invoice', 'credit-note']),
+  kind: zod.enum(['tax-invoice', 'credit-note', 'debit-note']),
   isTaxInvoice: zod.boolean().optional(),
   docNo: zod.string(),
   date: isoDate,
@@ -74,6 +76,8 @@ const SalesDocSchema = zod.object({
   vatRate: zod.number().finite(),
   refDocId: zod.string().optional(),
   reason: zod.string().optional(),
+  originalNet: money.optional(),
+  correctNet: money.optional(),
   creditToCustomer: money.optional(),
   note: zod.string().optional(),
   status: zod.enum(['issued', 'partial', 'paid', 'cancelled']),
@@ -101,29 +105,35 @@ const ReceiptSchema = zod.object({
   journalId: zod.string(),
 });
 
+const PurchaseLineSchema = DocLineSchema.extend({
+  whtIncomeType: zod.string(),
+  whtRate: zod.number().finite(),
+});
+
+const WhtLineItemSchema = zod.object({
+  incomeType: zod.string(),
+  rate: zod.number().finite(),
+  base: money,
+  tax: money,
+});
+
 const PurchaseDocSchema = zod.object({
   id: zod.string(),
   docNo: zod.string(),
   supplierInvoiceNo: zod.string(),
+  supplierInvoiceDate: isoDate.optional(),
   date: isoDate,
   contactId: zod.string(),
-  lines: zod.array(DocLineSchema),
+  lines: zod.array(PurchaseLineSchema),
   vatMode,
   vatRate: zod.number().finite(),
   claimVat: zod.boolean(),
-  whtRate: zod.number().finite(),
-  whtIncomeType: zod.string(),
+  vatClaimPeriod: monthKey.optional(),
   whtCondition: zod.enum(['1', '2', '3']),
   paid: zod.boolean(),
-  paidDate: isoDate.optional(),
-  paymentAccountCode: zod.string().optional(),
-  paymentId: zod.string().optional(),
-  paymentDocNo: zod.string().optional(),
-  whtCertNo: zod.string().optional(),
   note: zod.string().optional(),
   supplier: PartySnapshotSchema.optional(),
   journalId: zod.string(),
-  paymentJournalId: zod.string().optional(),
   createdAt: zod.string(),
 });
 
@@ -136,11 +146,24 @@ const PaymentSchema = zod.object({
   amount: money,
   whtAmount: money,
   netPaid: money,
+  whtItems: zod.array(WhtLineItemSchema),
   accountCode: zod.string(),
   whtCertNo: zod.string().optional(),
   payer: CompanySnapshotSchema.optional(),
   payee: PartySnapshotSchema.optional(),
   journalId: zod.string(),
+});
+
+const VatCloseSchema = zod.object({
+  id: zod.string(),
+  period: monthKey,
+  date: isoDate,
+  outputVat: money,
+  inputVat: money,
+  broughtForward: money,
+  payable: money,
+  carriedForward: money,
+  journalId: zod.string().optional(),
 });
 
 const CustomerRefundSchema = zod.object({
@@ -160,7 +183,7 @@ const JournalEntrySchema = zod.object({
   docNo: zod.string(),
   date: isoDate,
   description: zod.string(),
-  source: zod.enum(['sales', 'credit-note', 'receipt', 'purchase', 'payment', 'refund', 'manual']),
+  source: zod.enum(['sales', 'credit-note', 'debit-note', 'receipt', 'purchase', 'payment', 'refund', 'vat-close', 'manual']),
   sourceId: zod.string().optional(),
   sourceDocNo: zod.string().optional(),
   lines: zod.array(
@@ -217,6 +240,7 @@ export const AccountingDataSchema: zod.ZodType<AccountingData, zod.ZodTypeDef, u
   purchases: zod.array(PurchaseDocSchema),
   payments: zod.array(PaymentSchema),
   refunds: zod.array(CustomerRefundSchema),
+  vatCloses: zod.array(VatCloseSchema),
   journal: zod.array(JournalEntrySchema),
   sequences: zod.record(zod.number().int().nonnegative()),
   legacyOrderThrough: isoDate.optional(),

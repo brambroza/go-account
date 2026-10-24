@@ -42,29 +42,48 @@ export const CreditNoteSchema = zod.object({
 
 export type CreditNoteSchemaType = zod.input<typeof CreditNoteSchema>;
 
+/** บรรทัดเอกสารซื้อ — หัก ณ ที่จ่ายระดับบรรทัด (ไม่หัก = อัตรา 0, สินค้า) */
+export const PurchaseLineSchema = DocLineSchema.extend({
+  whtIncomeType: zod.string(),
+  whtRate: zod.number().min(0, { message: 'อัตราติดลบไม่ได้' }).max(15, { message: 'ไม่เกิน 15%' }),
+}).refine((l) => !(l.whtRate > 0) || l.whtIncomeType.trim().length > 0, {
+  message: 'เลือกประเภทเงินได้',
+  path: ['whtIncomeType'],
+});
+
 export const PurchaseSchema = zod
   .object({
     contactId: zod.string().min(1, { message: 'เลือกผู้ขาย' }),
     supplierInvoiceNo: zod.string(),
-    date: isoDate('วันที่เอกสาร'),
+    /** วันที่ในใบกำกับของผู้ขาย (ว่างได้ถ้าไม่ขอคืนภาษีซื้อ) */
+    supplierInvoiceDate: zod.string().optional(),
+    /** เดือนใช้สิทธิภาษีซื้อ YYYY-MM */
+    vatClaimPeriod: zod.string().optional(),
+    date: isoDate('วันที่บันทึก'),
     vatMode: zod.enum(['exclusive', 'inclusive', 'none']),
     claimVat: zod.boolean(),
-    whtRate: zod.number().min(0).max(15),
-    whtIncomeType: zod.string(),
     whtCondition: zod.enum(['1', '2', '3']),
     payNow: zod.boolean(),
     paidDate: zod.string().optional(),
     paymentAccountCode: zod.string(),
     note: zod.string().optional(),
-    lines: zod.array(DocLineSchema).min(1, { message: 'ต้องมีอย่างน้อย 1 รายการ' }),
-  })
-  .refine((v) => !(v.whtRate > 0) || v.whtIncomeType.trim().length > 0, {
-    message: 'เลือกประเภทเงินได้ที่หัก ณ ที่จ่าย',
-    path: ['whtIncomeType'],
+    lines: zod.array(PurchaseLineSchema).min(1, { message: 'ต้องมีอย่างน้อย 1 รายการ' }),
   })
   .refine((v) => !(v.claimVat && v.vatMode !== 'none') || v.supplierInvoiceNo.trim().length > 0, {
     message: 'ขอคืนภาษีซื้อต้องมีเลขที่ใบกำกับของผู้ขาย',
     path: ['supplierInvoiceNo'],
+  })
+  .refine((v) => !(v.claimVat && v.vatMode !== 'none') || (v.supplierInvoiceDate ?? '').length >= 10, {
+    message: 'ขอคืนภาษีซื้อต้องระบุวันที่ในใบกำกับของผู้ขาย',
+    path: ['supplierInvoiceDate'],
+  })
+  .refine((v) => !v.supplierInvoiceDate || v.supplierInvoiceDate.slice(0, 10) <= v.date, {
+    message: 'วันที่ใบกำกับผู้ขายต้องไม่หลังวันที่บันทึก',
+    path: ['supplierInvoiceDate'],
+  })
+  .refine((v) => !(v.claimVat && v.vatMode !== 'none') || /^\d{4}-\d{2}$/.test(v.vatClaimPeriod ?? ''), {
+    message: 'เลือกเดือนที่ใช้สิทธิภาษีซื้อ (ภายใน 6 เดือน)',
+    path: ['vatClaimPeriod'],
   });
 
 export type PurchaseSchemaType = zod.input<typeof PurchaseSchema>;
@@ -160,11 +179,17 @@ export function makeReceiptSchema(outstanding: number, minDate: string) {
 
 export type ReceiptSchemaType = zod.input<ReturnType<typeof makeReceiptSchema>>;
 
-/** จ่ายชำระเอกสารซื้อ — วันที่จ่ายไม่ก่อนวันที่เอกสาร */
-export function makePayPurchaseSchema(minDate: string) {
+/** จ่ายชำระเอกสารซื้อ (แบ่งจ่ายได้) — วันที่จ่ายไม่ก่อนวันที่เอกสาร, ยอด 0.01 ถึงยอดค้าง (`outstanding`) */
+export function makePayPurchaseSchema(minDate: string, outstanding = Number.MAX_SAFE_INTEGER / 100) {
   return zod.object({
     date: isoDate('วันที่จ่าย').refine((v) => v >= minDate, { message: 'วันที่จ่ายต้องไม่ก่อนวันที่เอกสาร' }),
     accountCode: zod.string().min(1, { message: 'เลือกบัญชีที่จ่าย' }),
+    amount: money('ยอดจ่าย')
+      .refine((v) => toSatang(v) > 0, { message: 'ยอดจ่ายต้องมากกว่า 0' })
+      .refine((v) => toSatang(v) <= toSatang(outstanding), {
+        message: `ยอดจ่ายเกินยอดค้าง (ค้างอยู่ ${outstanding.toFixed(2)} บาท)`,
+      })
+      .optional(),
   });
 }
 

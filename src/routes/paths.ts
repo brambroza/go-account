@@ -11,10 +11,13 @@ export const paths = {
     new: '/sales/new',
     view: (id: string) => `/sales/${id}`,
     creditNote: (invoiceId: string) => `/sales/${invoiceId}/credit-note`,
+    debitNote: (invoiceId: string) => `/sales/${invoiceId}/debit-note`,
   },
   purchases: {
     root: '/purchases',
     new: '/purchases/new',
+    /** ใบสำคัญจ่าย + 50 ทวิ ของการจ่าย 1 ครั้ง */
+    payment: (paymentId: string) => `/purchases/payments/${paymentId}`,
   },
   contacts: '/contacts',
   tax: '/tax',

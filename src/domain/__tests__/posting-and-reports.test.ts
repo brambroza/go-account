@@ -65,15 +65,25 @@ const purchase: PurchaseDoc = {
   supplierInvoiceNo: 'INV-7788',
   date: '2026-10-18',
   contactId: 'v1',
-  lines: [{ id: 'l1', description: 'ค่าขนส่ง', qty: 1, unitPrice: 20000, discount: 0, accountCode: ACC.freight }],
+  supplierInvoiceDate: '2026-09-30',
+  vatClaimPeriod: '2026-10',
+  lines: [
+    {
+      id: 'l1',
+      description: 'ค่าขนส่ง',
+      qty: 1,
+      unitPrice: 20000,
+      discount: 0,
+      accountCode: ACC.freight,
+      whtIncomeType: 'ค่าขนส่ง',
+      whtRate: 1,
+    },
+  ],
   vatMode: 'exclusive',
   vatRate: 7,
   claimVat: true,
-  whtRate: 1,
-  whtIncomeType: 'ค่าขนส่ง',
   whtCondition: '1',
   paid: true,
-  paidDate: '2026-10-28',
   journalId: 'j3',
   createdAt: '2026-10-18T00:00:00Z',
 };
@@ -117,9 +127,12 @@ describe('posting engine', () => {
   it('posts purchase and payment with withholding payable', () => {
     const p = postPurchase(purchase, { id: 'j3', docNo: 'JV6910-0003' }, 'ขนส่งด่วน');
     expect(entryTotals(p.lines).debit).toBe(21400);
-    const pay = postPurchasePayment(purchase, { id: 'j5', docNo: 'JV6910-0005' }, 'ขนส่งด่วน', ACC.bank, '2026-10-28');
+    const pv = { id: 'pv1', docNo: 'PV6910-0001', date: '2026-10-28', amount: 21400, whtAmount: 200, accountCode: ACC.bank };
+    const pay = postPurchasePayment(pv, { id: 'j5', docNo: 'JV6910-0005' }, 'ขนส่งด่วน', purchase.docNo);
+    expect(pay.lines.find((l) => l.accountCode === ACC.payable)?.debit).toBe(21400);
     expect(pay.lines.find((l) => l.accountCode === ACC.bank)?.credit).toBe(21200);
     expect(pay.lines.find((l) => l.accountCode === ACC.whtPayable)?.credit).toBe(200);
+    expect([pay.date, pay.sourceId, pay.sourceDocNo]).toEqual(['2026-10-28', 'pv1', 'PV6910-0001']);
   });
 
   it('adds non-claimable VAT to the expense', () => {
@@ -143,7 +156,9 @@ describe('reports', () => {
     const sales = salesVatReport([invoice, creditNote], [customer], october);
     expect(sales.map((r) => r.vat)).toEqual([17570, -70]);
     const purchases = purchaseVatReport([purchase], [vendor], october);
-    expect(purchases[0].docNo).toBe('INV-7788');
+    // B3: เข้าเดือนที่ใช้สิทธิ แสดงวันที่ตามใบกำกับผู้ขาย + เลขที่ภายใน
+    expect(purchases[0]).toMatchObject({ docNo: 'INV-7788', date: '2026-09-30', refDocNo: 'PI6910-0001', recordedDate: '2026-10-18' });
+    expect(purchaseVatReport([purchase], [vendor], { year: 2026, month: 9 })).toEqual([]);
     const s = pp30Summary(sales, purchases);
     expect(s.outputVat).toBe(17500);
     expect(s.inputVat).toBe(1400);

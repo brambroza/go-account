@@ -21,6 +21,7 @@ import { outstandingOf, useAccounting, useAccountLookup, useContactLookup } from
 import {
   todayISO,
   toSatang,
+  salesSign,
   calcDocument,
   buildETaxXml,
   creditableOf,
@@ -127,6 +128,16 @@ export function SalesDetailView() {
                 ออกใบลดหนี้
               </Button>
             )}
+            {isInvoice && doc.status !== 'cancelled' && (
+              <Button
+                component={RouterLink}
+                href={paths.sales.debitNote(doc.id)}
+                variant="outlined"
+                startIcon={<Iconify icon="mingcute:add-line" />}
+              >
+                ออกใบเพิ่มหนี้
+              </Button>
+            )}
             {toSatang(customerCredit) > 0 && (
               <Button variant="outlined" startIcon={<Iconify icon="solar:wallet-money-bold" />} onClick={refundDialog.onTrue}>
                 คืนเงินลูกค้า
@@ -230,7 +241,7 @@ export function SalesDetailView() {
 
             {(related.receipts.length > 0 || related.credits.length > 0) && (
               <Card>
-                <CardHeader title="รับชำระ / ลดหนี้" />
+                <CardHeader title="รับชำระ / ลดหนี้ / เพิ่มหนี้" />
                 <Stack spacing={1.5} sx={{ p: 3 }} divider={<Divider sx={{ borderStyle: 'dashed' }} />}>
                   {related.receipts.map((r) => (
                     <Stack key={r.id} direction="row" justifyContent="space-between">
@@ -254,7 +265,7 @@ export function SalesDetailView() {
                           {formatThaiDate(c.date)} · {c.reason}
                         </Typography>
                       </div>
-                      <Money value={-calcDocument(c).total} signed />
+                      <Money value={calcDocument(c).total * salesSign(c)} signed />
                     </Stack>
                   ))}
                 </Stack>

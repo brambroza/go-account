@@ -48,10 +48,12 @@ type TabValue = 'journal' | 'tb' | 'pl' | 'accounts';
 const SOURCE_LABEL: Record<JournalSource, string> = {
   sales: 'ขาย',
   'credit-note': 'ลดหนี้',
+  'debit-note': 'เพิ่มหนี้',
   receipt: 'รับชำระ',
   purchase: 'ซื้อ',
   payment: 'จ่ายชำระ',
   refund: 'คืนเงินลูกค้า',
+  'vat-close': 'ปิดภาษีเดือน',
   manual: 'ปรับปรุง',
 };
 

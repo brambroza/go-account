@@ -18,7 +18,7 @@ import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
 import { outstandingOf, useAccounting, useContactLookup } from 'src/store';
-import { todayISO, calcDocument, isTaxDocument, salesDocTitle, formatThaiDate } from 'src/domain';
+import { todayISO, salesSign, calcDocument, isTaxDocument, salesDocTitle, formatThaiDate } from 'src/domain';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -41,7 +41,7 @@ const TABS: { value: Filter; label: string }[] = [
   { value: 'open', label: 'รอรับชำระ' },
   { value: 'overdue', label: 'เกินกำหนด' },
   { value: 'paid', label: 'รับชำระแล้ว' },
-  { value: 'credit', label: 'ใบลดหนี้' },
+  { value: 'credit', label: 'ใบลด/เพิ่มหนี้' },
 ];
 
 const TABLE_HEAD = [
@@ -76,7 +76,7 @@ export function SalesListView() {
           date: doc.date,
           dueDate: doc.dueDate,
           contact: contacts.name(doc.contactId),
-          total: calcDocument(doc).total * (doc.kind === 'credit-note' ? -1 : 1),
+          total: calcDocument(doc).total * salesSign(doc),
           outstanding,
           overdue: doc.kind === 'tax-invoice' && outstanding > 0 && doc.dueDate < today,
         };
@@ -90,7 +90,7 @@ export function SalesListView() {
       open: rows.filter((r) => r.outstanding > 0).length,
       overdue: rows.filter((r) => r.overdue).length,
       paid: rows.filter((r) => r.doc.status === 'paid').length,
-      credit: rows.filter((r) => r.doc.kind === 'credit-note').length,
+      credit: rows.filter((r) => r.doc.kind !== 'tax-invoice').length,
     }),
     [rows]
   );
@@ -103,7 +103,7 @@ export function SalesListView() {
         if (filter === 'open') return r.outstanding > 0;
         if (filter === 'overdue') return r.overdue;
         if (filter === 'paid') return r.doc.status === 'paid';
-        if (filter === 'credit') return r.doc.kind === 'credit-note';
+        if (filter === 'credit') return r.doc.kind !== 'tax-invoice';
         return true;
       })
       .filter((r) => !q || `${r.docNo} ${r.contact}`.toLowerCase().includes(q))

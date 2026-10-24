@@ -22,8 +22,9 @@ import { useRouter, useParams } from 'src/routes/hooks';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { CreditNoteSchema } from 'src/schemas/accounting/doc-schemas';
-import { uid, outstandingOf, useAccounting, issueCreditNote, useContactLookup } from 'src/store';
+import { uid, outstandingOf, useAccounting, issueDebitNote, issueCreditNote, useContactLookup } from 'src/store';
 import {
+  sumBaht,
   subBaht,
   todayISO,
   toSatang,
@@ -31,6 +32,7 @@ import {
   periodLabel,
   calcDocument,
   creditableOf,
+  currentNetOf,
   isTaxDocument,
   salesDocTitle,
   formatThaiDate,
@@ -44,6 +46,7 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import {
   Money,
+  newLine,
   TotalsSummary,
   ConfirmSummary,
   DocLinesEditor,
@@ -53,16 +56,25 @@ import {
 
 // ----------------------------------------------------------------------
 
-const REASONS = [
-  'ลูกค้าคืนสินค้าชำรุด',
-  'สินค้าไม่ตรงตามที่ตกลง',
-  'ลดราคาหลังออกใบกำกับ',
-  'คำนวณราคาผิด (สูงไป)',
-  'ยกเลิกการขายทั้งใบ',
-];
+/** เหตุผลตาม ม.82/10 (ลดหนี้) และ ม.82/9 (เพิ่มหนี้) — พิมพ์บนเอกสาร */
+const REASONS = {
+  credit: ['ลูกค้าคืนสินค้าชำรุด', 'สินค้าไม่ตรงตามที่ตกลง', 'ลดราคาหลังออกใบกำกับ', 'คำนวณราคาผิด (สูงไป)', 'ยกเลิกการขายทั้งใบ'],
+  debit: ['เพิ่มราคาสินค้า/บริการตามที่ตกลง', 'ส่งสินค้า/ให้บริการเกินจำนวนที่ตกลง', 'คำนวณราคาผิด (ต่ำไป)'],
+};
 
-/** ออกใบลดหนี้อ้างใบกำกับเดิม — ลดได้ถึงยอดใบกำกับหักใบลดหนี้ก่อนหน้า แม้รับชำระแล้ว (ส่วนเกินเป็นเงินรอคืนลูกค้า) */
-export function CreditNoteView() {
+type Props = {
+  /** credit = ใบลดหนี้ (ม.86/10), debit = ใบเพิ่มหนี้ (ม.86/9) */
+  mode?: 'credit' | 'debit';
+};
+
+/**
+ * ออกใบลดหนี้ / ใบเพิ่มหนี้ อ้างใบกำกับเดิม
+ * - ลดหนี้: ลดได้ถึงยอดใบกำกับ + ใบเพิ่มหนี้ − ใบลดหนี้ก่อนหน้า แม้รับชำระแล้ว (ส่วนเกินเป็นเงินรอคืนลูกค้า)
+ * - เพิ่มหนี้: กรอกเฉพาะมูลค่าที่เพิ่ม ยอดรวมเข้ายอดค้างของใบเดิม
+ * แสดงมูลค่าตามใบกำกับเดิม / มูลค่าที่ถูกต้อง ก่อนยืนยัน (พิมพ์บนเอกสาร)
+ */
+export function CreditNoteView({ mode = 'credit' }: Props) {
+  const isDebit = mode === 'debit';
   const { id = '' } = useParams();
   const router = useRouter();
   const { data, run } = useAccounting();
@@ -78,7 +90,9 @@ export function CreditNoteView() {
     defaultValues: {
       date: todayISO(),
       reason: '',
-      lines: invoice?.lines.map((l) => ({ ...l, id: uid() })) ?? [],
+      lines: isDebit
+        ? [newLine(invoice?.lines[0]?.accountCode ?? '')]
+        : (invoice?.lines.map((l) => ({ ...l, id: uid() })) ?? []),
     },
   });
 
@@ -87,16 +101,20 @@ export function CreditNoteView() {
     () => (invoice ? calcDocument({ ...invoice, lines: lines ?? [] }) : calcDocument({ lines: [], vatMode: 'none', vatRate: 0 })),
     [invoice, lines]
   );
-  const overLimit = toSatang(totals.total) > toSatang(creditable);
+  const overLimit = !isDebit && toSatang(totals.total) > toSatang(creditable);
   // ส่วนที่เกินยอดค้างชำระ (ลูกค้าจ่ายแล้ว) ตั้งเป็นเงินรอคืนลูกค้า — ตรงกับ `issueCreditNote`
-  const toCustomerCredit = toSatang(totals.total) > toSatang(outstanding) ? subBaht(totals.total, outstanding) : 0;
+  const toCustomerCredit = !isDebit && toSatang(totals.total) > toSatang(outstanding) ? subBaht(totals.total, outstanding) : 0;
   const toReceivable = subBaht(totals.total, toCustomerCredit);
+  const originalNet = invoice ? currentNetOf(data, invoice) : 0;
+  const correctNet = isDebit ? sumBaht([originalNet, totals.net]) : subBaht(originalNet, totals.net);
+  const unavailable = !invoice || (isDebit ? invoice.status === 'cancelled' : toSatang(creditable) <= 0);
 
-  if (!invoice || toSatang(creditable) <= 0) {
+  if (!invoice || unavailable) {
+    const reason = isDebit ? `${invoice?.docNo} ถูกยกเลิกด้วยใบลดหนี้แล้ว` : `${invoice?.docNo} ลดหนี้เต็มจำนวนแล้ว`;
     return (
       <EmptyContent
         filled
-        title={invoice ? `${invoice.docNo} ลดหนี้เต็มจำนวนแล้ว` : 'ไม่พบใบกำกับภาษีที่จะลดหนี้'}
+        title={invoice ? reason : 'ไม่พบใบกำกับภาษีที่อ้างถึง'}
         action={
           <Button component={RouterLink} href={paths.sales.root} variant="contained" sx={{ mt: 3 }}>
             กลับไปหน้ารายการขาย
@@ -108,21 +126,17 @@ export function CreditNoteView() {
   }
 
   const isTax = isTaxDocument(invoice);
-  const docTitle = salesDocTitle({ kind: 'credit-note', isTaxInvoice: isTax, vatMode: invoice.vatMode });
+  const docTitle = salesDocTitle({ kind: isDebit ? 'debit-note' : 'credit-note', isTaxInvoice: isTax, vatMode: invoice.vatMode });
+  const verb = isDebit ? 'เพิ่ม' : 'ลด';
+  const change = isDebit ? 'เพิ่มขึ้น' : 'ลดลง';
   const showVat = isTax && invoice.vatMode !== 'none';
 
   const save = methods.handleSubmit((values) => {
     try {
-      const r = run((s) =>
-        issueCreditNote(s, {
-          invoiceId: invoice.id,
-          date: values.date.slice(0, 10),
-          reason: values.reason.trim(),
-          lines: values.lines,
-        })
-      );
+      const input = { invoiceId: invoice.id, date: values.date.slice(0, 10), reason: values.reason.trim(), lines: values.lines };
+      const r = run((s) => (isDebit ? issueDebitNote(s, input) : issueCreditNote(s, input)));
       confirm.onFalse();
-      toast.success(`ออกใบลดหนี้ ${r.doc.docNo} แล้ว`);
+      toast.success(`ออก${docTitle} ${r.doc.docNo} แล้ว`);
       router.push(paths.sales.view(r.doc.id));
     } catch (error) {
       confirm.onFalse();
@@ -138,7 +152,7 @@ export function CreditNoteView() {
           { name: 'หน้าแรก', href: paths.dashboard },
           { name: 'ขาย', href: paths.sales.root },
           { name: invoice.docNo, href: paths.sales.view(invoice.id) },
-          { name: 'ใบลดหนี้' },
+          { name: isDebit ? 'ใบเพิ่มหนี้' : 'ใบลดหนี้' },
         ]}
         sx={{ mb: { xs: 3, md: 4 } }}
       />
@@ -152,9 +166,9 @@ export function CreditNoteView() {
                 subheader={`${contacts.name(invoice.contactId)} · ใบเดิมลงวันที่ ${formatThaiDate(invoice.date)}`}
               />
               <Box sx={{ p: 3, display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 2fr' } }}>
-                <Field.DatePicker name="date" label="วันที่ใบลดหนี้" />
+                <Field.DatePicker name="date" label={`วันที่${docTitle}`} />
                 <Field.Select name="reason" label="เหตุผล (พิมพ์บนเอกสาร)" size="small">
-                  {REASONS.map((r) => (
+                  {REASONS[mode].map((r) => (
                     <MenuItem key={r} value={r}>
                       {r}
                     </MenuItem>
@@ -165,7 +179,14 @@ export function CreditNoteView() {
             </Card>
 
             <Card sx={{ mt: 3 }}>
-              <CardHeader title="รายการที่ลดหนี้" subheader="แก้จำนวนหรือราคาให้เหลือเฉพาะส่วนที่ลด — บัญชีรายได้ใช้ตามใบเดิม" />
+              <CardHeader
+                title={`รายการที่${verb}หนี้`}
+                subheader={
+                  isDebit
+                    ? 'กรอกเฉพาะมูลค่าที่เพิ่มขึ้น (ผลต่าง) — บัญชีรายได้ใช้ตามใบเดิม'
+                    : 'แก้จำนวนหรือราคาให้เหลือเฉพาะส่วนที่ลด — บัญชีรายได้ใช้ตามใบเดิม'
+                }
+              />
               <Box sx={{ p: 3 }}>
                 <DocLinesEditor accounts={[]} defaultAccountCode={invoice.lines[0]?.accountCode ?? ''} accountLabel="" hideAccount />
               </Box>
@@ -181,11 +202,25 @@ export function CreditNoteView() {
                   </Typography>
                   <Money value={outstanding} />
                 </Stack>
+                {!isDebit && (
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      ลดหนี้ได้อีกไม่เกิน
+                    </Typography>
+                    <Money value={creditable} />
+                  </Stack>
+                )}
                 <Stack direction="row" justifyContent="space-between">
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    ลดหนี้ได้อีกไม่เกิน
+                    มูลค่าตามใบกำกับเดิม (ก่อน VAT)
                   </Typography>
-                  <Money value={creditable} />
+                  <Money value={originalNet} />
+                </Stack>
+                <Stack direction="row" justifyContent="space-between">
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    มูลค่าที่ถูกต้องหลังเอกสารนี้
+                  </Typography>
+                  <Money value={correctNet} />
                 </Stack>
               </Stack>
               <TotalsSummary totals={totals} vatRate={invoice.vatRate} showVat={showVat} />
@@ -204,7 +239,7 @@ export function CreditNoteView() {
                 fullWidth
                 size="large"
                 variant="contained"
-                color="error"
+                color={isDebit ? 'primary' : 'error'}
                 sx={{ mt: 3 }}
                 disabled={overLimit}
                 onClick={async () => {
@@ -227,23 +262,26 @@ export function CreditNoteView() {
             rows={[
               { label: 'ชนิดเอกสาร', value: `${docTitle} อ้างถึง ${invoice.docNo}` },
               { label: 'ลูกค้า', value: contacts.name(invoice.contactId) },
-              { label: 'วันที่ใบลดหนี้', value: formatThaiDate((date ?? '').slice(0, 10)) },
-              { label: 'มูลค่าที่ลดลง', value: totals.net },
-              { label: `ภาษีขายลดลง ${invoice.vatRate}%`, value: totals.vat, hidden: !showVat },
-              { label: 'รวมลดหนี้', value: totals.total, strong: true },
-              { label: 'ลดยอดลูกหนี้', value: toReceivable },
+              { label: `วันที่${docTitle}`, value: formatThaiDate((date ?? '').slice(0, 10)) },
+              { label: 'เหตุผล', value: methods.getValues('reason') || '-' },
+              { label: 'มูลค่าตามใบกำกับเดิม', value: originalNet },
+              { label: 'มูลค่าที่ถูกต้องตามจริง', value: correctNet },
+              { label: `ผลต่าง (มูลค่าที่${change})`, value: totals.net },
+              { label: `ภาษีขาย${change} ${invoice.vatRate}%`, value: totals.vat, hidden: !showVat },
+              { label: `รวม${verb}หนี้`, value: totals.total, strong: true },
+              { label: isDebit ? 'เพิ่มยอดลูกหนี้' : 'ลดยอดลูกหนี้', value: toReceivable },
               { label: 'ตั้งเป็นเงินรอคืนลูกค้า', value: toCustomerCredit, hidden: toSatang(toCustomerCredit) <= 0 },
               {
                 label: 'งวดภาษี',
-                value: `ลดภาษีขายเดือน${periodLabel(periodOf((date ?? todayISO()).slice(0, 10)))}`,
+                value: `${verb}ภาษีขายเดือน${periodLabel(periodOf((date ?? todayISO()).slice(0, 10)))}`,
                 hidden: !showVat,
               },
             ]}
-            note="ใบลดหนี้ออกแล้วแก้ไขหรือลบไม่ได้"
+            note={`${docTitle}ออกแล้วแก้ไขหรือลบไม่ได้`}
           />
         }
         action={
-          <LoadingButton variant="contained" color="error" onClick={save}>
+          <LoadingButton variant="contained" color={isDebit ? 'primary' : 'error'} onClick={save}>
             ยืนยัน
           </LoadingButton>
         }

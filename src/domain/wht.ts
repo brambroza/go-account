@@ -1,10 +1,9 @@
 import { inPeriod } from './thai-date';
 import { resolveParty } from './snapshot';
-import { calcDocument } from './document-calc';
 import { round2, sumBaht, percentOf, prorateBaht } from './money';
 
 import type { Period } from './thai-date';
-import type { Contact, DocTotals, PurchaseDoc, WhtCondition } from './types';
+import type { Contact, DocTotals, WhtCondition, AccountingData } from './types';
 
 // ----------------------------------------------------------------------
 
@@ -31,8 +30,15 @@ export const PURCHASE_WHT_MAX_RATE = 15;
 export type WhtForm = 'PND3' | 'PND53';
 
 export type WhtItem = {
+  /** ใบสำคัญจ่าย (PV) ของการจ่ายครั้งนี้ */
+  paymentId: string;
   purchaseId: string;
+  /** เลขที่ใบสำคัญจ่าย */
   docNo: string;
+  /** เลขที่เอกสารซื้อ (PI) */
+  purchaseDocNo: string;
+  /** เลขที่หนังสือรับรอง 50 ทวิ */
+  certNo?: string;
   paidDate: string;
   rate: number;
   amount: number;
@@ -43,56 +49,61 @@ export type WhtItem = {
 
 export type WhtPayee = {
   /**
-   * ผู้รับเงิน — ชื่อ/เลขผู้เสียภาษี/ที่อยู่/ประเภทบุคคล มาจาก snapshot ของเอกสารซื้อ
+   * ผู้รับเงิน — ชื่อ/เลขผู้เสียภาษี/ที่อยู่/ประเภทบุคคล มาจาก snapshot ในใบสำคัญจ่าย (ข้อมูลเก่า: เอกสารซื้อ)
    * (`id`, `code` ยังเป็นของผู้ติดต่อ ใช้ลิงก์ไปหน้าผู้ติดต่อได้)
    */
   contact: Contact;
+  /** เรียงตามวันที่จ่าย — การจ่ายแต่ละครั้ง (PV) เป็นคนละรายการ แม้มาจากเอกสารซื้อใบเดียวกัน */
   items: WhtItem[];
 };
 
 /**
- * รายการหัก ณ ที่จ่ายของงวด แยกตามผู้รับเงิน — นับตามวันที่จ่ายจริง
- * ประเภทบุคคล (ภ.ง.ด.3/53) และข้อมูลผู้รับเงินอ่านจาก snapshot ในเอกสารซื้อ — `contacts` ใช้เฉพาะเอกสารที่ไม่มี snapshot
+ * รายการหัก ณ ที่จ่ายของงวด แยกตามผู้รับเงิน — นับตามวันที่จ่ายจริงของใบสำคัญจ่ายแต่ละใบ (แบ่งจ่าย = หลายรายการ)
+ * ประเภทบุคคล (ภ.ง.ด.3/53) และข้อมูลผู้รับเงินอ่านจาก snapshot — `contacts` ใช้เฉพาะเอกสารที่ไม่มี snapshot
  */
 export function whtPayeesForPeriod(
-  purchases: PurchaseDoc[],
-  contacts: Contact[],
+  state: Pick<AccountingData, 'payments' | 'purchases' | 'contacts'>,
   period: Period,
   form: WhtForm
 ): WhtPayee[] {
-  const byId = new Map(contacts.map((c) => [c.id, c]));
+  const byId = new Map(state.contacts.map((c) => [c.id, c]));
+  const purchases = new Map(state.purchases.map((p) => [p.id, p]));
   const wantLegal = form === 'PND3' ? 'individual' : 'juristic';
   const groups = new Map<string, WhtPayee>();
 
-  purchases
-    .filter((p) => p.paid && p.paidDate && p.whtRate > 0 && inPeriod(p.paidDate, period))
-    .sort((a, b) => (a.paidDate ?? '').localeCompare(b.paidDate ?? ''))
-    .forEach((p) => {
-      const live = byId.get(p.contactId);
-      const party = resolveParty(p.supplier, live);
+  state.payments
+    .filter((pv) => pv.whtItems.length > 0 && inPeriod(pv.date, period))
+    .sort((a, b) => (a.date + a.docNo).localeCompare(b.date + b.docNo))
+    .forEach((pv) => {
+      const purchase = purchases.get(pv.purchaseId);
+      const live = byId.get(pv.contactId);
+      const party = pv.payee ?? resolveParty(purchase?.supplier, live);
       if (!party || party.legalForm !== wantLegal) return;
       const contact: Contact = {
-        id: p.contactId,
+        id: pv.contactId,
         code: live?.code ?? '',
         kind: live?.kind ?? 'vendor',
         creditDays: live?.creditDays ?? 0,
         ...party,
       };
-      const t = calcDocument(p);
-      const item: WhtItem = {
-        purchaseId: p.id,
-        docNo: p.docNo,
-        paidDate: p.paidDate as string,
-        rate: p.whtRate,
-        amount: t.net,
-        tax: t.wht,
-        incomeType: p.whtIncomeType,
-        condition: p.whtCondition,
-      };
       // ผู้รับเงินคนเดิมแต่ snapshot เลขผู้เสียภาษีต่างกัน (แก้ข้อมูลระหว่างเดือน) แยกเป็นคนละแถว
-      const key = `${p.contactId}|${party.taxId}|${party.branchNo}`;
+      const key = `${pv.contactId}|${party.taxId}|${party.branchNo}`;
       const g = groups.get(key) ?? { contact, items: [] };
-      g.items.push(item);
+      pv.whtItems.forEach((w) => {
+        g.items.push({
+          paymentId: pv.id,
+          purchaseId: pv.purchaseId,
+          docNo: pv.docNo,
+          purchaseDocNo: purchase?.docNo ?? '',
+          certNo: pv.whtCertNo,
+          paidDate: pv.date,
+          rate: w.rate,
+          amount: w.base,
+          tax: w.tax,
+          incomeType: w.incomeType,
+          condition: purchase?.whtCondition ?? '1',
+        });
+      });
       groups.set(key, g);
     });
 

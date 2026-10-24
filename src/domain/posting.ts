@@ -2,7 +2,16 @@ import { ACC } from './chart-of-accounts';
 import { calcDocument } from './document-calc';
 import { round2, sumBaht, subBaht, toSatang } from './money';
 
-import type { Receipt, SalesDoc, PurchaseDoc, JournalLine, JournalEntry, CustomerRefund } from './types';
+import type {
+  Payment,
+  Receipt,
+  SalesDoc,
+  VatClose,
+  PurchaseDoc,
+  JournalLine,
+  JournalEntry,
+  CustomerRefund,
+} from './types';
 
 // ----------------------------------------------------------------------
 
@@ -92,6 +101,28 @@ export function postCreditNote(doc: SalesDoc, meta: EntryMeta, contactName: stri
   };
 }
 
+/**
+ * ใบเพิ่มหนี้ (ม.86/9): เพิ่มมูลค่าขาย — Dr ลูกหนี้ / Cr รายได้ + Cr ภาษีขาย (เหมือนใบกำกับ)
+ * ลูกหนี้ที่เพิ่มรวมเข้ายอดค้างของใบกำกับเดิม (`outstandingOf`)
+ */
+export function postDebitNote(doc: SalesDoc, meta: EntryMeta, contactName: string): JournalEntry {
+  const t = calcDocument(doc);
+  const lines = finalize([
+    dr(ACC.receivable, t.total, contactName),
+    ...Object.entries(t.netByAccount).map(([code, amount]) => cr(code, amount)),
+    cr(ACC.outputVat, t.vat),
+  ]);
+  return {
+    ...meta,
+    date: doc.date,
+    description: `เพิ่มหนี้ ${contactName}${doc.reason ? ` — ${doc.reason}` : ''}`,
+    source: 'debit-note',
+    sourceId: doc.id,
+    sourceDocNo: doc.docNo,
+    lines,
+  };
+}
+
 /** รับชำระ: Dr ธนาคาร (สุทธิ) + Dr ภาษีถูกหัก ณ ที่จ่าย / Cr ลูกหนี้ */
 export function postReceipt(
   receipt: Receipt,
@@ -140,30 +171,60 @@ export function postPurchase(doc: PurchaseDoc, meta: EntryMeta, contactName: str
 }
 
 /**
- * จ่ายชำระ: Dr เจ้าหนี้ / Cr ธนาคาร (สุทธิ) + Cr ภาษีหัก ณ ที่จ่ายค้างจ่าย
- * `payment` = ใบสำคัญจ่าย (PV) ที่อ้างถึงในสมุดรายวัน — ไม่ส่งมาจะอ้างเลขเอกสารซื้อแทน (ข้อมูลเก่า)
+ * จ่ายชำระตามใบสำคัญจ่าย (PV): Dr เจ้าหนี้ (ยอดที่ตัดครั้งนี้) / Cr ธนาคาร (สุทธิ) + Cr ภาษีหัก ณ ที่จ่ายค้างจ่าย
+ * แบ่งจ่ายได้ — ยอดหัก ณ ที่จ่ายมาจากใบสำคัญจ่าย (คิดตามสัดส่วนไว้แล้วตอนจ่าย)
  */
 export function postPurchasePayment(
-  doc: PurchaseDoc,
+  payment: Pick<Payment, 'id' | 'docNo' | 'date' | 'amount' | 'whtAmount' | 'accountCode'>,
   meta: EntryMeta,
   contactName: string,
-  paymentAccountCode: string,
-  paidDate: string,
-  payment?: { id: string; docNo: string }
+  purchaseDocNo: string
 ): JournalEntry {
-  const t = calcDocument(doc);
   const lines = finalize([
-    dr(ACC.payable, t.total, contactName),
-    cr(paymentAccountCode, subBaht(t.total, t.wht)),
-    cr(ACC.whtPayable, t.wht),
+    dr(ACC.payable, payment.amount, contactName),
+    cr(payment.accountCode, subBaht(payment.amount, payment.whtAmount)),
+    cr(ACC.whtPayable, payment.whtAmount),
   ]);
   return {
     ...meta,
-    date: paidDate,
-    description: `จ่ายชำระ ${contactName} (${doc.docNo})`,
+    date: payment.date,
+    description: `จ่ายชำระ ${contactName} (${purchaseDocNo})`,
     source: 'payment',
-    sourceId: payment?.id ?? doc.id,
-    sourceDocNo: payment?.docNo ?? doc.docNo,
+    sourceId: payment.id,
+    sourceDocNo: payment.docNo,
+    lines,
+  };
+}
+
+/** บรรทัดตามเครื่องหมาย: บวก = ด้าน `side`, ลบ = ด้านตรงข้าม */
+function signed(side: 'debit' | 'credit', accountCode: string, amount: number, description?: string): JournalLine {
+  const positive = toSatang(amount) >= 0;
+  const value = Math.abs(amount);
+  return (side === 'debit') === positive ? dr(accountCode, value, description) : cr(accountCode, value, description);
+}
+
+/**
+ * ปิดภาษีเดือน (ภ.พ.30): Dr ภาษีขาย / Cr ภาษีซื้อ / Cr ภาษีชำระเกินยกมา → Cr ภาษีมูลค่าเพิ่มค้างจ่าย (ต้องชำระ)
+ * หรือ Dr ภาษีชำระเกินยกไป (ชำระเกิน) — คืน null ถ้าทุกยอดเป็นศูนย์ (ไม่ต้องลงบัญชี)
+ */
+export function postVatClose(
+  close: Pick<VatClose, 'id' | 'period' | 'date' | 'outputVat' | 'inputVat' | 'broughtForward' | 'payable' | 'carriedForward'>,
+  meta: EntryMeta
+): JournalEntry | null {
+  const lines = finalize([
+    signed('debit', ACC.outputVat, close.outputVat, 'ภาษีขาย'),
+    signed('credit', ACC.inputVat, close.inputVat, 'ภาษีซื้อ'),
+    signed('debit', ACC.vatCredit, subBaht(close.carriedForward, close.broughtForward), 'ภาษีชำระเกินยกมา/ยกไป'),
+    cr(ACC.vatPayable, close.payable, 'ภาษีที่ต้องชำระ'),
+  ]);
+  if (!lines.length) return null;
+  return {
+    ...meta,
+    date: close.date,
+    description: `ปิดภาษีมูลค่าเพิ่ม เดือน ${close.period}`,
+    source: 'vat-close',
+    sourceId: close.id,
+    sourceDocNo: `VAT-${close.period}`,
     lines,
   };
 }

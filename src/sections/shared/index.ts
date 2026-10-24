@@ -4,6 +4,8 @@ export * from './form-keys';
 
 export * from './totals-card';
 
+export * from './print-parts';
+
 export * from './status-labels';
 
 export * from './confirm-summary';

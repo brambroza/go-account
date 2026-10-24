@@ -47,7 +47,15 @@ describe('validateAccountingData (A3)', () => {
     ['missing journal', (d) => { d.purchases[0].journalId = 'gone'; }, /ไม่พบรายการบัญชี/],
     ['credit note without invoice', (d) => { const cn = d.sales.find((s) => s.kind === 'credit-note'); if (cn) cn.refDocId = 'gone'; }, /ไม่พบใบกำกับที่อ้างถึง/],
     ['receipt without invoice', (d) => { d.receipts[0].invoiceId = 'gone'; }, /ไม่พบใบกำกับที่รับชำระ/],
-    ['paid without voucher', (d) => { const p = d.purchases.find((x) => x.paid); if (p) p.paymentId = undefined; }, /ไม่พบใบสำคัญจ่าย/],
+    ['paid without voucher', (d) => { const p = d.purchases.find((x) => x.paid); d.payments = d.payments.filter((pv) => pv.purchaseId !== p?.id); }, /ไม่พบใบสำคัญจ่าย/],
+    ['paid flag mismatch', (d) => { const p = d.purchases.find((x) => !x.paid); if (p) p.paid = true; }, /สถานะจ่ายแล้วไม่ตรง/],
+    ['voucher WHT items mismatch', (d) => { const pv = d.payments.find((x) => x.whtItems.length); if (pv) pv.whtItems[0].tax += 1; }, /ไม่เท่ากับผลรวมรายการ/],
+    ['voucher net mismatch', (d) => { d.payments[0].netPaid += 1; }, /ยอดจ่ายสุทธิ/],
+    ['claim window', (d) => { const p = d.purchases.find((x) => x.claimVat); if (p) p.vatClaimPeriod = '2027-12'; }, /ไม่เกิน 6 เดือน/],
+    ['claim without supplier date', (d) => { const p = d.purchases.find((x) => x.claimVat); if (p) p.supplierInvoiceDate = undefined; }, /วันที่ในใบกำกับ/],
+    ['claim period on non-claim', (d) => { const p = d.purchases.find((x) => !x.claimVat); if (p) p.vatClaimPeriod = '2026-10'; }, /ไม่ขอคืนภาษีซื้อแต่ระบุ/],
+    ['line WHT without income type', (d) => { const p = d.purchases.find((x) => x.lines[0].whtRate > 0); if (p) p.lines[0].whtIncomeType = ''; }, /ไม่ระบุประเภทเงินได้/],
+    ['credit note values', (d) => { const cn = d.sales.find((s) => s.kind === 'credit-note'); if (cn) cn.correctNet = 1; }, /มูลค่าที่ถูกต้อง/],
     ['voucher without purchase', (d) => { d.payments[0].purchaseId = 'gone'; }, /ไม่พบเอกสารซื้อ/],
     ['refund without contact', (d) => { d.refunds.push({ ...d.receipts[0], id: 'rf', docNo: 'RF6910-0001', contactId: 'gone', accountCode: ACC.bank, journalId: 'gone' }); d.sequences.RF6910 = 1; }, /ไม่พบผู้ติดต่อ/],
     ['over-refund', (d) => { d.refunds.push({ id: 'rf', docNo: 'RF6910-0001', date: TODAY, contactId: 'c-abc', amount: 5, accountCode: ACC.bank, journalId: d.journal[0].id }); d.sequences.RF6910 = 1; }, /คืนเงินลูกค้าเกิน/],
@@ -138,9 +146,12 @@ describe('domain helpers (A13, A14)', () => {
     expect(resolveParty(undefined, undefined)).toBeUndefined();
     expect(resolveParty(undefined, c)).toEqual(partySnapshot(c));
     expect(partyDisplayName(undefined)).toBe('-');
-    const p = data.purchases.find((x) => x.whtRate > 0 && x.paid);
+    const p = data.purchases.find((x) => x.lines.some((l) => l.whtRate > 0) && x.paid);
     if (!p) throw new Error('fixture');
+    const pvs = data.payments.filter((pv) => pv.purchaseId === p.id).map((pv) => ({ ...pv, payee: undefined }));
     // ไม่มี snapshot และไม่พบผู้ติดต่อ = ข้าม
-    expect(whtPayeesForPeriod([{ ...p, supplier: undefined }], [], { year: 2026, month: 10 }, 'PND3')).toEqual([]);
+    expect(
+      whtPayeesForPeriod({ purchases: [{ ...p, supplier: undefined }], payments: pvs, contacts: [] }, { year: 2026, month: 10 }, 'PND3')
+    ).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 import { ACC, DATA_VERSION } from 'src/domain';
 
-import { ln, demo, toV1, TODAY } from './fixtures';
+import { ln, demo, toV1, toV3, TODAY } from './fixtures';
 import { lockPeriod, issueTaxInvoice, BusinessRuleError } from '../actions';
 import { STORAGE_KEY, createAccountingStore, STORAGE_UNAVAILABLE_MESSAGE } from '../accounting-store';
 
@@ -90,7 +90,7 @@ describe('accounting store', () => {
   });
 
   it('migrates v2 storage to the current version and keeps the v2 copy', () => {
-    const v2 = JSON.stringify({ ...demo(), version: 2 });
+    const v2 = JSON.stringify({ ...toV3(demo()), version: 2 });
     const storage = memoryStorage({ [STORAGE_KEY]: v2 });
     const store = newStore(storage);
     expect(store.getSnapshot().readOnly).toBe(false);

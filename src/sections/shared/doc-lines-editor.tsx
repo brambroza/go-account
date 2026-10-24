@@ -1,5 +1,6 @@
-import type { Account, DocLine } from 'src/domain';
+import type { Account, DocLine, PurchaseLine } from 'src/domain';
 
+import { useEffect } from 'react';
 import { useWatch, useFieldArray, useFormContext } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
@@ -13,7 +14,7 @@ import TableHead from '@mui/material/TableHead';
 import IconButton from '@mui/material/IconButton';
 
 import { uid } from 'src/store';
-import { lineAmount } from 'src/domain';
+import { lineAmount, WHT_INCOME_TYPES } from 'src/domain';
 
 import { Iconify } from 'src/components/iconify';
 import { Field } from 'src/components/hook-form';
@@ -28,13 +29,60 @@ export function newLine(accountCode: string): DocLine {
   return { id: uid(), description: '', qty: 1, unitPrice: 0, discount: 0, accountCode };
 }
 
+/** บรรทัดเอกสารซื้อใหม่ — ไม่หัก ณ ที่จ่าย (สินค้า) จนกว่าจะเลือกประเภทเงินได้ */
+export function newPurchaseLine(accountCode: string): PurchaseLine {
+  return { ...newLine(accountCode), whtIncomeType: '', whtRate: 0 };
+}
+
+/** อัตราหัก ณ ที่จ่ายที่เลือกได้ในบรรทัด */
+export const WHT_RATE_OPTIONS = [0, 1, 2, 3, 5, 10, 15];
+
 type Props = {
   accounts: Account[];
   defaultAccountCode: string;
   accountLabel: string;
   /** ซ่อนคอลัมน์บัญชี (เช่นใบลดหนี้ที่ใช้บัญชีตามใบเดิม) */
   hideAccount?: boolean;
+  /** เอกสารซื้อ: แสดงคอลัมน์หัก ณ ที่จ่ายต่อบรรทัด (ประเภทเงินได้ + อัตรา) */
+  withWht?: boolean;
 };
+
+/** เลือกประเภทเงินได้แล้วเติมอัตราตามปกติให้ (แก้อัตราเองได้) */
+function LineWhtFields({ index }: { index: number }) {
+  const { setValue } = useFormContext();
+  const incomeType = useWatch({ name: `lines.${index}.whtIncomeType` }) as string | undefined;
+  useEffect(() => {
+    const preset = WHT_INCOME_TYPES.find((w) => w.label === incomeType);
+    if (preset) setValue(`lines.${index}.whtRate`, preset.rate, { shouldValidate: true });
+    if (incomeType === '') setValue(`lines.${index}.whtRate`, 0, { shouldValidate: true });
+  }, [incomeType, index, setValue]);
+  return (
+    <>
+      <TableCell>
+        <Field.Select name={`lines.${index}.whtIncomeType`} size="small" inputProps={{ 'aria-label': 'ประเภทเงินได้' }}>
+          <MenuItem value="">ไม่หัก (สินค้า)</MenuItem>
+          {WHT_INCOME_TYPES.map((w) => (
+            <MenuItem key={w.label} value={w.label}>
+              {w.label}
+            </MenuItem>
+          ))}
+          {incomeType && !WHT_INCOME_TYPES.some((w) => w.label === incomeType) && (
+            <MenuItem value={incomeType}>{incomeType}</MenuItem>
+          )}
+        </Field.Select>
+      </TableCell>
+      <TableCell>
+        <Field.Select name={`lines.${index}.whtRate`} size="small" inputProps={{ 'aria-label': 'อัตราหัก ณ ที่จ่าย' }}>
+          {WHT_RATE_OPTIONS.map((r) => (
+            <MenuItem key={r} value={r}>
+              {r}%
+            </MenuItem>
+          ))}
+        </Field.Select>
+      </TableCell>
+    </>
+  );
+}
 
 function LineAmount({ index }: { index: number }) {
   const line = useWatch({ name: `lines.${index}` }) as DocLine | undefined;
@@ -42,14 +90,14 @@ function LineAmount({ index }: { index: number }) {
 }
 
 /** ตารางกรอกรายการสินค้า/บริการ ใช้ร่วมกันทั้งขาย ซื้อ และใบลดหนี้ (ไล่ด้วยปุ่ม Tab ได้ทั้งแถว) */
-export function DocLinesEditor({ accounts, defaultAccountCode, accountLabel, hideAccount }: Props) {
+export function DocLinesEditor({ accounts, defaultAccountCode, accountLabel, hideAccount, withWht }: Props) {
   const { control } = useFormContext();
   const { fields, append, remove } = useFieldArray({ control, name: 'lines', keyName: 'key' });
 
   return (
     <Box>
       <Scrollbar>
-        <Table size="small" sx={{ minWidth: hideAccount ? 640 : 860 }}>
+        <Table size="small" sx={{ minWidth: (hideAccount ? 640 : 860) + (withWht ? 300 : 0) }}>
           <TableHead>
             <TableRow>
               <TableCell sx={{ width: 40 }}>#</TableCell>
@@ -67,6 +115,8 @@ export function DocLinesEditor({ accounts, defaultAccountCode, accountLabel, hid
               <TableCell align="right" sx={{ width: 130 }}>
                 จำนวนเงิน
               </TableCell>
+              {withWht && <TableCell sx={{ width: 190 }}>หัก ณ ที่จ่าย</TableCell>}
+              {withWht && <TableCell sx={{ width: 96 }}>อัตรา</TableCell>}
               <TableCell sx={{ width: 48 }} />
             </TableRow>
           </TableHead>
@@ -105,6 +155,7 @@ export function DocLinesEditor({ accounts, defaultAccountCode, accountLabel, hid
                 <TableCell align="right">
                   <LineAmount index={index} />
                 </TableCell>
+                {withWht && <LineWhtFields index={index} />}
                 <TableCell>
                   <IconButton
                     aria-label={`ลบรายการที่ ${index + 1}`}
@@ -124,7 +175,7 @@ export function DocLinesEditor({ accounts, defaultAccountCode, accountLabel, hid
         size="small"
         color="primary"
         startIcon={<Iconify icon="mingcute:add-line" />}
-        onClick={() => append(newLine(defaultAccountCode))}
+        onClick={() => append(withWht ? newPurchaseLine(defaultAccountCode) : newLine(defaultAccountCode))}
         sx={{ mt: 1.5 }}
       >
         เพิ่มรายการ

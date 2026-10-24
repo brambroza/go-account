@@ -14,7 +14,7 @@ import {
   validateAccountingData,
 } from 'src/domain';
 
-import { ln, demo, TODAY } from './fixtures';
+import { ln, pln, demo, TODAY } from './fixtures';
 import {
   lockPeriod,
   payPurchase,
@@ -54,14 +54,14 @@ const invoiceInput = (overrides: Partial<Parameters<typeof issueTaxInvoice>[1]> 
 
 const purchaseInput = (overrides: Partial<Parameters<typeof recordPurchase>[1]> = {}) => ({
   supplierInvoiceNo: 'NEW-001',
+  supplierInvoiceDate: TODAY,
+  vatClaimPeriod: '2026-10',
   date: TODAY,
   contactId: 'v-resin',
   vatMode: 'exclusive' as const,
   claimVat: true,
-  whtRate: 0,
-  whtIncomeType: '',
   whtCondition: '1' as const,
-  lines: [ln(1, 1000, ACC.cogs)],
+  lines: [pln(1, 1000, ACC.cogs)],
   ...overrides,
 });
 
@@ -85,7 +85,7 @@ describe('demo data and actions', () => {
   it('feeds the tax reports for the current month', () => {
     const rows = salesVatReport(data.sales, data.contacts, october);
     expect(rows.some((r) => r.kind === 'credit-note' && r.vat < 0)).toBe(true);
-    const pnd3 = whtPayeesForPeriod(data.purchases, data.contacts, october, 'PND3');
+    const pnd3 = whtPayeesForPeriod(data, october, 'PND3');
     expect(pnd3.map((p) => p.contact.name).sort()).toEqual(['สมชาย', 'สมศรี']);
   });
 
@@ -141,8 +141,12 @@ describe('date validation (A4)', () => {
     expect(lastDocDate(data, 'IV')).toBe('2026-10-21');
     expect(() => issueTaxInvoice(data, invoiceInput({ date: '2026-10-20' }))).toThrow(/เรียงตามวันที่/);
     expect(issueTaxInvoice(data, invoiceInput({ date: '2026-10-21' })).doc.docNo).toBe('IV6910-0005');
-    // PI ไม่บังคับ (วันที่ตามใบกำกับผู้ขาย)
-    expect(() => recordPurchase(data, purchaseInput({ date: '2026-10-02' }))).not.toThrow();
+    // PI บังคับตั้งแต่ v4 (วันที่ = วันที่บันทึก) — ใบกำกับผู้ขายที่ลงวันที่ก่อนหน้าบันทึกวันนี้ได้ด้วย supplierInvoiceDate
+    expect(lastDocDate(data, 'PI')).toBe('2026-10-14');
+    expect(() => recordPurchase(data, purchaseInput({ date: '2026-10-02', supplierInvoiceDate: '2026-10-02' }))).toThrow(
+      /เรียงตามวันที่/
+    );
+    expect(() => recordPurchase(data, purchaseInput({ supplierInvoiceDate: '2026-10-02' }))).not.toThrow();
   });
 });
 
@@ -285,8 +289,8 @@ describe('purchases (A6, A7)', () => {
   const data = demo();
 
   it('validates withholding and supplier invoice numbers', () => {
-    expect(() => recordPurchase(data, purchaseInput({ whtRate: -1 }))).toThrow(/อัตราหัก/);
-    expect(() => recordPurchase(data, purchaseInput({ whtRate: 3 }))).toThrow(/ประเภทเงินได้/);
+    expect(() => recordPurchase(data, purchaseInput({ lines: [{ ...pln(1, 1000), whtRate: -1 }] }))).toThrow(/อัตราหัก/);
+    expect(() => recordPurchase(data, purchaseInput({ lines: [pln(1, 1000, ACC.misc, [' ', 3])] }))).toThrow(/ประเภทเงินได้/);
     expect(() => recordPurchase(data, purchaseInput({ supplierInvoiceNo: ' ' }))).toThrow(/เลขที่ใบกำกับภาษีของผู้ขาย/);
   });
 
@@ -311,14 +315,14 @@ describe('purchases (A6, A7)', () => {
       noWht.state,
       purchaseInput({
         supplierInvoiceNo: 'NEW-002',
-        whtRate: 3,
-        whtIncomeType: 'ค่าบริการ',
+        lines: [pln(1, 1000, ACC.misc, ['ค่าบริการ', 3])],
         payNow: { date: TODAY, accountCode: ACC.bank },
       })
     );
     expect(wht.payment?.docNo).toBe('PV6910-0005');
     expect(wht.payment?.whtCertNo).toBe('WT6910-0004');
-    expect(wht.doc.whtCertNo).toBe('WT6910-0004');
+    expect(wht.payment?.whtItems).toEqual([{ incomeType: 'ค่าบริการ', rate: 3, base: 1000, tax: 30 }]);
+    expect(wht.doc.paid).toBe(true);
     expect(wht.payment?.netPaid).toBe(1040);
     expect(validateAccountingData(wht.state)).toEqual([]);
   });
@@ -411,7 +415,7 @@ describe('contacts and snapshots (A5)', () => {
     const somsri = next.contacts.find((c) => c.id === 'v-somsri');
     if (!somsri) throw new Error('fixture');
     next = upsertContact(next, { ...somsri, legalForm: 'juristic', name: 'เปลี่ยนชื่อ' });
-    const pnd3 = whtPayeesForPeriod(next.purchases, next.contacts, october, 'PND3');
+    const pnd3 = whtPayeesForPeriod(next, october, 'PND3');
     expect(pnd3.map((p) => p.contact.name).sort()).toEqual(['สมชาย', 'สมศรี']);
     expect(pnd3[0].contact.id).toMatch(/^v-/);
   });

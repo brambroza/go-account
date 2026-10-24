@@ -1,8 +1,9 @@
-import { inPeriod } from './thai-date';
 import { round2, sumBaht } from './money';
-import { isTaxDocument } from './sales-doc';
+import { purchaseVatMonth } from './purchase';
 import { calcDocument } from './document-calc';
 import { normalizeBranch5 } from './thai-tax-id';
+import { inPeriod, periodKey } from './thai-date';
+import { salesSign, isTaxDocument } from './sales-doc';
 import { resolveParty, partyDisplayName } from './snapshot';
 
 import type { Period } from './thai-date';
@@ -12,14 +13,19 @@ import type { Contact, SalesDoc, PurchaseDoc } from './types';
 
 export type VatReportRow = {
   id: string;
+  /** ขาย = วันที่เอกสาร, ซื้อ = วันที่ในใบกำกับของผู้ขาย */
   date: string;
+  /** ขาย = เลขที่เอกสาร, ซื้อ = เลขที่ใบกำกับของผู้ขาย */
   docNo: string;
+  /** ซื้อ: เลขที่เอกสารภายใน (PI) และวันที่บันทึก */
+  refDocNo?: string;
+  recordedDate?: string;
   contactName: string;
   taxId: string;
   branchNo: string;
   net: number;
   vat: number;
-  kind: 'tax-invoice' | 'credit-note' | 'purchase';
+  kind: 'tax-invoice' | 'credit-note' | 'debit-note' | 'purchase';
 };
 
 export function contactDisplayName(contact: Contact | undefined): string {
@@ -28,7 +34,7 @@ export function contactDisplayName(contact: Contact | undefined): string {
 }
 
 /**
- * รายงานภาษีขาย: ใบกำกับ (+) และใบลดหนี้ (−) ที่ออกในงวด
+ * รายงานภาษีขาย: ใบกำกับ (+), ใบเพิ่มหนี้ (+) และใบลดหนี้ (−) ที่ออกในงวด (ม.86/9, 86/10 — เข้าเดือนที่ออกเอกสาร)
  * ชื่อ/เลขผู้เสียภาษี/สาขา อ่านจาก snapshot ในเอกสาร — `contacts` ใช้เฉพาะเอกสารที่ไม่มี snapshot
  */
 export function salesVatReport(
@@ -42,7 +48,7 @@ export function salesVatReport(
     .sort((a, b) => (a.date + a.docNo).localeCompare(b.date + b.docNo))
     .map((d) => {
       const t = calcDocument(d);
-      const sign = d.kind === 'credit-note' ? -1 : 1;
+      const sign = salesSign(d);
       const party = resolveParty(d.buyer, byId.get(d.contactId));
       return {
         id: d.id,
@@ -58,23 +64,30 @@ export function salesVatReport(
     });
 }
 
-/** รายงานภาษีซื้อ: เฉพาะเอกสารที่มีใบกำกับเต็มรูปและเลือกขอคืน */
+/**
+ * รายงานภาษีซื้อ: เอกสารที่ขอคืนภาษีซื้อและเลือกใช้สิทธิในเดือนนี้ (`vatClaimPeriod` — ม.82/3)
+ * แสดงวันที่และเลขที่ตามใบกำกับของผู้ขาย พร้อมเลขที่ภายใน (PI)
+ */
 export function purchaseVatReport(
   purchases: PurchaseDoc[],
   contacts: Contact[],
   period: Period
 ): VatReportRow[] {
   const byId = new Map(contacts.map((c) => [c.id, c]));
+  const month = periodKey(period);
   return purchases
-    .filter((d) => d.claimVat && d.vatMode !== 'none' && inPeriod(d.date, period))
-    .sort((a, b) => (a.date + a.docNo).localeCompare(b.date + b.docNo))
-    .map((d) => {
+    .filter((d) => d.claimVat && d.vatMode !== 'none' && purchaseVatMonth(d) === month)
+    .map((d) => ({ d, invoiceDate: d.supplierInvoiceDate ?? d.date }))
+    .sort((a, b) => (a.invoiceDate + a.d.docNo).localeCompare(b.invoiceDate + b.d.docNo))
+    .map(({ d, invoiceDate }) => {
       const t = calcDocument(d);
       const party = resolveParty(d.supplier, byId.get(d.contactId));
       return {
         id: d.id,
-        date: d.date,
+        date: invoiceDate,
         docNo: d.supplierInvoiceNo || d.docNo,
+        refDocNo: d.docNo,
+        recordedDate: d.date,
         contactName: partyDisplayName(party),
         taxId: party?.taxId ?? '',
         branchNo: normalizeBranch5(party?.branchNo),

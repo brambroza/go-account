@@ -1,13 +1,14 @@
 import { ACC } from './chart-of-accounts';
+import { pp30ForPeriod } from './vat-close';
 import { calcDocument } from './document-calc';
+import { purchaseOutstanding } from './purchase';
 import { periodOf, shiftPeriod } from './thai-date';
 import { whtTotals, whtPayeesForPeriod } from './wht';
 import { arAging, balanceOf, trialBalance } from './ledger';
 import { round2, sumBaht, subBaht, toSatang } from './money';
-import { pp30Summary, salesVatReport, purchaseVatReport } from './vat-report';
 
 import type { ArAgingRow } from './ledger';
-import type { PP30Summary } from './vat-report';
+import type { PP30Full } from './vat-close';
 import type { ISODate, SalesDoc, PurchaseDoc, AccountingData } from './types';
 
 // ----------------------------------------------------------------------
@@ -21,19 +22,28 @@ function creditNotesOf(state: SalesState, invoiceId: string): SalesDoc[] {
   return state.sales.filter((s) => s.kind === 'credit-note' && s.refDocId === invoiceId);
 }
 
+function debitNotesOf(state: SalesState, invoiceId: string): SalesDoc[] {
+  return state.sales.filter((s) => s.kind === 'debit-note' && s.refDocId === invoiceId);
+}
+
 /** ยอดใบลดหนี้ทั้งหมด (รวม VAT) ที่อ้างถึงใบกำกับนี้ */
 export function creditedTotalOf(state: SalesState, invoice: SalesDoc): number {
   return sumBaht(creditNotesOf(state, invoice.id).map((s) => calcDocument(s).total));
 }
 
-/** ยอดที่ยังลดหนี้ได้ = ยอดใบกำกับ − ใบลดหนี้ก่อนหน้า (ลดได้แม้รับเงินแล้ว — ส่วนเกินตั้งเป็นเงินรอคืนลูกค้า) */
+/** ยอดใบเพิ่มหนี้ทั้งหมด (รวม VAT) ที่อ้างถึงใบกำกับนี้ */
+export function debitedTotalOf(state: SalesState, invoice: SalesDoc): number {
+  return sumBaht(debitNotesOf(state, invoice.id).map((s) => calcDocument(s).total));
+}
+
+/** ยอดที่ยังลดหนี้ได้ = ยอดใบกำกับ + ใบเพิ่มหนี้ − ใบลดหนี้ก่อนหน้า (ลดได้แม้รับเงินแล้ว — ส่วนเกินตั้งเป็นเงินรอคืนลูกค้า) */
 export function creditableOf(state: SalesState, invoice: SalesDoc): number {
   if (invoice.kind !== 'tax-invoice') return 0;
-  return subBaht(calcDocument(invoice).total, creditedTotalOf(state, invoice));
+  return subBaht(sumBaht([calcDocument(invoice).total, debitedTotalOf(state, invoice)]), creditedTotalOf(state, invoice));
 }
 
 /**
- * ยอดค้างชำระของใบกำกับ = ยอดรวม − รับชำระแล้ว − ส่วนของใบลดหนี้ที่ไปลดลูกหนี้
+ * ยอดค้างชำระของใบกำกับ = ยอดรวม + ใบเพิ่มหนี้ − รับชำระแล้ว − ส่วนของใบลดหนี้ที่ไปลดลูกหนี้
  * (ส่วนที่ตั้งเป็นเงินรอคืนลูกค้าไม่ลดลูกหนี้ซ้ำ จึงไม่ติดลบ)
  */
 export function outstandingOf(state: SalesState, doc: SalesDoc): number {
@@ -41,13 +51,33 @@ export function outstandingOf(state: SalesState, doc: SalesDoc): number {
   const appliedToAr = sumBaht(
     creditNotesOf(state, doc.id).map((s) => subBaht(calcDocument(s).total, s.creditToCustomer ?? 0))
   );
-  return round2(calcDocument(doc).total - doc.paidAmount - appliedToAr);
+  return round2(calcDocument(doc).total + debitedTotalOf(state, doc) - doc.paidAmount - appliedToAr);
 }
 
 /** ยอดมูลค่าก่อน VAT และ VAT ของใบลดหนี้ทั้งหมดที่อ้างถึงใบกำกับนี้ */
 export function creditedPartsOf(state: SalesState, invoice: SalesDoc): { net: number; vat: number } {
   const totals = creditNotesOf(state, invoice.id).map((s) => calcDocument(s));
   return { net: sumBaht(totals.map((t) => t.net)), vat: sumBaht(totals.map((t) => t.vat)) };
+}
+
+/**
+ * มูลค่าก่อน VAT และ VAT ของใบกำกับหลังปรับด้วยใบเพิ่มหนี้ (ยังไม่หักใบลดหนี้) — เพดานที่ใบลดหนี้รวมลดได้ (ม.86/10)
+ */
+export function invoiceCeilingOf(state: SalesState, invoice: SalesDoc): { net: number; vat: number } {
+  const base = calcDocument(invoice);
+  const debits = debitNotesOf(state, invoice.id).map((s) => calcDocument(s));
+  return {
+    net: sumBaht([base.net, ...debits.map((t) => t.net)]),
+    vat: sumBaht([base.vat, ...debits.map((t) => t.vat)]),
+  };
+}
+
+/**
+ * มูลค่าตามใบกำกับ ณ ตอนนี้ (ก่อน VAT) = ใบกำกับ + ใบเพิ่มหนี้ − ใบลดหนี้ ที่ออกไปแล้ว
+ * ใช้เป็น "มูลค่าตามใบกำกับเดิม" ของใบลดหนี้/ใบเพิ่มหนี้ใบถัดไป (ม.86/9, 86/10)
+ */
+export function currentNetOf(state: SalesState, invoice: SalesDoc): number {
+  return subBaht(invoiceCeilingOf(state, invoice).net, creditedPartsOf(state, invoice).net);
 }
 
 /** วันที่รับชำระครั้งล่าสุดของใบกำกับ (ไม่มีคืน undefined) */
@@ -85,8 +115,8 @@ export type DashboardStats = {
   overdue: ArAgingRow[];
   payable: number;
   unpaidPurchases: PurchaseDoc[];
-  /** ภ.พ.30 งวดปัจจุบัน */
-  pp30: PP30Summary;
+  /** ภ.พ.30 งวดปัจจุบัน (รวมยอดชำระเกินยกมา) */
+  pp30: PP30Full;
   /** ภาษีหัก ณ ที่จ่ายงวดก่อน (ภ.ง.ด.3 + 53) ที่ต้องนำส่ง */
   whtPrev: number;
   etaxWaiting: SalesDoc[];
@@ -105,19 +135,16 @@ export function dashboardStats(data: AccountingData, today: ISODate): DashboardS
   const unpaidPurchases = data.purchases.filter((p) => !p.paid);
   const prev = shiftPeriod(period, -1);
   const whtPrev = sumBaht([
-    whtTotals(whtPayeesForPeriod(data.purchases, data.contacts, prev, 'PND3')).tax,
-    whtTotals(whtPayeesForPeriod(data.purchases, data.contacts, prev, 'PND53')).tax,
+    whtTotals(whtPayeesForPeriod(data, prev, 'PND3')).tax,
+    whtTotals(whtPayeesForPeriod(data, prev, 'PND53')).tax,
   ]);
   return {
     cash: sumBaht([balanceOf(tb, ACC.bank), balanceOf(tb, ACC.cash)]),
     receivable: sumBaht(aging.map((a) => a.outstanding)),
     overdue: aging.filter((a) => a.daysOverdue > 0),
-    payable: sumBaht(unpaidPurchases.map((p) => calcDocument(p).total)),
+    payable: sumBaht(unpaidPurchases.map((p) => purchaseOutstanding(data, p))),
     unpaidPurchases,
-    pp30: pp30Summary(
-      salesVatReport(data.sales, data.contacts, period),
-      purchaseVatReport(data.purchases, data.contacts, period)
-    ),
+    pp30: pp30ForPeriod(data, period),
     whtPrev,
     etaxWaiting: data.sales.filter((s) => s.etax === 'pending-sign' || s.etax === 'signed'),
     badContacts: data.contacts.filter((c) => c.kind !== 'vendor' && !c.taxId),

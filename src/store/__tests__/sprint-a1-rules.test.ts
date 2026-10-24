@@ -1,4 +1,4 @@
-import type { Contact, AccountingData } from 'src/domain';
+import type { Contact, DocLine, AccountingData } from 'src/domain';
 
 import { ACC, toSatang, calcDocument, outstandingOf, customerCreditOf, purchaseVatReport } from 'src/domain';
 
@@ -26,16 +26,18 @@ function invoice(state: AccountingData, amount = 1000, date = D, vatMode: 'exclu
   return issueTaxInvoice(state, { date, dueDate: date, contactId: 'c-abc', vatMode, lines: [ln(1, amount)] });
 }
 
-function purchase(state: AccountingData, supplierInvoiceNo: string, extra: Partial<PurchaseInput> = {}) {
+type PurchaseExtra = Partial<Omit<PurchaseInput, 'lines'>> & { lines?: DocLine[]; wht?: [string, number] };
+
+function purchase(state: AccountingData, supplierInvoiceNo: string, { lines, wht, ...extra }: PurchaseExtra = {}) {
   return recordPurchase(state, {
     supplierInvoiceNo,
+    supplierInvoiceDate: D,
+    vatClaimPeriod: '2026-10',
     date: D,
     contactId: 'v-resin',
-    lines: [ln(1, 1000, ACC.cogs)],
+    lines: (lines ?? [ln(1, 1000, ACC.cogs)]).map((l) => ({ ...l, whtIncomeType: wht?.[0] ?? '', whtRate: wht?.[1] ?? 0 })),
     vatMode: 'exclusive',
     claimVat: true,
-    whtRate: 0,
-    whtIncomeType: '',
     whtCondition: '1',
     note: '',
     ...extra,
@@ -172,8 +174,8 @@ describe('T10 receipt WHT cap and deposit account', () => {
   });
 
   it('Z-soft purWht100: purchase WHT rate above 15% is rejected', () => {
-    expect(() => purchase(demo(), 'W100', { whtRate: 100, whtIncomeType: 'x' })).toThrow(/0–15%/);
-    expect(purchase(demo(), 'W10', { whtRate: 10, whtIncomeType: 'ค่าบริการ' }).doc.whtRate).toBe(10);
+    expect(() => purchase(demo(), 'W100', { wht: ['x', 100] })).toThrow(/0–15%/);
+    expect(purchase(demo(), 'W10', { wht: ['ค่าบริการ', 10] }).doc.lines[0].whtRate).toBe(10);
   });
 });
 

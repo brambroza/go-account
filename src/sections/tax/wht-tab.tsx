@@ -13,6 +13,9 @@ import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
 
+import { paths } from 'src/routes/paths';
+import { RouterLink } from 'src/routes/components';
+
 import { downloadText } from 'src/utils/download';
 
 import { useAccounting, useContactLookup } from 'src/store';
@@ -33,10 +36,7 @@ export function WhtTab({ form, period }: Props) {
   const contacts = useContactLookup();
   const [file, setFile] = useState<RdWhtFileResult | null>(null);
 
-  const payees = useMemo(
-    () => whtPayeesForPeriod(data.purchases, data.contacts, period, form),
-    [data.purchases, data.contacts, period, form]
-  );
+  const payees = useMemo(() => whtPayeesForPeriod(data, period, form), [data, period, form]);
   const totals = whtTotals(payees);
 
   const build = () => {
@@ -49,7 +49,7 @@ export function WhtTab({ form, period }: Props) {
     <Stack spacing={2.5}>
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2}>
         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          {form === 'PND3' ? 'ผู้รับเงินที่เป็นบุคคลธรรมดา' : 'ผู้รับเงินที่เป็นนิติบุคคล'} · นับตามวันที่จ่ายเงินจริง ·{' '}
+          {form === 'PND3' ? 'ผู้รับเงินที่เป็นบุคคลธรรมดา' : 'ผู้รับเงินที่เป็นนิติบุคคล'} · นับตามวันที่จ่ายเงินจริง (แบ่งจ่าย = แยกรายการต่อครั้ง) ·{' '}
           {totals.payees} ราย · เงินได้ <Money value={totals.amount} /> · ภาษี <Money value={totals.tax} sx={{ fontWeight: 600 }} />
         </Typography>
         <Button variant="contained" startIcon={<Iconify icon="solar:file-download-bold" />} onClick={build} disabled={!payees.length}>
@@ -84,12 +84,13 @@ export function WhtTab({ form, period }: Props) {
 
       {payees.length ? (
         <Scrollbar>
-          <Table size="small" sx={{ minWidth: 820 }}>
+          <Table size="small" sx={{ minWidth: 940 }}>
             <TableHead>
               <TableRow>
                 <TableCell>ผู้รับเงิน</TableCell>
                 <TableCell>เลขผู้เสียภาษี</TableCell>
                 <TableCell>วันที่จ่าย</TableCell>
+                <TableCell>ใบสำคัญจ่าย / 50 ทวิ</TableCell>
                 <TableCell>ประเภทเงินได้</TableCell>
                 <TableCell align="right">อัตรา</TableCell>
                 <TableCell align="right">เงินได้</TableCell>
@@ -99,10 +100,25 @@ export function WhtTab({ form, period }: Props) {
             <TableBody>
               {payees.flatMap((p) =>
                 p.items.map((item, i) => (
-                  <TableRow key={item.purchaseId}>
+                  <TableRow key={`${item.paymentId}-${item.incomeType}-${item.rate}`}>
                     <TableCell>{i === 0 ? contacts.name(p.contact.id) : ''}</TableCell>
                     <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>{i === 0 ? formatTaxId(p.contact.taxId) : ''}</TableCell>
                     <TableCell>{formatThaiDate(item.paidDate)}</TableCell>
+                    <TableCell>
+                      <Typography
+                        variant="body2"
+                        component={RouterLink}
+                        href={paths.purchases.payment(item.paymentId)}
+                        sx={{ color: 'inherit' }}
+                      >
+                        {item.docNo}
+                      </Typography>
+                      {item.certNo && (
+                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                          {item.certNo}
+                        </Typography>
+                      )}
+                    </TableCell>
                     <TableCell>{item.incomeType}</TableCell>
                     <TableCell align="right">{item.rate}%</TableCell>
                     <TableCell align="right">

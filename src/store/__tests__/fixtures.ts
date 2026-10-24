@@ -1,4 +1,4 @@
-import type { DocLine, AccountingData } from 'src/domain';
+import type { DocLine, PurchaseLine, AccountingData } from 'src/domain';
 
 import { ACC } from 'src/domain';
 
@@ -22,6 +22,11 @@ export function ln(qty: number, unitPrice: number, accountCode: string = ACC.sal
   return { id: `t-${seq}`, description: `รายการ ${seq}`, qty, unitPrice, discount, accountCode };
 }
 
+/** บรรทัดเอกสารซื้อ — `wht` = [ประเภทเงินได้, อัตรา] (ไม่ส่ง = ไม่หัก) */
+export function pln(qty: number, unitPrice: number, accountCode: string = ACC.misc, wht?: [string, number]): PurchaseLine {
+  return { ...ln(qty, unitPrice, accountCode), whtIncomeType: wht?.[0] ?? '', whtRate: wht?.[1] ?? 0 };
+}
+
 function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
   const copy = { ...obj };
   keys.forEach((k) => {
@@ -30,25 +35,63 @@ function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K
   return copy;
 }
 
-/** แปลงข้อมูล v2 กลับเป็นรูปแบบ v1 (ไม่มี snapshot / payments / refunds / WT) เพื่อทดสอบ migration */
+/**
+ * แปลงข้อมูลปัจจุบัน (v4) กลับเป็นโครง v3 — หัก ณ ที่จ่ายระดับเอกสาร + ข้อมูลการจ่ายครั้งเดียวในเอกสารซื้อ
+ * (ใช้ได้กับข้อมูลที่ทุกเอกสารซื้อมีหัก ณ ที่จ่ายประเภทเดียวและจ่ายครั้งเดียว เช่นข้อมูลตัวอย่าง)
+ */
+export function toV3(data: AccountingData): Record<string, unknown> {
+  const pvByPurchase = new Map(data.payments.map((p) => [p.purchaseId, p]));
+  return {
+    ...omit(data, ['vatCloses']),
+    version: 3,
+    accounts: data.accounts.filter((a) => a.code !== ACC.vatCredit),
+    sales: data.sales.map((s) => omit(s, ['originalNet', 'correctNet'])),
+    purchases: data.purchases.map((p) => {
+      const pv = pvByPurchase.get(p.id);
+      const withheld = p.lines.find((l) => l.whtRate > 0);
+      return {
+        ...omit(p, ['supplierInvoiceDate', 'vatClaimPeriod']),
+        lines: p.lines.map((l) => omit(l, ['whtIncomeType', 'whtRate'])),
+        whtRate: withheld?.whtRate ?? 0,
+        whtIncomeType: withheld?.whtIncomeType ?? '',
+        ...(pv
+          ? {
+              paidDate: pv.date,
+              paymentAccountCode: pv.accountCode,
+              paymentId: pv.id,
+              paymentDocNo: pv.docNo,
+              whtCertNo: pv.whtCertNo,
+              paymentJournalId: pv.journalId,
+            }
+          : {}),
+      };
+    }),
+    payments: data.payments.map((pv) => omit(pv, ['whtItems'])),
+  };
+}
+
+type V3Purchase = { id: string; whtCertNo?: string; paymentJournalId?: string; docNo: string };
+
+/** แปลงข้อมูลปัจจุบันกลับเป็นรูปแบบ v1 (ไม่มี snapshot / payments / refunds / WT) เพื่อทดสอบ migration */
 export function toV1(data: AccountingData): Record<string, unknown> {
+  const v3 = toV3(data) as { purchases: (V3Purchase & Record<string, unknown>)[] };
   const pvByPurchase = new Map(data.payments.map((p) => [p.purchaseId, p]));
   return {
     version: 1,
     company: { ...data.company },
-    accounts: data.accounts.filter((a) => a.code !== ACC.customerCredit),
+    accounts: data.accounts.filter((a) => a.code !== ACC.customerCredit && a.code !== ACC.vatCredit),
     contacts: data.contacts,
-    sales: data.sales.map((s) => omit(s, ['seller', 'buyer', 'isTaxInvoice', 'creditToCustomer'])),
+    sales: data.sales.map((s) => omit(s, ['seller', 'buyer', 'isTaxInvoice', 'creditToCustomer', 'originalNet', 'correctNet'])),
     receipts: data.receipts.map((r) => omit(r, ['seller', 'buyer'])),
-    purchases: data.purchases.map((p) => {
+    purchases: v3.purchases.map((p) => {
       const rest = omit(p, ['supplier', 'paymentId', 'paymentDocNo']);
-      const pv = pvByPurchase.get(rest.id);
+      const pv = pvByPurchase.get(p.id);
       // v1 ใช้เลข PV แทนเลข 50 ทวิ
-      return pv && rest.whtCertNo ? { ...rest, whtCertNo: pv.docNo.replace('PV', 'WT') } : rest;
+      return pv && p.whtCertNo ? { ...rest, whtCertNo: pv.docNo.replace('PV', 'WT') } : rest;
     }),
     journal: data.journal.map((e) => {
       if (e.source !== 'payment') return e;
-      const purchase = data.purchases.find((p) => p.paymentJournalId === e.id);
+      const purchase = v3.purchases.find((p) => p.paymentJournalId === e.id);
       return { ...e, sourceId: purchase?.id, sourceDocNo: purchase?.docNo };
     }),
     sequences: Object.fromEntries(Object.entries(data.sequences).filter(([k]) => !k.startsWith('WT'))),

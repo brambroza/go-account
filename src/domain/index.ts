@@ -12,6 +12,8 @@ export * from './etax-xml';
 
 export * from './snapshot';
 
+export * from './purchase';
+
 export * from './numbering';
 
 export * from './thai-date';
@@ -19,6 +21,10 @@ export * from './thai-date';
 export * from './sales-doc';
 
 export * from './integrity';
+
+export * from './baht-text';
+
+export * from './vat-close';
 
 export * from './duplicates';
 
@@ -30,9 +36,11 @@ export * from './rd-wht-file';
 
 export * from './thai-tax-id';
 
+
 export * from './receivables';
 
 export * from './document-calc';
 
-export * from './chart-of-accounts';
+export * from './wht-certificate';
 
+export * from './chart-of-accounts';

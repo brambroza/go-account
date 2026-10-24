@@ -78,8 +78,8 @@ export function VatReportTab({ rows, period, kind }: Props) {
             <TableHead>
               <TableRow>
                 <TableCell sx={{ width: 48 }}>ลำดับ</TableCell>
-                <TableCell>วันที่</TableCell>
-                <TableCell>เลขที่</TableCell>
+                <TableCell>{kind === 'sales' ? 'วันที่' : 'วันที่ใบกำกับ'}</TableCell>
+                <TableCell>{kind === 'sales' ? 'เลขที่' : 'เลขที่ใบกำกับผู้ขาย'}</TableCell>
                 <TableCell>{kind === 'sales' ? 'ชื่อผู้ซื้อ' : 'ชื่อผู้ขาย'}</TableCell>
                 <TableCell>เลขผู้เสียภาษี</TableCell>
                 <TableCell>สาขา</TableCell>
@@ -97,6 +97,16 @@ export function VatReportTab({ rows, period, kind }: Props) {
                     {r.kind === 'credit-note' && (
                       <Typography variant="caption" sx={{ display: 'block', color: 'error.main' }}>
                         ใบลดหนี้
+                      </Typography>
+                    )}
+                    {r.kind === 'debit-note' && (
+                      <Typography variant="caption" sx={{ display: 'block', color: 'info.main' }}>
+                        ใบเพิ่มหนี้
+                      </Typography>
+                    )}
+                    {r.refDocNo && (
+                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                        {r.refDocNo} · บันทึก {formatThaiDate(r.recordedDate)}
                       </Typography>
                     )}
                   </TableCell>

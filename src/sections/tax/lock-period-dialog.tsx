@@ -1,7 +1,7 @@
 import type { LockPeriodSchemaType } from 'src/schemas/accounting/doc-schemas';
 
-import { useState, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import Stack from '@mui/material/Stack';
@@ -18,7 +18,15 @@ import { useBoolean } from 'src/hooks/use-boolean';
 
 import { lockPeriod, useAccounting } from 'src/store';
 import { monthEndOf, makeLockPeriodSchema } from 'src/schemas/accounting/doc-schemas';
-import { addDays, periodOf, todayISO, periodLabel, formatThaiDate, endOfPreviousMonth } from 'src/domain';
+import {
+  addDays,
+  periodOf,
+  todayISO,
+  periodLabel,
+  periodFromKey,
+  formatThaiDate,
+  endOfPreviousMonth,
+} from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
@@ -66,6 +74,17 @@ export function LockPeriodDialog({ open, onClose }: Props) {
   const etaxWaiting = preview
     ? data.sales.filter((s) => s.date <= preview && (s.etax === 'pending-sign' || s.etax === 'signed')).length
     : 0;
+
+  // รายการปิดภาษีเดือนที่จะเกิดขึ้น — จำลองด้วย action เดียวกัน (pure) เพื่อแสดงก่อนยืนยัน
+  const vatPreview = useMemo(() => {
+    if (!through) return [];
+    try {
+      const next = lockPeriod(data, through);
+      return next.vatCloses.slice(data.vatCloses.length);
+    } catch {
+      return [];
+    }
+  }, [data, through]);
 
   const onReview = handleSubmit((values) => {
     setThrough(monthEndOf(values.month.slice(0, 10)));
@@ -143,9 +162,13 @@ export function LockPeriodDialog({ open, onClose }: Props) {
                 { label: 'ปิดถึงวันที่', value: formatThaiDate(through) },
                 { label: 'งวดล่าสุดที่ปิด', value: `เดือน${periodLabel(periodOf(through))}` },
                 { label: 'เดิมปิดถึง', value: current ? formatThaiDate(current) : '-' },
+                ...vatPreview.map((c) => ({
+                  label: `ปิดภาษีเดือน${periodLabel(periodFromKey(c.period))}`,
+                  value: c.payable > 0 ? `ชำระ ${c.payable.toFixed(2)} บาท` : `ชำระเกินยกไป ${c.carriedForward.toFixed(2)} บาท`,
+                })),
               ]}
               severity="error"
-              note={`หลังปิด จะออกเอกสาร รับชำระ จ่ายชำระ ลดหนี้ หรือลงรายการปรับปรุงที่ลงวันที่ถึง ${formatThaiDate(through)} ไม่ได้ และเลื่อนวันปิดงวดย้อนกลับไม่ได้`}
+              note={`หลังปิด จะออกเอกสาร รับชำระ จ่ายชำระ ลด/เพิ่มหนี้ ใช้สิทธิภาษีซื้อในเดือนที่ปิด หรือลงรายการปรับปรุงที่ลงวันที่ถึง ${formatThaiDate(through)} ไม่ได้ และเลื่อนวันปิดงวดย้อนกลับไม่ได้${vatPreview.length ? ' — ระบบจะลงรายการปิดภาษีเดือน (Dr ภาษีขาย / Cr ภาษีซื้อ → VAT ค้างจ่าย หรือภาษีชำระเกินยกไป) ณ วันสิ้นเดือนให้' : ''}`}
             />
           )
         }

@@ -14,8 +14,10 @@ const SalesListPage = lazy(() => import('src/pages/sales/list'));
 const SalesNewPage = lazy(() => import('src/pages/sales/new'));
 const SalesDetailPage = lazy(() => import('src/pages/sales/detail'));
 const CreditNotePage = lazy(() => import('src/pages/sales/credit-note'));
+const DebitNotePage = lazy(() => import('src/pages/sales/debit-note'));
 const PurchaseListPage = lazy(() => import('src/pages/purchases/list'));
 const PurchaseNewPage = lazy(() => import('src/pages/purchases/new'));
+const PaymentPage = lazy(() => import('src/pages/purchases/payment'));
 const ContactsPage = lazy(() => import('src/pages/contacts'));
 const TaxPage = lazy(() => import('src/pages/tax'));
 const LedgerPage = lazy(() => import('src/pages/ledger'));
@@ -47,6 +49,7 @@ export function Router() {
             { path: 'new', element: <SalesNewPage /> },
             { path: ':id', element: <SalesDetailPage /> },
             { path: ':id/credit-note', element: <CreditNotePage /> },
+            { path: ':id/debit-note', element: <DebitNotePage /> },
           ],
         },
         {
@@ -54,6 +57,7 @@ export function Router() {
           children: [
             { index: true, element: <PurchaseListPage /> },
             { path: 'new', element: <PurchaseNewPage /> },
+            { path: 'payments/:id', element: <PaymentPage /> },
           ],
         },
         { path: 'contacts', element: <ContactsPage /> },

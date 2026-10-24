@@ -11,6 +11,10 @@ export const DOC_PREFIX = {
   creditNote: 'CN',
   /** ใบลดหนี้ของบริษัทที่ไม่จด VAT */
   creditMemo: 'CM',
+  /** ใบเพิ่มหนี้ ม.86/9 (ผู้จด VAT) */
+  debitNote: 'DN',
+  /** ใบเพิ่มหนี้ของบริษัทที่ไม่จด VAT (ไม่ใช่เอกสารภาษี) */
+  debitMemo: 'DM',
   receipt: 'RE',
   purchase: 'PI',
   payment: 'PV',
@@ -25,10 +29,11 @@ export type DocPrefix = (typeof DOC_PREFIX)[keyof typeof DOC_PREFIX];
 
 /**
  * prefix ที่วันที่ต้องไม่ถอยหลังจากเอกสารใบก่อน (เลขที่เรียงตามวันที่)
- * ยกเว้น PI — วันที่ซื้อคือวันที่ในใบกำกับผู้ขายซึ่งมาถึงไม่เรียงกัน (รอ B3 แยก supplierInvoiceDate)
- * และ JV — เลขภายในของสมุดรายวัน ออกตามลำดับการบันทึก
+ * PI เรียงตามวันที่ด้วยตั้งแต่ข้อมูล v4: วันที่เอกสารซื้อคือ "วันที่บันทึก" ส่วนวันที่ในใบกำกับผู้ขาย
+ * (ซึ่งมาถึงไม่เรียงกัน) แยกเป็น `supplierInvoiceDate` และเดือนใช้สิทธิภาษีซื้อเป็น `vatClaimPeriod`
+ * ยกเว้น JV — เลขภายในของสมุดรายวัน ออกตามลำดับการบันทึก (รวมรายการปิดภาษีเดือนที่ลงวันสิ้นเดือน)
  */
-export const DATE_ORDERED_PREFIXES: readonly DocPrefix[] = ['IV', 'BL', 'CN', 'CM', 'RE', 'PV', 'WT', 'RF'];
+export const DATE_ORDERED_PREFIXES: readonly DocPrefix[] = ['IV', 'BL', 'CN', 'CM', 'DN', 'DM', 'RE', 'PI', 'PV', 'WT', 'RF'];
 
 const DOC_NO_PATTERN = /^([A-Z]{2})(\d{4})-(\d{4,})$/;
 

@@ -19,16 +19,27 @@ const NS_RSM = 'urn:etda:uncefact:data:standard:TaxInvoice_CrossIndustryInvoice:
 const NS_RAM =
   'urn:etda:uncefact:data:standard:TaxInvoice_ReusableAggregateBusinessInformationEntity:2';
 
-/** รหัสประเภทเอกสาร ETDA */
+/**
+ * รหัสประเภทเอกสาร ETDA (ขมธอ.3-2560 ตารางรหัสประเภทเอกสาร): 388 ใบกำกับภาษี, 81 ใบลดหนี้, 80 ใบเพิ่มหนี้
+ * ⚠️ รหัส 80 ตรวจกับตาราง ETDA ฉบับล่าสุดก่อนใช้งานจริง
+ */
 export const ETAX_TYPE_CODE = {
   'tax-invoice': '388',
   'credit-note': '81',
+  'debit-note': '80',
 } as const;
 
 const ETAX_TYPE_NAME = {
   'tax-invoice': 'ใบกำกับภาษี',
   'credit-note': 'ใบลดหนี้',
+  'debit-note': 'ใบเพิ่มหนี้',
 } as const;
+
+/**
+ * รหัสเหตุผลการออกใบลด/เพิ่มหนี้ — ใช้ "เหตุอื่น" ของสินค้า (CDNG99 / DBNG99) พร้อมข้อความเหตุผลจริงใน Purpose
+ * ⚠️ ตรวจรหัสกับตาราง ETDA ก่อนใช้งานจริง (มีรหัสแยกสินค้า/บริการ เช่น CDNS99, DBNS99)
+ */
+const ETAX_PURPOSE_CODE = { 'credit-note': 'CDNG99', 'debit-note': 'DBNG99' } as const;
 
 export function escapeXml(value: string | number | undefined): string {
   return String(value ?? '')
@@ -88,7 +99,7 @@ export type ETaxXmlInput = {
   company: Company;
   /** ใช้เมื่อเอกสารไม่มี snapshot ผู้ซื้อ (`doc.buyer`) */
   buyer?: Contact;
-  /** ใบลดหนี้: ใบกำกับเดิม */
+  /** ใบลดหนี้/ใบเพิ่มหนี้: ใบกำกับเดิม */
   referenced?: SalesDoc;
   /** เวลาสร้างไฟล์ (ISO) */
   createdAt?: string;
@@ -130,8 +141,9 @@ export function buildETaxXml({ doc, company, buyer, referenced, createdAt }: ETa
     })
     .join('');
 
+  const adjustment = doc.kind === 'credit-note' || doc.kind === 'debit-note' ? doc.kind : null;
   const referencedXml =
-    doc.kind === 'credit-note' && referenced
+    adjustment && referenced
       ? [
           '<ram:AdditionalReferencedDocument>',
           el('IssuerAssignedID', referenced.docNo),
@@ -141,11 +153,13 @@ export function buildETaxXml({ doc, company, buyer, referenced, createdAt }: ETa
         ].join('')
       : '';
 
-  const purposeXml =
-    doc.kind === 'credit-note'
-      ? // CDNG99 = ลดหนี้ด้วยเหตุอื่น (สินค้า) — ตรวจรหัสเหตุผลกับตาราง ETDA ก่อนใช้งานจริง
-        `${el('Purpose', doc.reason || 'ลดหนี้')}${el('PurposeCode', 'CDNG99')}`
-      : '';
+  const purposeXml = adjustment
+    ? `${el('Purpose', doc.reason || ETAX_TYPE_NAME[adjustment])}${el('PurposeCode', ETAX_PURPOSE_CODE[adjustment])}`
+    : '';
+
+  // ม.86/9, 86/10: มูลค่าตามใบกำกับเดิม / ผลต่าง (ก่อน VAT) — ⚠️ ตรวจลำดับ element กับ XSD ของ ETDA
+  const originalXml = adjustment ? el('OriginalInformationAmount', formatPlain(doc.originalNet ?? 0)) : '';
+  const differenceXml = adjustment ? el('DifferenceInformationAmount', formatPlain(t.net)) : '';
 
   const sellerAddressName = seller.name;
 
@@ -189,7 +203,9 @@ export function buildETaxXml({ doc, company, buyer, referenced, createdAt }: ETa
     '</ram:ApplicableTradeTax>',
     `<ram:SpecifiedTradePaymentTerms>${el('DueDateDateTime', `${doc.dueDate}T00:00:00`)}</ram:SpecifiedTradePaymentTerms>`,
     '<ram:SpecifiedTradeSettlementHeaderMonetarySummation>',
+    originalXml,
     el('LineTotalAmount', formatPlain(t.gross)),
+    differenceXml,
     el('TaxBasisTotalAmount', formatPlain(t.net)),
     el('TaxTotalAmount', formatPlain(t.vat)),
     el('GrandTotalAmount', formatPlain(t.total)),
