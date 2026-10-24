@@ -18,6 +18,7 @@ import { paths } from 'src/routes/paths';
 import { useParams } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
+import { usePermissions } from 'src/auth';
 import { useAccounting, useAccountLookup, useContactLookup } from 'src/store';
 import {
   sumBaht,
@@ -73,6 +74,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 export function PurchaseDetailView() {
   const { id = '' } = useParams();
   const { data } = useAccounting();
+  const { canWrite } = usePermissions();
   const contacts = useContactLookup();
   const accounts = useAccountLookup();
   const [paying, setPaying] = useState(false);
@@ -127,7 +129,7 @@ export function PurchaseDetailView() {
         ]}
         action={
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {canCredit && (
+            {canWrite && canCredit && (
               <Button
                 component={RouterLink}
                 href={paths.purchases.creditNote(doc.id)}
@@ -138,12 +140,12 @@ export function PurchaseDetailView() {
                 บันทึกใบลดหนี้จากผู้ขาย
               </Button>
             )}
-            {toSatang(refundDue) > 0 && (
+            {canWrite && toSatang(refundDue) > 0 && (
               <Button variant="outlined" color="warning" startIcon={<Iconify icon="solar:hand-money-bold" />} onClick={() => setRefunding(true)}>
                 รับเงินคืนจากผู้ขาย
               </Button>
             )}
-            {toSatang(outstanding) > 0 && (
+            {canWrite && toSatang(outstanding) > 0 && (
               <Button variant="contained" startIcon={<Iconify icon="solar:hand-money-bold" />} onClick={() => setPaying(true)}>
                 จ่ายชำระ
               </Button>

@@ -20,6 +20,7 @@ import { useSearchParams } from 'src/routes/hooks';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
+import { CanWrite } from 'src/auth';
 import { useAccounting, useContactLookup } from 'src/store';
 import { toSatang, formatTaxId, branchLabel, isValidThaiTaxId, customerCreditOf, supplierRefundDueOf } from 'src/domain';
 
@@ -85,14 +86,16 @@ export function ContactsView() {
         heading="ลูกค้า / ผู้ขาย"
         links={[{ name: 'หน้าแรก', href: paths.dashboard }, { name: 'ลูกค้า / ผู้ขาย' }]}
         action={
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" startIcon={<Iconify icon="solar:import-bold" />} onClick={importDialog.onTrue}>
-              นำเข้า CSV
-            </Button>
-            <Button variant="contained" startIcon={<Iconify icon="mingcute:add-line" />} onClick={openNew}>
-              เพิ่ม
-            </Button>
-          </Stack>
+          <CanWrite>
+            <Stack direction="row" spacing={1}>
+              <Button variant="outlined" startIcon={<Iconify icon="solar:import-bold" />} onClick={importDialog.onTrue}>
+                นำเข้า CSV
+              </Button>
+              <Button variant="contained" startIcon={<Iconify icon="mingcute:add-line" />} onClick={openNew}>
+                เพิ่ม
+              </Button>
+            </Stack>
+          </CanWrite>
         }
         sx={{ mb: { xs: 3, md: 4 } }}
       />
@@ -156,30 +159,36 @@ export function ContactsView() {
                       {toSatang(credit) > 0 && (
                         <Stack alignItems="flex-end" spacing={0.5}>
                           <Money value={credit} sx={{ color: 'warning.main' }} />
-                          <Button size="small" variant="soft" color="warning" onClick={() => setRefundFor(c.id)}>
-                            คืนเงินลูกค้า
-                          </Button>
+                          <CanWrite>
+                            <Button size="small" variant="soft" color="warning" onClick={() => setRefundFor(c.id)}>
+                              คืนเงินลูกค้า
+                            </Button>
+                          </CanWrite>
                         </Stack>
                       )}
                       {toSatang(supplierDue) > 0 && (
                         <Stack alignItems="flex-end" spacing={0.5} sx={{ mt: toSatang(credit) > 0 ? 1 : 0 }}>
                           <Money value={supplierDue} sx={{ color: 'info.main' }} />
-                          <Button size="small" variant="soft" color="info" onClick={() => setSupplierRefundFor(c.id)}>
-                            รับเงินคืนจากผู้ขาย
-                          </Button>
+                          <CanWrite>
+                            <Button size="small" variant="soft" color="info" onClick={() => setSupplierRefundFor(c.id)}>
+                              รับเงินคืนจากผู้ขาย
+                            </Button>
+                          </CanWrite>
                         </Stack>
                       )}
                     </TableCell>
                     <TableCell align="right">
-                      <IconButton
-                        aria-label={`แก้ไข ${c.code}`}
-                        onClick={() => {
-                          setEditing(c);
-                          dialog.onTrue();
-                        }}
-                      >
-                        <Iconify icon="solar:pen-bold" />
-                      </IconButton>
+                      <CanWrite>
+                        <IconButton
+                          aria-label={`แก้ไข ${c.code}`}
+                          onClick={() => {
+                            setEditing(c);
+                            dialog.onTrue();
+                          }}
+                        >
+                          <Iconify icon="solar:pen-bold" />
+                        </IconButton>
+                      </CanWrite>
                     </TableCell>
                   </TableRow>
                 );

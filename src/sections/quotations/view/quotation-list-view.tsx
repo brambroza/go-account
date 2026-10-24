@@ -19,6 +19,7 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
+import { CanWrite } from 'src/auth';
 import { useAccounting, useContactLookup } from 'src/store';
 import { todayISO, formatThaiDate, quotationTotals, quotationStatusOf, quotationValidUntil } from 'src/domain';
 
@@ -106,9 +107,11 @@ export function QuotationListView() {
         heading="ใบเสนอราคา"
         links={[{ name: 'หน้าแรก', href: paths.dashboard }, { name: 'ใบเสนอราคา' }]}
         action={
-          <Button component={RouterLink} href={paths.quotations.new} variant="contained" startIcon={<Iconify icon="mingcute:add-line" />}>
-            สร้างใบเสนอราคา
-          </Button>
+          <CanWrite>
+            <Button component={RouterLink} href={paths.quotations.new} variant="contained" startIcon={<Iconify icon="mingcute:add-line" />}>
+              สร้างใบเสนอราคา
+            </Button>
+          </CanWrite>
         }
         sx={{ mb: { xs: 3, md: 4 } }}
       />

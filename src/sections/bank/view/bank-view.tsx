@@ -19,6 +19,7 @@ import { RouterLink } from 'src/routes/components';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
+import { CanWrite, usePermissions } from 'src/auth';
 import { useAccounting, useContactLookup, useCashAccountOptions } from 'src/store';
 import { ACC, todayISO, cashBalanceOf, formatThaiDate, BANK_KIND_LABEL, bankAccountSummary } from 'src/domain';
 
@@ -50,6 +51,7 @@ function bankDetailLine(accountName: string, bank: { bankName: string; accountNo
 /** ภาพรวมบัญชีเงิน: ยอดคงเหลือต่อบัญชี, โอนเงินระหว่างบัญชี, เงินสดย่อย (จ่าย/เบิกชดเชย), ทางเข้าไปกระทบยอด */
 export function BankView() {
   const { data } = useAccounting();
+  const { canWrite } = usePermissions();
   const contacts = useContactLookup();
   const cashAccounts = useCashAccountOptions();
   const today = todayISO();
@@ -84,21 +86,23 @@ export function BankView() {
         heading="ธนาคาร / เงินสดย่อย"
         links={[{ name: 'หน้าแรก', href: paths.dashboard }, { name: 'ธนาคาร / เงินสด' }]}
         action={
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Button variant="outlined" startIcon={<Iconify icon="solar:transfer-horizontal-bold" />} onClick={() => openTransfer()}>
-              โอนเงินระหว่างบัญชี
-            </Button>
-            <Button
-              variant="contained"
-              startIcon={<Iconify icon="mingcute:add-line" />}
-              onClick={() => {
-                setEditing(null);
-                accountDialog.onTrue();
-              }}
-            >
-              เพิ่มบัญชี
-            </Button>
-          </Stack>
+          <CanWrite>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <Button variant="outlined" startIcon={<Iconify icon="solar:transfer-horizontal-bold" />} onClick={() => openTransfer()}>
+                โอนเงินระหว่างบัญชี
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<Iconify icon="mingcute:add-line" />}
+                onClick={() => {
+                  setEditing(null);
+                  accountDialog.onTrue();
+                }}
+              >
+                เพิ่มบัญชี
+              </Button>
+            </Stack>
+          </CanWrite>
         }
         sx={{ mb: { xs: 3, md: 4 } }}
       />
@@ -134,7 +138,7 @@ export function BankView() {
                     กระทบยอด
                   </Button>
                 )}
-                {bank?.kind === 'petty-cash' && (
+                {canWrite && bank?.kind === 'petty-cash' && (
                   <>
                     <Button
                       size="small"
@@ -151,7 +155,7 @@ export function BankView() {
                     </Button>
                   </>
                 )}
-                {bank && (
+                {canWrite && bank && (
                   <Button
                     size="small"
                     color="inherit"

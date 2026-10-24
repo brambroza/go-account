@@ -12,6 +12,7 @@ import Typography from '@mui/material/Typography';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
+import { CanWrite } from 'src/auth';
 import { useAccounting, useContactLookup } from 'src/store';
 import {
   sumBaht,
@@ -129,14 +130,16 @@ export function DashboardView() {
             {formatThaiDateShort(today)} · {data.company.name}
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1}>
-          <Button component={RouterLink} href={paths.sales.new} variant="contained" startIcon={<Iconify icon="mingcute:add-line" />}>
-            {data.company.vatRegistered ? 'ออกใบกำกับภาษี' : 'ออกใบแจ้งหนี้'}
-          </Button>
-          <Button component={RouterLink} href={paths.purchases.new} variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />}>
-            บันทึกค่าใช้จ่าย
-          </Button>
-        </Stack>
+        <CanWrite>
+          <Stack direction="row" spacing={1}>
+            <Button component={RouterLink} href={paths.sales.new} variant="contained" startIcon={<Iconify icon="mingcute:add-line" />}>
+              {data.company.vatRegistered ? 'ออกใบกำกับภาษี' : 'ออกใบแจ้งหนี้'}
+            </Button>
+            <Button component={RouterLink} href={paths.purchases.new} variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />}>
+              บันทึกค่าใช้จ่าย
+            </Button>
+          </Stack>
+        </CanWrite>
       </Stack>
 
       <Box sx={{ display: 'grid', gap: 2, mb: 3, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' } }}>

@@ -14,6 +14,7 @@ import Typography from '@mui/material/Typography';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
+import { CanWrite } from 'src/auth';
 import { useAccounting, useContactLookup } from 'src/store';
 import {
   hasWht,
@@ -100,9 +101,11 @@ export function PurchaseListView() {
         heading="ซื้อ / ค่าใช้จ่าย"
         links={[{ name: 'หน้าแรก', href: paths.dashboard }, { name: 'ซื้อ / ค่าใช้จ่าย' }]}
         action={
-          <Button component={RouterLink} href={paths.purchases.new} variant="contained" startIcon={<Iconify icon="mingcute:add-line" />}>
-            บันทึกซื้อ / ค่าใช้จ่าย
-          </Button>
+          <CanWrite>
+            <Button component={RouterLink} href={paths.purchases.new} variant="contained" startIcon={<Iconify icon="mingcute:add-line" />}>
+              บันทึกซื้อ / ค่าใช้จ่าย
+            </Button>
+          </CanWrite>
         }
         sx={{ mb: { xs: 3, md: 4 } }}
       />

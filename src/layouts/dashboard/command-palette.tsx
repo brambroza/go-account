@@ -12,6 +12,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
+import { usePermissions } from 'src/auth';
 import { useAccounting, useContactLookup } from 'src/store';
 import { todayISO, receiptTitle, salesDocTitle, quotationStatusOf, QUOTATION_STATUS_LABEL } from 'src/domain';
 
@@ -28,13 +29,15 @@ type Props = { open: boolean; onClose: () => void };
 export function CommandPalette({ open, onClose }: Props) {
   const router = useRouter();
   const { data } = useAccounting();
+  const { canWrite } = usePermissions();
   const contacts = useContactLookup();
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
 
   const results = useMemo<Result[]>(() => {
     const q = query.trim().toLowerCase();
-    const menus = [...QUICK_ACTIONS, ...NAV.flatMap((s) => s.items)].map((m) => ({
+    // viewer: ไม่มีเมนูลัดสร้างเอกสาร (หน้าบันทึกถูกกันที่ route อยู่แล้ว)
+    const menus = [...(canWrite ? QUICK_ACTIONS : []), ...NAV.flatMap((s) => s.items)].map((m) => ({
       key: `m-${m.path}`,
       title: m.title,
       caption: 'เมนู',
@@ -131,6 +134,7 @@ export function CommandPalette({ open, onClose }: Props) {
       .slice(0, 12);
   }, [
     query,
+    canWrite,
     data.sales,
     data.quotations,
     data.receipts,

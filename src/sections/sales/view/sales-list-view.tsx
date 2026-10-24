@@ -17,6 +17,7 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
+import { CanWrite } from 'src/auth';
 import { outstandingOf, useAccounting, useContactLookup } from 'src/store';
 import { todayISO, salesSign, calcDocument, isTaxDocument, salesDocTitle, formatThaiDate } from 'src/domain';
 
@@ -122,14 +123,11 @@ export function SalesListView() {
         heading={vatRegistered ? 'ขาย / ใบกำกับภาษี' : 'ขาย / ใบแจ้งหนี้'}
         links={[{ name: 'หน้าแรก', href: paths.dashboard }, { name: 'ขาย' }]}
         action={
-          <Button
-            component={RouterLink}
-            href={paths.sales.new}
-            variant="contained"
-            startIcon={<Iconify icon="mingcute:add-line" />}
-          >
-            {vatRegistered ? 'ออกใบกำกับภาษี' : 'ออกใบแจ้งหนี้'}
-          </Button>
+          <CanWrite>
+            <Button component={RouterLink} href={paths.sales.new} variant="contained" startIcon={<Iconify icon="mingcute:add-line" />}>
+              {vatRegistered ? 'ออกใบกำกับภาษี' : 'ออกใบแจ้งหนี้'}
+            </Button>
+          </CanWrite>
         }
         sx={{ mb: { xs: 3, md: 4 } }}
       />

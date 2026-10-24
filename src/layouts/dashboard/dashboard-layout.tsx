@@ -28,6 +28,7 @@ import { downloadBackup } from 'src/sections/settings/backup';
 import { ResetDemoDialog } from 'src/sections/settings/reset-demo-dialog';
 
 import { NavContent } from './nav-content';
+import { AccountMenu } from './account-menu';
 import { CommandPalette } from './command-palette';
 
 // ----------------------------------------------------------------------
@@ -42,7 +43,7 @@ export function DashboardLayout({ children }: Props) {
   const mobileNav = useBoolean();
   const search = useBoolean();
   const resetConfirm = useBoolean();
-  const { data, problems, storageError, externalChangeAt, readOnly } = useAccounting();
+  const { data, problems, storageError, externalChangeAt, readOnly, canUseLocalTools } = useAccounting();
 
   // แท็บอื่นแก้ข้อมูล → store โหลดล่าสุดให้แล้ว แจ้งผู้ใช้ครั้งเดียวต่อการเปลี่ยน
   const lastExternal = useRef(externalChangeAt);
@@ -135,14 +136,17 @@ export function DashboardLayout({ children }: Props) {
 
           <Box sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }} />
 
-          <Tooltip title="ข้อมูลทั้งหมดเก็บในเบราว์เซอร์นี้ — กดเพื่อล้างและสร้างข้อมูลตัวอย่างใหม่ (ต้องยืนยัน)">
-            <ButtonBase onClick={resetConfirm.onTrue} sx={{ borderRadius: 0.75, flexShrink: 0 }}>
-              <Label variant="soft" color="warning" sx={{ cursor: 'pointer' }}>
-                ข้อมูลตัวอย่าง
-              </Label>
-            </ButtonBase>
-          </Tooltip>
+          {canUseLocalTools && (
+            <Tooltip title="ข้อมูลทั้งหมดเก็บในเบราว์เซอร์นี้ — กดเพื่อล้างและสร้างข้อมูลตัวอย่างใหม่ (ต้องยืนยัน)">
+              <ButtonBase onClick={resetConfirm.onTrue} sx={{ borderRadius: 0.75, flexShrink: 0 }}>
+                <Label variant="soft" color="warning" sx={{ cursor: 'pointer' }}>
+                  ข้อมูลตัวอย่าง
+                </Label>
+              </ButtonBase>
+            </Tooltip>
+          )}
           <SettingsButton />
+          {!canUseLocalTools && <AccountMenu />}
         </Stack>
 
         <Box component="main" sx={{ flexGrow: 1, px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 } }}>
@@ -184,7 +188,7 @@ export function DashboardLayout({ children }: Props) {
 
       <CommandPalette open={search.value} onClose={search.onFalse} />
 
-      <ResetDemoDialog open={resetConfirm.value} onClose={resetConfirm.onFalse} />
+      {canUseLocalTools && <ResetDemoDialog open={resetConfirm.value} onClose={resetConfirm.onFalse} />}
     </Box>
   );
 }
