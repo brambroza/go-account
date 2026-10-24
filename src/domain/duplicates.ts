@@ -1,7 +1,7 @@
 import { resolveParty } from './snapshot';
 import { normalizeBranch5 } from './thai-tax-id';
 
-import type { Contact, PurchaseDoc } from './types';
+import type { Contact, PurchaseDoc, PurchaseCreditNote } from './types';
 
 // ----------------------------------------------------------------------
 // ตรวจใบกำกับผู้ขายซ้ำ (กันขอคืนภาษีซื้อใบเดียวสองครั้ง) และผู้ติดต่อที่เลขผู้เสียภาษีซ้ำ
@@ -53,6 +53,26 @@ export function findDuplicatePurchase(
     if (normalizeInvoiceNo(p.supplierInvoiceNo) !== invoiceNo) return false;
     if (p.contactId === input.contactId) return true;
     return supplierKey(p.contactId, resolveParty(p.supplier, byId.get(p.contactId))) === key;
+  });
+}
+
+/**
+ * หาใบลดหนี้จากผู้ขายที่บันทึกแล้วด้วยเลขที่เดียวกัน (หลัง normalize) ของผู้ขายเดียวกัน —
+ * ผู้ติดต่อเดียวกัน หรือผู้ติดต่ออื่นที่เลขผู้เสียภาษี + สาขาเดียวกัน (U12: กันลดภาษีซื้อซ้ำผ่านผู้ติดต่ออีกรายการ)
+ */
+export function findDuplicateSupplierCredit(
+  credits: PurchaseCreditNote[],
+  contacts: Contact[],
+  input: { contactId: string; supplierCreditNoteNo: string; party?: { taxId?: string; branchNo?: string } }
+): PurchaseCreditNote | undefined {
+  const no = normalizeInvoiceNo(input.supplierCreditNoteNo);
+  if (!no) return undefined;
+  const byId = new Map(contacts.map((c) => [c.id, c]));
+  const key = supplierKey(input.contactId, input.party ?? byId.get(input.contactId));
+  return credits.find((c) => {
+    if (normalizeInvoiceNo(c.supplierCreditNoteNo) !== no) return false;
+    if (c.contactId === input.contactId) return true;
+    return supplierKey(c.contactId, resolveParty(c.supplier, byId.get(c.contactId))) === key;
   });
 }
 

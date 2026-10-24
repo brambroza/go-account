@@ -290,8 +290,15 @@ export type Payment = {
 };
 
 /**
+ * บรรทัดใบลดหนี้จากผู้ขาย — `purchaseLineId` = บรรทัดของเอกสารซื้อที่ลด (ฐานหัก ณ ที่จ่ายลดเฉพาะบรรทัดนั้น)
+ * ไม่ระบุ = จับคู่ตามบัญชีของบรรทัด (ดู `purchaseCreditAllocation`)
+ */
+export type PurchaseCreditLine = DocLine & { purchaseLineId?: string };
+
+/**
  * ใบลดหนี้จากผู้ขาย (ม.82/12) — ลดเจ้าหนี้ของเอกสารซื้อเดิม และลดภาษีซื้อในเดือนที่ได้รับ (`vatClaimPeriod`)
- * บันทึกได้ไม่เกินยอดค้างจ่ายของเอกสารเดิม (ส่วนที่จ่ายแล้วยังไม่รองรับ — ต้องบันทึกรับคืนเงินจากผู้ขายเอง)
+ * ลดได้ไม่เกินยอดเอกสาร − ใบลดหนี้ก่อนหน้า (แม้จ่ายแล้ว) — ส่วนที่เกินยอดค้างจ่าย (`refundDue`)
+ * ตั้งเป็นลูกหนี้-เงินคืนจากผู้ขาย (1150) แล้วรับคืนด้วย `receiveSupplierRefund`
  */
 export type PurchaseCreditNote = {
   id: string;
@@ -305,14 +312,31 @@ export type PurchaseCreditNote = {
   date: ISODate;
   purchaseId: string;
   contactId: string;
-  lines: DocLine[];
+  lines: PurchaseCreditLine[];
   vatMode: VatMode;
   vatRate: number;
+  /** ส่วนที่เกินยอดค้างจ่าย ณ วันบันทึก (จ่ายไปแล้ว) ตั้งเป็นลูกหนี้-เงินคืนจากผู้ขาย 1150 — 0/ไม่มี = ลดเจ้าหนี้ทั้งหมด */
+  refundDue?: number;
   /** ตามเอกสารซื้อเดิม — ขอคืนภาษีซื้อไว้ = ต้องลดภาษีซื้อ */
   claimVat: boolean;
   /** เดือนภาษีที่ลดภาษีซื้อ `YYYY-MM` (= เดือนของ `date`) — มีเฉพาะเมื่อ claimVat */
   vatClaimPeriod?: string;
   reason: string;
+  supplier?: PartySnapshot;
+  journalId: string;
+  createdAt: string;
+};
+
+/** รับเงินคืนจากผู้ขาย (prefix SR) — ตัดลูกหนี้-เงินคืนจากผู้ขาย 1150 ที่เกิดจากใบลดหนี้หลังจ่ายเงินแล้ว */
+export type SupplierRefund = {
+  id: string;
+  docNo: string;
+  date: ISODate;
+  contactId: string;
+  amount: number;
+  /** บัญชีเงินสด/ธนาคารที่รับเงิน */
+  accountCode: string;
+  note?: string;
   supplier?: PartySnapshot;
   journalId: string;
   createdAt: string;
@@ -367,6 +391,7 @@ export type JournalSource =
   | 'purchase'
   | 'payment'
   | 'refund'
+  | 'supplier-refund'
   | 'vat-close'
   | 'purchase-credit-note'
   | 'year-close'
@@ -505,7 +530,7 @@ export type Quotation = {
 };
 
 /** เวอร์ชันโครงข้อมูลปัจจุบัน — เปลี่ยนเมื่อไรต้องเพิ่ม migration ใน `store/migrations.ts` */
-export const DATA_VERSION = 6;
+export const DATA_VERSION = 7;
 
 export type AccountingData = {
   version: typeof DATA_VERSION;
@@ -520,6 +545,8 @@ export type AccountingData = {
   vatCloses: VatClose[];
   /** ใบลดหนี้จากผู้ขาย */
   purchaseCredits: PurchaseCreditNote[];
+  /** รับเงินคืนจากผู้ขาย (ใบลดหนี้หลังจ่ายแล้ว) */
+  supplierRefunds: SupplierRefund[];
   /** ปิดบัญชีสิ้นปี (เรียงตามวันสิ้นปี) */
   yearCloses: YearClose[];
   /** ยอดยกมาจากระบบเดิม (มีได้ครั้งเดียว) */

@@ -1,10 +1,10 @@
 import { calcDocument } from './document-calc';
-import { subBaht, sumBaht, toSatang } from './money';
-import { isBankKindCode, bankMatchProblem } from './bank';
-import { taxedPartsOf, deferredVatOf } from './service-vat';
 import { parseDocNo, DATE_ORDERED_PREFIXES } from './numbering';
+import { subBaht, sumBaht, toSatang, fromSatang } from './money';
 import { normalizeTaxId, normalizeBranch5 } from './thai-tax-id';
 import { salesVatReport, purchaseVatReport } from './vat-report';
+import { taxedPartsOf, receiptVatOf, deferredVatOf } from './service-vat';
+import { isBankKindCode, bankMatchProblem, minCashBalanceFrom } from './bank';
 import { isTaxDocument, isServiceInvoice, isDeferredVatDoc } from './sales-doc';
 import { sortedYearCloses, yearCloseBalances, openingItemTotals } from './year-end';
 import { ACC, isCashAccount, isControlAccount, lineAccountProblem } from './chart-of-accounts';
@@ -22,10 +22,13 @@ import {
   paymentsOf,
   vatClaimProblem,
   purchaseVatMonth,
+  purchaseWhtGroups,
   purchaseCreditsOf,
+  supplierRefundDueOf,
   purchaseOutstanding,
   purchaseCreditedParts,
   purchaseAdjustedTotal,
+  purchaseCreditAllocation,
   purchaseAdjustedWhtGroups,
 } from './purchase';
 import {
@@ -38,6 +41,7 @@ import {
   postCreditNote,
   postSalesInvoice,
   postBankTransfer,
+  postSupplierRefund,
   postCustomerRefund,
   postOpeningBalance,
   postPurchasePayment,
@@ -84,6 +88,7 @@ function collectNumberedDocs(data: AccountingData): NumberedDoc[] {
       .filter((p) => p.whtCertNo)
       .map((p) => ({ docNo: p.whtCertNo as string, date: p.date, prefixes: ['WT'], label: 'หนังสือรับรอง 50 ทวิ' })),
     ...data.refunds.map((r) => ({ docNo: r.docNo, date: r.date, prefixes: ['RF'], label: 'ใบคืนเงิน' })),
+    ...(data.supplierRefunds ?? []).map((r) => ({ docNo: r.docNo, date: r.date, prefixes: ['SR'], label: 'ใบรับเงินคืนจากผู้ขาย' })),
     ...data.transfers.map((t) => ({ docNo: t.docNo, date: t.date, prefixes: ['TR'], label: 'ใบโอนเงิน' })),
     ...data.quotations.map((q) => ({ docNo: q.docNo, date: q.date, prefixes: ['QT'], label: 'ใบเสนอราคา' })),
     ...data.journal.map((e) => ({ docNo: e.docNo, date: e.date, prefixes: ['JV'], label: 'สมุดรายวัน' })),
@@ -195,6 +200,11 @@ function checkReferences(data: AccountingData, problems: string[]) {
     needJournal(r.docNo, r.journalId);
   });
   data.transfers.forEach((t) => needJournal(t.docNo, t.journalId));
+  (data.supplierRefunds ?? []).forEach((r) => {
+    needContact(r.docNo, r.contactId);
+    needJournal(r.docNo, r.journalId);
+    if (!(toSatang(r.amount) > 0)) problems.push(`${r.docNo}: ยอดรับคืนต้องมากกว่า 0`);
+  });
   const convertedFrom = new Map<string, string>();
   data.quotations.forEach((q) => {
     needContact(q.docNo, q.contactId);
@@ -219,6 +229,8 @@ function checkReferences(data: AccountingData, problems: string[]) {
       if (purchase.opening) problems.push(`${c.docNo}: อ้างยอดยกมา ${purchase.docNo}`);
     }
     if (c.supplierCreditNoteDate > c.date) problems.push(`${c.docNo}: วันที่ในใบลดหนี้ผู้ขายหลังวันที่ได้รับ`);
+    const refundDue = toSatang(c.refundDue ?? 0);
+    if (refundDue < 0 || refundDue > toSatang(calcDocument(c).total)) problems.push(`${c.docNo}: ยอดเงินคืนจากผู้ขายไม่ถูกต้อง`);
   });
 }
 
@@ -235,6 +247,7 @@ function checkBalances(data: AccountingData, problems: string[]) {
     });
   data.contacts.forEach((c) => {
     if (toSatang(customerCreditOf(data, c.id)) < 0) problems.push(`${c.code}: คืนเงินลูกค้าเกินยอดรอคืน`);
+    if (toSatang(supplierRefundDueOf(data, c.id)) < 0) problems.push(`${c.code}: รับเงินคืนจากผู้ขายเกินยอดที่ลดหนี้`);
   });
 }
 
@@ -268,6 +281,14 @@ export function dateOrderInversions(
 }
 
 function checkDateOrder(data: AccountingData, problems: string[]) {
+  // U12: ค่ายกเว้นต้องไม่เกินวันที่ของเอกสารเดิมที่เรียงผิดใบล่าสุด (ตั้งโดย migration) — กันแก้ไฟล์ตั้งเป็นอนาคตเพื่อซ่อนเลขที่สลับ
+  const legacy = data.legacyOrderThrough;
+  if (legacy !== undefined) {
+    const latest = dateOrderInversions(data).reduce((max, x) => (x.earlier.date > max ? x.earlier.date : max), '');
+    if (!latest || legacy > latest) {
+      problems.push(`วันที่ยกเว้นลำดับเลขที่เอกสารเดิม (${legacy}) เกินวันที่ของเอกสารเดิมที่เรียงผิด${latest ? ` (${latest})` : ''} — ไฟล์ถูกแก้ไข`);
+    }
+  }
   dateOrderInversions(data, data.legacyOrderThrough).forEach(({ earlier, later }) => {
     problems.push(`${later.docNo} ลงวันที่ ${later.date} ก่อน ${earlier.docNo} (${earlier.date}) — เลขที่ต้องเรียงตามวันที่`);
   });
@@ -373,6 +394,9 @@ function checkDocumentPostings(data: AccountingData, problems: string[]) {
     });
   });
   data.refunds.forEach((r) => expected.set(r.journalId, { docNo: r.docNo, build: () => postCustomerRefund(r, meta(r.journalId), '') }));
+  (data.supplierRefunds ?? []).forEach((r) =>
+    expected.set(r.journalId, { docNo: r.docNo, build: () => postSupplierRefund(r, meta(r.journalId), '') })
+  );
   data.transfers.forEach((t) => expected.set(t.journalId, { docNo: t.docNo, build: () => postBankTransfer(t, meta(t.journalId)) }));
 
   data.journal.forEach((entry) => {
@@ -446,16 +470,17 @@ function checkPurchases(data: AccountingData, problems: string[]) {
 
     const pvs = paymentsOf(data, p.id);
     const credits = purchaseCreditsOf(data, p.id);
-    // ใบลดหนี้ผู้ขายลดยอดเอกสาร — ยอดจ่าย + ลดหนี้ ต้องไม่เกินยอดเอกสาร และจ่ายครบ = ยอดค้างเป็นศูนย์
+    // ใบลดหนี้ผู้ขายลดยอดเอกสาร (ส่วนเกินยอดค้างตั้งเป็นเงินคืนจากผู้ขาย) — ยอดค้างไม่ติดลบ และจ่ายครบ = ยอดค้างเป็นศูนย์
     const total = toSatang(purchaseAdjustedTotal(data, p));
-    const paid = pvs.reduce((a, pv) => a + toSatang(pv.amount), 0);
+    const outstanding = toSatang(purchaseOutstanding(data, p));
     if (total < 0) problems.push(`${p.docNo}: ใบลดหนี้ผู้ขายรวมเกินยอดเอกสาร`);
-    if (paid > total) problems.push(`${p.docNo}: ยอดจ่ายชำระรวมเกินยอดเอกสาร`);
-    if (p.paid !== (paid === total)) problems.push(`${p.docNo}: สถานะจ่ายแล้วไม่ตรงกับใบสำคัญจ่าย`);
+    if (outstanding < 0) problems.push(`${p.docNo}: ยอดจ่ายชำระรวมเกินยอดเอกสาร`);
+    if (p.paid !== (outstanding === 0)) problems.push(`${p.docNo}: สถานะจ่ายแล้วไม่ตรงกับใบสำคัญจ่าย`);
     const original = calcDocument(p);
     const credited = purchaseCreditedParts(data, p);
     if (toSatang(credited.vat) > toSatang(original.vat)) problems.push(`${p.docNo}: VAT ที่ลดหนี้รวมเกิน VAT ของเอกสาร`);
     if (toSatang(credited.net) > toSatang(original.net)) problems.push(`${p.docNo}: มูลค่าที่ลดหนี้รวมเกินมูลค่าของเอกสาร`);
+    purchaseCreditAllocation(p, credits).problems.forEach((msg) => problems.push(`${p.docNo}: ${msg}`));
     credits.forEach((c) => {
       if (c.claimVat !== p.claimVat) problems.push(`${c.docNo}: สิทธิภาษีซื้อไม่ตรงกับ ${p.docNo}`);
       if (c.vatMode !== p.vatMode || c.vatRate !== p.vatRate) problems.push(`${c.docNo}: อัตรา/วิธีคิด VAT ไม่ตรงกับ ${p.docNo}`);
@@ -466,19 +491,30 @@ function checkPurchases(data: AccountingData, problems: string[]) {
       }
     });
     const items = pvs.flatMap((pv) => pv.whtItems);
-    // ลดหนี้ปิดยอดหลังแบ่งจ่าย: ฐานหัก ณ ที่จ่ายรวมต่างจากฐานหลังลดหนี้ได้ไม่เกินเศษปัด 1 สตางค์ต่อการจ่าย
+    if (items.some((i) => toSatang(i.base) < 0 || toSatang(i.tax) < 0)) problems.push(`${p.docNo}: หัก ณ ที่จ่ายในใบสำคัญจ่ายติดลบ`);
+    // ลดหนี้หลังแบ่งจ่าย: เศษปัด 1 สตางค์ต่อการจ่าย
     const tolerance = credits.length ? pvs.length : 0;
     const groups = purchaseAdjustedWhtGroups(data, p);
+    const originalGroups = purchaseWhtGroups(p);
+    // ใบลดหนี้หลังการจ่าย (D1): หัก ณ ที่จ่ายที่หักไปแล้วไม่ปรับ — เทียบเฉพาะว่าไม่เกินของเอกสารเดิม
+    // ถ้ารายการสุดท้ายที่ปิดยอดเป็นการจ่าย ต้องหักครบฐานหลังลดหนี้ (ครั้งสุดท้ายรับส่วนที่เหลือ)
+    const order = new Map(data.journal.map((e, i) => [e.id, i]));
+    const lastOf = (ids: string[]) => ids.reduce((max, id) => Math.max(max, order.get(id) ?? -1), -1);
+    const settledByPayment = p.paid && pvs.length > 0 && lastOf(pvs.map((pv) => pv.journalId)) > lastOf(credits.map((c) => c.journalId));
     groups.forEach((g) => {
       const mine = items.filter((i) => i.incomeType === g.incomeType && i.rate === g.rate);
       const base = mine.reduce((a, i) => a + toSatang(i.base), 0);
       const tax = mine.reduce((a, i) => a + toSatang(i.tax), 0);
-      const over = base - toSatang(g.base) > tolerance || tax - toSatang(g.tax) > tolerance;
-      const settledMismatch =
-        p.paid && (Math.abs(base - toSatang(g.base)) > tolerance || Math.abs(tax - toSatang(g.tax)) > tolerance);
-      if (over || settledMismatch) {
-        problems.push(`${p.docNo}: หัก ณ ที่จ่าย ${g.incomeType} ${g.rate}% ในใบสำคัญจ่ายรวมไม่ตรงกับเอกสาร`);
+      let bad: boolean;
+      if (!credits.length) {
+        bad = base > toSatang(g.base) || tax > toSatang(g.tax) || (p.paid && (base !== toSatang(g.base) || tax !== toSatang(g.tax)));
+      } else {
+        const og = originalGroups.find((o) => o.incomeType === g.incomeType && o.rate === g.rate) ?? g;
+        const over = base - toSatang(og.base) > tolerance || tax - toSatang(og.tax) > tolerance;
+        const short = settledByPayment && (toSatang(g.base) - base > tolerance || toSatang(g.tax) - tax > tolerance);
+        bad = over || short;
       }
+      if (bad) problems.push(`${p.docNo}: หัก ณ ที่จ่าย ${g.incomeType} ${g.rate}% ในใบสำคัญจ่ายรวมไม่ตรงกับเอกสาร`);
     });
     if (items.some((i) => !groups.some((g) => g.incomeType === i.incomeType && g.rate === i.rate))) {
       problems.push(`${p.docNo}: ใบสำคัญจ่ายมีหัก ณ ที่จ่ายประเภทที่ไม่มีในเอกสาร`);
@@ -556,6 +592,11 @@ function checkReconciliation(data: AccountingData, problems: string[]) {
   );
   check(`${ACC.payable} เจ้าหนี้การค้า`, -glNet(data, ACC.payable), sum(data.purchases.map((p) => purchaseOutstanding(data, p))));
   check(
+    `${ACC.supplierRefundReceivable} ลูกหนี้-เงินคืนจากผู้ขาย`,
+    glNet(data, ACC.supplierRefundReceivable),
+    sum(Array.from(new Set([...data.purchaseCredits, ...(data.supplierRefunds ?? [])].map((d) => d.contactId))).map((id) => supplierRefundDueOf(data, id)))
+  );
+  check(
     `${ACC.whtReceivable} ภาษีถูกหัก ณ ที่จ่าย`,
     glNet(data, ACC.whtReceivable),
     sum([data.openingBalance?.whtReceivable ?? 0, ...data.receipts.map((r) => r.whtAmount)])
@@ -619,6 +660,33 @@ function checkServiceVat(data: AccountingData, problems: string[]) {
     if (!!r.isTaxInvoice !== (r.etax !== undefined && r.etax !== 'not-required')) {
       problems.push(`${r.docNo}: สถานะ e-Tax ไม่ตรงกับชนิดเอกสาร`);
     }
+  });
+  // U12: ภาษีขายของใบเสร็จรับเงิน/ใบกำกับภาษีแต่ละใบต้องเท่ากับที่คำนวณใหม่ตามลำดับการบันทึก (`receiptVatOf`)
+  // — กันแก้ไฟล์ย้ายภาษีขายข้ามเดือน (ผลรวมเท่าเดิม 2151 เป็นศูนย์ แต่ ภ.พ.30 แต่ละเดือนผิด)
+  const order = new Map(data.journal.map((e, i) => [e.id, i]));
+  data.sales.filter(isServiceInvoice).forEach((inv) => {
+    const events = [
+      ...data.receipts.filter((r) => r.invoiceId === inv.id).map((r) => ({ at: order.get(r.journalId) ?? Infinity, receipt: r, credit: undefined })),
+      ...data.sales
+        .filter((c) => c.kind === 'credit-note' && c.refDocId === inv.id)
+        .map((c) => ({ at: order.get(c.journalId) ?? Infinity, receipt: undefined, credit: c })),
+    ].sort((a, b) => a.at - b.at);
+    const replay = { sales: [] as SalesDoc[], receipts: [] as AccountingData['receipts'] };
+    let paid = 0;
+    events.forEach(({ receipt, credit }) => {
+      if (credit) {
+        replay.sales.push(credit);
+        return;
+      }
+      if (!receipt) return;
+      const asOf: SalesDoc = { ...inv, status: 'issued', paidAmount: fromSatang(paid) };
+      const want = receiptVatOf({ sales: [asOf, ...replay.sales], receipts: replay.receipts }, asOf, receipt.amount);
+      if (toSatang(want) !== toSatang(receipt.vat ?? 0)) {
+        problems.push(`${receipt.docNo}: ภาษีขายในใบเสร็จรับเงิน/ใบกำกับภาษี (${(receipt.vat ?? 0).toFixed(2)}) ไม่ตรงกับสัดส่วนภาษีรอตัด (${want.toFixed(2)})`);
+      }
+      replay.receipts.push(receipt);
+      paid += toSatang(receipt.amount);
+    });
   });
   data.sales.forEach((s) => {
     if (s.kind === 'tax-invoice') {
@@ -700,10 +768,15 @@ function checkOpening(data: AccountingData, problems: string[]) {
   const entry = openingEntries[0];
   if (entry && entry.date !== opening.date) problems.push('ยอดยกมา: วันที่รายการบัญชีไม่ตรงกับวันยอดยกมา');
   const seen = new Set<string>();
+  // U12: เลขที่ยอดยกมาชนกับเลขที่ของระบบ (เช่น IV6910-0001) — ค้นหา/อ้างอิงผิดใบ
+  const systemNumbers = new Set(collectNumberedDocs(data).map((d) => d.docNo));
   openingDocs.forEach((d) => {
     if (d.journalId !== opening.journalId) problems.push(`${d.docNo}: เอกสารยอดยกมาไม่ได้ผูกกับรายการยอดยกมา`);
     if (d.date > opening.date) problems.push(`${d.docNo}: เอกสารยอดยกมาลงวันที่หลังวันยอดยกมา`);
-    if (d.vatMode !== 'none') problems.push(`${d.docNo}: เอกสารยอดยกมาต้องไม่คิด VAT`);
+    if (systemNumbers.has(d.docNo.trim())) problems.push(`${d.docNo}: เลขที่ยอดยกมาซ้ำกับเลขที่เอกสารของระบบ`);
+    // U2: ใบแจ้งหนี้งานบริการค้างรับยกมาคิด VAT ได้ (ภาษีขายยังไม่ถึงกำหนด 2151) — ใบอื่นต้องไม่คิด VAT
+    const deferredService = 'kind' in d && isServiceInvoice(d);
+    if (d.vatMode !== 'none' && !deferredService) problems.push(`${d.docNo}: เอกสารยอดยกมาต้องไม่คิด VAT`);
     const key = `${'kind' in d ? 'ar' : 'ap'}|${d.contactId}|${d.docNo.toUpperCase()}`;
     if (seen.has(key)) problems.push(`${d.docNo}: เลขที่ยอดยกมาซ้ำ`);
     seen.add(key);
@@ -739,6 +812,10 @@ function checkBanking(data: AccountingData, problems: string[]) {
     if (!isCashAccount(accounts.get(b.accountCode))) problems.push(`${label}: ไม่ใช่บัญชีเงินสด/ธนาคารในผังบัญชี`);
     if (!isBankKindCode(b.accountCode, b.kind)) problems.push(`${label}: รหัสไม่ตรงกับประเภท (ธนาคาร 112x, เงินสดย่อย 1111–1119)`);
     if (b.reconcileFrom !== undefined && !isValidISODate(b.reconcileFrom)) problems.push(`${label}: วันที่เริ่มกระทบยอดไม่ถูกต้อง`);
+    // U9: เงินสดย่อยติดลบไม่ได้ ณ วันใดเลย (ธนาคารเบิกเกินบัญชีได้)
+    if (b.kind === 'petty-cash' && toSatang(minCashBalanceFrom(data, b.accountCode, '0001-01-01')) < 0) {
+      problems.push(`${label}: เงินสดย่อยติดลบ`);
+    }
   });
   data.transfers.forEach((t) => {
     if (!isCashAccount(accounts.get(t.fromAccountCode)) || !isCashAccount(accounts.get(t.toAccountCode))) {
@@ -800,16 +877,66 @@ export function validateAccountingData(data: AccountingData): string[] {
   return problems;
 }
 
+/** ตัวระบุบริษัท (เลขผู้เสียภาษี + สาขา) จากข้อมูลบริษัท และ snapshot ผู้ขาย/ผู้จ่ายในเอกสารที่ออกแล้ว */
+function companyIdentities(data: AccountingData): Set<string> {
+  const key = (c: { taxId?: string; branchNo?: string } | undefined) =>
+    c && normalizeTaxId(c.taxId ?? '') ? `${normalizeTaxId(c.taxId ?? '')}|${normalizeBranch5(c.branchNo)}` : '';
+  return new Set(
+    [
+      key(data.company),
+      ...data.sales.map((d) => key(d.seller)),
+      ...data.receipts.map((d) => key(d.seller)),
+      ...data.payments.map((d) => key(d.payer)),
+    ].filter(Boolean)
+  );
+}
+
+/** มีเอกสาร/รายการบัญชีแล้วหรือยัง (ข้อมูลว่างหลังล้าง = ยังไม่มี) */
+export function hasBookEntries(data: AccountingData): boolean {
+  return (
+    data.journal.length > 0 ||
+    data.sales.length > 0 ||
+    data.receipts.length > 0 ||
+    data.purchases.length > 0 ||
+    data.payments.length > 0 ||
+    data.quotations.length > 0
+  );
+}
+
 /**
- * ตรวจก่อนกู้คืน backup ทับข้อมูลปัจจุบันของบริษัทเดียวกัน (เลขผู้เสียภาษี + สาขาเดียวกัน):
- * ห้ามวันปิดงวดถอยหลัง และห้ามตัวนับเลขที่ถอยหลัง (ไม่อย่างนั้นเลขที่ออกไปแล้วจะถูกออกซ้ำ / ลงงวดที่ปิดแล้วได้)
- * ไฟล์ของบริษัทอื่น (เช่น หลังล้างเป็นข้อมูลตัวอย่าง) ไม่เทียบ เพราะเป็นสมุดบัญชีคนละชุด — คืน [] ถ้ากู้คืนได้
+ * ไฟล์กับข้อมูลปัจจุบันมีเอกสารชุดเดียวกัน — รหัสเอกสาร/รายการบัญชี หรือเลขที่ + วันที่ ตรงกันอย่างน้อย 1 รายการ
+ * (เลขที่อย่างเดียวไม่พอ เพราะบริษัทต่างกันออก IV6910-0001 ได้เหมือนกัน)
+ */
+function sharesDocuments(current: AccountingData, next: AccountingData): boolean {
+  const refs = (d: AccountingData) => [
+    ...d.journal.map((e) => `id:${e.id}`),
+    ...d.sales.map((x) => `id:${x.id}`),
+    ...d.receipts.map((x) => `id:${x.id}`),
+    ...d.purchases.map((x) => `id:${x.id}`),
+    ...d.payments.map((x) => `id:${x.id}`),
+    ...collectNumberedDocs(d).map((x) => `no:${x.docNo}|${x.date}`),
+  ];
+  const mine = new Set(refs(current));
+  return refs(next).some((r) => mine.has(r));
+}
+
+/**
+ * ตรวจก่อนกู้คืน backup ทับข้อมูลปัจจุบัน — ห้ามวันปิดงวดถอยหลัง, ห้ามตัวนับเลขที่ถอยหลัง (เลขที่ที่ออกไปแล้วจะถูกออกซ้ำ),
+ * ห้ามเพิ่มวันยกเว้นลำดับเลขที่เอกสารเดิม (`legacyOrderThrough` ตั้งโดย migration เท่านั้น)
+ *
+ * บริษัทเดียวกันหรือไม่ (U3 — แก้ `company.taxId` ในไฟล์แล้วข้ามการตรวจไม่ได้): เทียบเลขผู้เสียภาษี+สาขาของบริษัท
+ * และ snapshot ผู้ขายในเอกสารที่ออกแล้วของทั้งสองฝั่ง — ตรงกันอย่างน้อย 1 ค่า = บริษัทเดียวกัน
+ * ไม่ตรงกัน: ข้อมูลปัจจุบันยังว่าง = กู้คืนได้ (สมุดบัญชีคนละชุด), มีเอกสารร่วมกัน = ถือว่าบริษัทเดียวกัน (ไฟล์ถูกแก้),
+ * ไม่มีเอกสารร่วม = ไฟล์ของบริษัทอื่น ต้องล้างข้อมูลก่อน — คืน [] ถ้ากู้คืนได้
  */
 export function restoreRegressions(current: AccountingData, next: AccountingData): string[] {
-  const sameCompany =
-    normalizeTaxId(current.company.taxId) === normalizeTaxId(next.company.taxId) &&
-    normalizeBranch5(current.company.branchNo) === normalizeBranch5(next.company.branchNo);
-  if (!sameCompany) return [];
+  const mine = companyIdentities(current);
+  const theirs = companyIdentities(next);
+  const sameIdentity = Array.from(theirs).some((k) => mine.has(k));
+  if (!sameIdentity) {
+    if (!hasBookEntries(current)) return [];
+    if (!sharesDocuments(current, next)) return ['ไฟล์เป็นของบริษัทอื่น — ต้องล้างข้อมูลก่อน (หน้าตั้งค่า) แล้วจึงกู้คืน'];
+  }
   const problems: string[] = [];
   const lock = current.company.lockedThrough;
   if (lock && (!next.company.lockedThrough || next.company.lockedThrough < lock)) {
@@ -823,5 +950,11 @@ export function restoreRegressions(current: AccountingData, next: AccountingData
     .forEach(([key, value]) => {
       problems.push(`ตัวนับเลขที่ ${key} ในไฟล์ = ${next.sequences[key] ?? 0} น้อยกว่าปัจจุบัน (${value}) — เลขที่ที่ออกไปแล้วจะถูกออกซ้ำ`);
     });
+  const legacy = next.legacyOrderThrough;
+  if (legacy && (!current.legacyOrderThrough || legacy > current.legacyOrderThrough) && hasBookEntries(current)) {
+    problems.push(
+      `ไฟล์ยกเว้นลำดับเลขที่เอกสารเดิมถึง ${formatThaiDate(legacy)} มากกว่าข้อมูลปัจจุบัน (${current.legacyOrderThrough ? formatThaiDate(current.legacyOrderThrough) : 'ไม่มี'}) — ค่านี้ตั้งโดยการย้ายข้อมูลเท่านั้น`
+    );
+  }
   return problems;
 }

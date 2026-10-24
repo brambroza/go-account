@@ -165,6 +165,7 @@ export function emptyData(): AccountingData {
     refunds: [],
     vatCloses: [],
     purchaseCredits: [],
+    supplierRefunds: [],
     yearCloses: [],
     bankAccounts: DEFAULT_BANK_ACCOUNTS,
     transfers: [],

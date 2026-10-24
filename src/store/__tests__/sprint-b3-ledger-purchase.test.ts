@@ -133,8 +133,8 @@ const OPENING: OpeningBalanceInput = {
   receivableControl: 53500,
   payableControl: 67500,
   receivables: [
-    { contactId: 'c-abc', docNo: 'IV6809-0012', date: '2026-09-15', dueDate: '2026-10-15', amount: 32100 },
-    { contactId: 'c-siammold', docNo: 'IV6809-0020', date: '2026-09-28', dueDate: '2026-11-12', amount: 21400 },
+    { contactId: 'c-abc', docNo: 'EX-IV6809-0012', date: '2026-09-15', dueDate: '2026-10-15', amount: 32100 },
+    { contactId: 'c-siammold', docNo: 'EX-IV6809-0020', date: '2026-09-28', dueDate: '2026-11-12', amount: 21400 },
   ],
   payables: [
     { contactId: 'v-resin', docNo: 'TP-0901', date: '2026-09-10', amount: 53500, vatAmount: 3500 },
@@ -155,8 +155,8 @@ describe('B5 opening balances (migrating from Express)', () => {
     expect(balanceOf(tb, ACC.vatCredit)).toBe(1500);
     expect(balanceOf(tb, ACC.whtReceivable)).toBe(720);
     expect(r.state.sales.filter((s) => s.opening).map((s) => [s.docNo, calcDocument(s).total, s.vatMode, s.etax])).toEqual([
-      ['IV6809-0012', 32100, 'none', 'not-required'],
-      ['IV6809-0020', 21400, 'none', 'not-required'],
+      ['EX-IV6809-0012', 32100, 'none', 'not-required'],
+      ['EX-IV6809-0020', 21400, 'none', 'not-required'],
     ]);
     expect(balanceSheet(r.state.accounts, r.state.journal, '2026-09-30').balanced).toBe(true);
     expect(validateAccountingData(r.state)).toEqual([]);
@@ -200,7 +200,9 @@ describe('B5 opening balances (migrating from Express)', () => {
   it('is allowed only before any other transaction, but can be replaced until then', () => {
     expect(() => setOpeningBalances(demo(), OPENING)).toThrow(/ก่อนมีรายการอื่น/);
     // แก้ยอดยกมาซ้ำได้ (ยังไม่มีรายการอื่น) — เลข JV เดิมคืนก่อนออกใหม่
-    const ok = setOpeningBalances(r.state, { ...OPENING, date: '2026-10-05' }).state;
+    // D4: วันยอดยกมาต้องเป็นวันสิ้นเดือน
+    expect(() => setOpeningBalances(r.state, { ...OPENING, date: '2026-10-05' })).toThrow(/วันสิ้นเดือน/);
+    const ok = setOpeningBalances(r.state, { ...OPENING, date: '2026-10-31' }).state;
     expect(ok.journal.filter((e) => e.source === 'opening')).toHaveLength(1);
     expect(ok.journal[0].docNo).toBe('JV6910-0001');
     expect(ok.sequences).toEqual({ JV6910: 1 });
@@ -208,7 +210,7 @@ describe('B5 opening balances (migrating from Express)', () => {
     expect(validateAccountingData(ok)).toEqual([]);
     const afterSale = receivePayment(ok, {
       invoiceId: ok.sales[0].id,
-      date: '2026-10-10',
+      date: '2026-11-10',
       amount: 1000,
       whtAmount: 0,
       depositAccountCode: ACC.bank,
@@ -217,7 +219,7 @@ describe('B5 opening balances (migrating from Express)', () => {
   });
 
   it('open items can be received / paid (with WHT on the pre-VAT base), new entries must be after the opening date', () => {
-    const ar = r.state.sales.find((s) => s.docNo === 'IV6809-0012');
+    const ar = r.state.sales.find((s) => s.docNo === 'EX-IV6809-0012');
     const ap = r.state.purchases.find((p) => p.docNo === 'SC-77');
     if (!ar || !ap) throw new Error('missing');
     expect(() =>
@@ -357,7 +359,8 @@ describe('B8 supplier credit note (ใบลดหนี้จากผู้ข
     expect(() => supplierCredit(p.state, p.doc.id, { date: '2026-10-23', supplierCreditNoteDate: '2026-10-22' })).toThrow(/ไม่ก่อนวันที่บันทึก/);
     expect(() => supplierCredit(p.state, p.doc.id, { supplierCreditNoteDate: '2026-11-06' })).toThrow(/ไม่หลังวันที่ได้รับ/);
     expect(() => supplierCredit(p.state, p.doc.id, { supplierCreditNoteDate: '2026-10-19', date: '2026-10-24' })).toThrow(/ไม่ก่อนวันที่ใบกำกับเดิม/);
-    expect(() => supplierCredit(p.state, p.doc.id, { lines: [ln(1, 10001, ACC.cogs)] })).toThrow(/เกินยอดค้างจ่าย/);
+    // D1: เพดาน = ยอดเอกสาร − ใบลดหนี้ก่อนหน้า (แม้ยังไม่จ่าย ก็เกินไม่ได้)
+    expect(() => supplierCredit(p.state, p.doc.id, { lines: [ln(1, 10001, ACC.cogs)] })).toThrow(/เกินยอดที่ลดได้/);
     expect(() => supplierCredit(p.state, p.doc.id, { reason: ' ' })).toThrow(/เหตุผล/);
     expect(() => supplierCredit(p.state, p.doc.id, { supplierCreditNoteNo: '' })).toThrow(/เลขที่ใบลดหนี้ของผู้ขาย/);
     expect(() => supplierCredit(p.state, p.doc.id, { lines: [ln(1, 100, ACC.receivable)] })).toThrow(/บัญชีคุม/);

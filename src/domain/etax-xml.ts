@@ -48,10 +48,19 @@ export const ETAX_RECEIPT_TYPE_CODE = 'T03';
 export const ETAX_INVOICE_REF_CODE = '380';
 
 /**
- * รหัสเหตุผลการออกใบลด/เพิ่มหนี้ — ใช้ "เหตุอื่น" ของสินค้า (CDNG99 / DBNG99) พร้อมข้อความเหตุผลจริงใน Purpose
- * ⚠️ ตรวจรหัสกับตาราง ETDA ก่อนใช้งานจริง (มีรหัสแยกสินค้า/บริการ เช่น CDNS99, DBNS99)
+ * รหัสเหตุผลการออกใบลด/เพิ่มหนี้ — "เหตุอื่น" แยกสินค้า (CDNG99 / DBNG99) และบริการ (CDNS99 / DBNS99)
+ * พร้อมข้อความเหตุผลจริงใน Purpose — เอกสารงานบริการ (`saleType: 'service'`) ใช้รหัสบริการ (U11)
+ * ⚠️ ตรวจรหัสกับตาราง ETDA (ขมธอ.3-2560) ก่อนใช้งานจริง
  */
-const ETAX_PURPOSE_CODE = { 'credit-note': 'CDNG99', 'debit-note': 'DBNG99' } as const;
+export const ETAX_PURPOSE_CODE = {
+  goods: { 'credit-note': 'CDNG99', 'debit-note': 'DBNG99' },
+  service: { 'credit-note': 'CDNS99', 'debit-note': 'DBNS99' },
+} as const;
+
+/** รหัสเหตุผลของใบลด/เพิ่มหนี้ตามประเภทการขาย (ไม่มี saleType = สินค้า) */
+export function eTaxPurposeCode(doc: { kind: 'credit-note' | 'debit-note'; saleType?: 'goods' | 'service' }): string {
+  return ETAX_PURPOSE_CODE[doc.saleType === 'service' ? 'service' : 'goods'][doc.kind];
+}
 
 export function escapeXml(value: string | number | undefined): string {
   return String(value ?? '')
@@ -162,7 +171,7 @@ export function buildETaxXml({ doc, company, buyer, referenced, referencedReceip
   const referencedXml = adjustment && ref ? referencedDocXml(ref) : '';
 
   const purposeXml = adjustment
-    ? `${el('Purpose', doc.reason || ETAX_TYPE_NAME[adjustment])}${el('PurposeCode', ETAX_PURPOSE_CODE[adjustment])}`
+    ? `${el('Purpose', doc.reason || ETAX_TYPE_NAME[adjustment])}${el('PurposeCode', eTaxPurposeCode({ kind: adjustment, saleType: doc.saleType ?? referenced?.saleType }))}`
     : '';
 
   // ม.86/9, 86/10: มูลค่าตามใบกำกับเดิม / ผลต่าง (ก่อน VAT) — ⚠️ ตรวจลำดับ element กับ XSD ของ ETDA

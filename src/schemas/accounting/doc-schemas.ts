@@ -1,6 +1,6 @@
 import { z as zod } from 'zod';
 
-import { toSatang, todayISO, isValidThaiTaxId, endOfPreviousMonth } from 'src/domain';
+import { toSatang, todayISO, endOfMonth, monthKeyOf, isValidISODate, isValidThaiTaxId, endOfPreviousMonth } from 'src/domain';
 
 // ----------------------------------------------------------------------
 // ทุก field ในฟอร์มต้องอยู่ใน schema — field ที่ไม่ได้ประกาศจะถูก resolver ตัดทิ้งตอน submit
@@ -260,7 +260,10 @@ const amount = (label: string) => zod.number({ invalid_type_error: `กรอก
 
 /** ยอดยกมาจากระบบเดิม — กติกาสมดุล/กระทบยอด/บัญชีคุม ตรวจซ้ำที่ `setOpeningBalances` */
 export const OpeningBalanceFormSchema = zod.object({
-  date: isoDate('วันที่ยอดยกมา'),
+  // D4: ยกยอด ณ วันสิ้นเดือนเท่านั้น
+  date: isoDate('วันที่ยอดยกมา').refine((v) => !isValidISODate(v) || endOfMonth(monthKeyOf(v)) === v, {
+    message: 'วันที่ยอดยกมาต้องเป็นวันสิ้นเดือน',
+  }),
   vatCredit: amount('ภาษีชำระเกินยกมา'),
   whtReceivable: amount('ภาษีถูกหัก ณ ที่จ่าย'),
   receivableControl: amount('ยอดลูกหนี้ตามงบทดลอง'),
@@ -280,8 +283,11 @@ export const OpeningBalanceFormSchema = zod.object({
         date: isoDate('วันที่เอกสาร'),
         dueDate: isoDate('วันครบกำหนด'),
         amount: amount('ยอดค้าง').refine((v) => toSatang(v) > 0, { message: 'ยอดค้างต้องมากกว่า 0' }),
+        /** U2: VAT ของใบแจ้งหนี้งานบริการที่ยังไม่ถึงกำหนด (รวมอยู่ในยอดค้าง) */
+        serviceVat: amount('ภาษีขายยังไม่ถึงกำหนด').optional(),
       })
       .refine((v) => v.dueDate >= v.date, { message: 'ครบกำหนดก่อนวันที่เอกสาร', path: ['dueDate'] })
+      .refine((v) => toSatang(v.serviceVat ?? 0) < toSatang(v.amount), { message: 'VAT ต้องน้อยกว่ายอดค้าง', path: ['serviceVat'] })
   ),
   payables: zod.array(
     zod

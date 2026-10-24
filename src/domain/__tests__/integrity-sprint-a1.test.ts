@@ -1,4 +1,5 @@
-import { buildDemoData } from 'src/store/seed';
+import { issueTaxInvoice } from 'src/store/actions';
+import { emptyData, buildDemoData, blankCompanyData } from 'src/store/seed';
 
 import { csvCell } from '../vat-report';
 import { endOfPreviousMonth } from '../thai-date';
@@ -148,8 +149,40 @@ describe('restoreRegressions — T4', () => {
     const locked = { ...current, company: { ...current.company, lockedThrough: '2026-09-30' } };
     expect(restoreRegressions(locked, current)[0]).toMatch(/ปิดงวด/);
     expect(restoreRegressions(locked, { ...current, company: { ...current.company, lockedThrough: '2026-10-31' } })).toEqual([]);
-    const other = { ...older, company: { ...older.company, taxId: '0105561098763' } };
-    expect(restoreRegressions(current, other)).toEqual([]);
+    // U3: ไฟล์เดิมที่แก้แค่ company.taxId — snapshot ในเอกสารยังเป็นบริษัทเดิม → ยังเทียบ (ข้ามการตรวจไม่ได้)
+    const edited = { ...older, company: { ...older.company, taxId: '0105561098763' } };
+    expect(restoreRegressions(current, edited)[0]).toMatch(/IV6910.*ออกซ้ำ/);
+    // แก้ snapshot ทุกใบด้วย แต่เอกสารชุดเดียวกัน (รหัส/เลขที่+วันที่ตรงกัน) → ถือว่าบริษัทเดียวกัน
+    const rebranded = clone(edited);
+    [...rebranded.sales, ...rebranded.receipts].forEach((d) => {
+      if (d.seller) d.seller.taxId = '0105561098763';
+    });
+    rebranded.payments.forEach((d) => {
+      if (d.payer) d.payer.taxId = '0105561098763';
+    });
+    expect(restoreRegressions(current, rebranded)[0]).toMatch(/IV6910.*ออกซ้ำ/);
+    // บริษัทอื่นจริง (ไม่มีเอกสารร่วม): ทับสมุดบัญชีที่มีรายการแล้วไม่ได้ — ต้องล้างข้อมูลก่อน
+    const foreignBase = emptyData();
+    const foreign = issueTaxInvoice(
+      { ...foreignBase, company: { ...foreignBase.company, taxId: '0105561098763' }, contacts: current.contacts },
+      {
+        date: '2026-11-15',
+        dueDate: '2026-11-30',
+        contactId: 'c-abc',
+        vatMode: 'exclusive',
+        lines: [{ id: 'f1', description: 'บริการ', qty: 1, unitPrice: 100, discount: 0, accountCode: ACC.sales }],
+      }
+    ).state;
+    expect(restoreRegressions(current, foreign)).toEqual([expect.stringMatching(/บริษัทอื่น.*ล้างข้อมูล/)]);
+    expect(restoreRegressions(blankCompanyData(current), foreign)).toEqual([]);
+  });
+
+  it('U12: legacyOrderThrough in the file cannot be raised on restore', () => {
+    const current = demo();
+    expect(restoreRegressions(current, { ...current, legacyOrderThrough: '2099-12-31' })[0]).toMatch(/ยกเว้นลำดับเลขที่/);
+    const migrated = { ...current, legacyOrderThrough: '2026-09-30' };
+    expect(restoreRegressions(migrated, migrated)).toEqual([]);
+    expect(restoreRegressions(migrated, { ...migrated, legacyOrderThrough: '2026-10-01' })[0]).toMatch(/ยกเว้นลำดับเลขที่/);
   });
 });
 

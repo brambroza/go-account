@@ -56,6 +56,7 @@ const SOURCE_LABEL: Record<JournalSource, string> = {
   purchase: 'ซื้อ',
   payment: 'จ่ายชำระ',
   refund: 'คืนเงินลูกค้า',
+  'supplier-refund': 'รับเงินคืนจากผู้ขาย',
   'vat-close': 'ปิดภาษีเดือน',
   'purchase-credit-note': 'ลดหนี้จากผู้ขาย',
   'year-close': 'ปิดบัญชีสิ้นปี',

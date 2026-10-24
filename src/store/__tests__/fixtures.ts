@@ -35,6 +35,15 @@ function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K
   return copy;
 }
 
+/** แปลงข้อมูลปัจจุบัน (v7) กลับเป็นโครง v6 — ไม่มีการรับเงินคืนจากผู้ขาย / บัญชี 1150 */
+export function toV6(data: AccountingData): Record<string, unknown> {
+  return {
+    ...omit(data, ['supplierRefunds']),
+    version: 6,
+    accounts: data.accounts.filter((a) => a.code !== ACC.supplierRefundReceivable),
+  };
+}
+
 /** แปลงข้อมูลปัจจุบัน (v6) กลับเป็นโครง v5 — ไม่มีทะเบียนธนาคาร / โอนเงิน / กระทบยอด / ใบเสนอราคา / บัญชี 1111 */
 export function toV5(data: AccountingData): AccountingData & Record<string, unknown> {
   const quotationKeys = Object.keys(data.sequences).filter((k) => k.startsWith('QT'));

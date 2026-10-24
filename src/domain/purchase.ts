@@ -1,7 +1,7 @@
 import { calcDocument, lineNetAmounts } from './document-calc';
 import { normalizeTaxId, isValidThaiTaxId } from './thai-tax-id';
-import { round2, sumBaht, subBaht, toSatang, percentOf, prorateBaht } from './money';
 import { isMonthKey, endOfMonth, monthKeyOf, shiftMonthKey, isValidISODate } from './thai-date';
+import { round2, sumBaht, subBaht, toSatang, percentOf, fromSatang, prorateBaht } from './money';
 
 import type {
   ISODate,
@@ -11,6 +11,7 @@ import type {
   WhtLineItem,
   PartySnapshot,
   AccountingData,
+  PurchaseCreditLine,
   PurchaseCreditNote,
 } from './types';
 
@@ -138,7 +139,7 @@ export function whtSummaryLabel(items: Pick<WhtLineItem, 'incomeType' | 'rate'>[
 // ---------------- การจ่ายชำระ (แบ่งจ่ายได้) และใบลดหนี้จากผู้ขาย ----------------
 
 /** ข้อมูลที่ใช้คิดยอดค้างจ่าย — `purchaseCredits` ไม่มี = ไม่มีใบลดหนี้ผู้ขาย (test/ข้อมูลบางส่วน) */
-type PaymentState = Pick<AccountingData, 'payments'> & Partial<Pick<AccountingData, 'purchaseCredits'>>;
+type PaymentState = Pick<AccountingData, 'payments'> & Partial<Pick<AccountingData, 'purchaseCredits' | 'supplierRefunds'>>;
 
 export function paymentsOf(state: Pick<AccountingData, 'payments'>, purchaseId: string): Payment[] {
   return state.payments.filter((p) => p.purchaseId === purchaseId);
@@ -170,30 +171,141 @@ export function purchaseAdjustedTotal(state: PaymentState, doc: CalcPurchase): n
   return subBaht(calcDocument(doc).total, purchaseCreditedTotal(state, doc));
 }
 
+/** ยอดที่ใบลดหนี้ผู้ขายยังลดได้ = ยอดเอกสาร − ใบลดหนี้ก่อนหน้า (ลดได้แม้จ่ายแล้ว — ส่วนเกินยอดค้างตั้งเป็นเงินคืนจากผู้ขาย) */
+export function purchaseCreditableOf(state: PaymentState, doc: CalcPurchase): number {
+  return purchaseAdjustedTotal(state, doc);
+}
+
+/** ส่วนของใบลดหนี้ผู้ขายที่ตั้งเป็นลูกหนี้-เงินคืนจากผู้ขาย (1150) ของเอกสารนี้ */
+export function purchaseRefundDueTotal(state: Partial<Pick<AccountingData, 'purchaseCredits'>>, doc: Pick<PurchaseDoc, 'id'>): number {
+  return sumBaht(purchaseCreditsOf(state, doc.id).map((c) => c.refundDue ?? 0));
+}
+
 /** ยอดที่จ่ายแล้ว (ตัดเจ้าหนี้ รวม VAT) */
 export function purchasePaidAmount(state: Pick<AccountingData, 'payments'>, doc: Pick<PurchaseDoc, 'id'>): number {
   return sumBaht(paymentsOf(state, doc.id).map((p) => p.amount));
 }
 
-/** ยอดค้างจ่าย = ยอดเอกสาร − ใบลดหนี้ผู้ขาย − ใบสำคัญจ่ายทั้งหมด */
+/**
+ * ยอดค้างจ่าย = ยอดเอกสาร − ส่วนของใบลดหนี้ผู้ขายที่ลดเจ้าหนี้ − ใบสำคัญจ่ายทั้งหมด
+ * (ส่วนของใบลดหนี้ที่ตั้งเป็นเงินคืนจากผู้ขายไม่ลดเจ้าหนี้ซ้ำ จึงไม่ติดลบ)
+ */
 export function purchaseOutstanding(state: PaymentState, doc: CalcPurchase): number {
-  return subBaht(purchaseAdjustedTotal(state, doc), purchasePaidAmount(state, doc));
+  return sumBaht([purchaseAdjustedTotal(state, doc), purchaseRefundDueTotal(state, doc), -purchasePaidAmount(state, doc)]);
 }
 
 /**
- * หัก ณ ที่จ่ายของทั้งเอกสารหลังใบลดหนี้ผู้ขาย — ฐานแต่ละประเภทลดตามสัดส่วนยอดเอกสารที่เหลือ
- * (ไม่มีใบลดหนี้ = `purchaseWhtGroups` เดิม)
+ * แบ่งใบลดหนี้ผู้ขายจำนวน `creditTotal` (รวม VAT): ส่วนที่ลดเจ้าหนี้ (ไม่เกินยอดค้างจ่าย) และส่วนที่เกิน
+ * ตั้งเป็นลูกหนี้-เงินคืนจากผู้ขาย (1150) — D1: ลดหนี้เอกสารที่จ่ายแล้วได้ไม่เกินยอดเอกสาร − ใบลดหนี้ก่อนหน้า
+ */
+export function supplierCreditSplit(state: PaymentState, doc: CalcPurchase, creditTotal: number): { toPayable: number; refundDue: number; limit: number } {
+  const outstanding = Math.max(0, toSatang(purchaseOutstanding(state, doc)));
+  const total = toSatang(creditTotal);
+  const toPayable = Math.min(total, outstanding);
+  return { toPayable: fromSatang(toPayable), refundDue: fromSatang(total - toPayable), limit: purchaseCreditableOf(state, doc) };
+}
+
+/**
+ * เงินคืนจากผู้ขายคงค้าง = ส่วนเกินจากใบลดหนี้ผู้ขาย − ที่รับคืนแล้ว (ต่อผู้ติดต่อ)
+ * `asOf` = นับเฉพาะใบลดหนี้ที่ลงวันที่ไม่เกินวันนั้น (รับคืนได้เฉพาะยอดที่เกิดแล้ว)
+ */
+export function supplierRefundDueOf(
+  state: Partial<Pick<AccountingData, 'purchaseCredits' | 'supplierRefunds'>>,
+  contactId: string,
+  asOf?: ISODate
+): number {
+  const due = sumBaht(
+    (state.purchaseCredits ?? []).filter((c) => c.contactId === contactId && (!asOf || c.date <= asOf)).map((c) => c.refundDue ?? 0)
+  );
+  const received = sumBaht((state.supplierRefunds ?? []).filter((r) => r.contactId === contactId).map((r) => r.amount));
+  return subBaht(due, received);
+}
+
+/**
+ * มูลค่าก่อน VAT ที่ใบลดหนี้ผู้ขายลดแต่ละบรรทัดของเอกสารซื้อ (U8 — ฐานหัก ณ ที่จ่ายลดเฉพาะบรรทัดที่ลด ไม่เฉลี่ยทั้งเอกสาร)
+ * บรรทัดใบลดหนี้ → บรรทัดเอกสารซื้อ: `purchaseLineId` ถ้ามี, ไม่มีจับคู่บรรทัดบัญชีเดียวกันตามลำดับ (เติมทีละบรรทัดจนเต็มมูลค่า)
+ * บัญชีไม่ตรงบรรทัดใดเลย = เฉลี่ยตามมูลค่าคงเหลือของทุกบรรทัด (ข้อมูลเก่า) — `problems` = ลดเกินมูลค่าบรรทัด / อ้างบรรทัดที่ไม่มี
+ */
+export function purchaseCreditAllocation(
+  doc: Pick<PurchaseDoc, 'lines' | 'vatMode' | 'vatRate'>,
+  credits: Pick<PurchaseCreditNote, 'lines' | 'vatMode' | 'vatRate' | 'docNo'>[]
+): { lineNets: number[]; reduced: number[]; remaining: number[]; problems: string[] } {
+  const lineNets = lineNetAmounts(doc).map(toSatang);
+  const reduced = lineNets.map(() => 0);
+  const problems: string[] = [];
+  const room = (i: number) => lineNets[i] - reduced[i];
+  const fill = (amount: number, indices: number[]) => {
+    let left = amount;
+    indices.forEach((i) => {
+      const take = Math.min(left, Math.max(0, room(i)));
+      reduced[i] += take;
+      left -= take;
+    });
+    return left;
+  };
+  credits.forEach((c) => {
+    const nets = lineNetAmounts(c).map(toSatang);
+    c.lines.forEach((line, j) => {
+      const amount = nets[j];
+      if (!(amount > 0)) return;
+      const label = `${c.docNo ? `${c.docNo} ` : ''}รายการที่ ${j + 1}`;
+      const ref = (line as PurchaseCreditLine).purchaseLineId;
+      if (ref) {
+        const index = doc.lines.findIndex((l) => l.id === ref);
+        if (index < 0) {
+          problems.push(`${label}: ไม่พบบรรทัดของเอกสารซื้อที่อ้างถึง`);
+          return;
+        }
+        if (fill(amount, [index]) > 0) problems.push(`${label}: ลดเกินมูลค่าของบรรทัดที่อ้างถึง`);
+        return;
+      }
+      const same = doc.lines.map((l, i) => (l.accountCode === line.accountCode ? i : -1)).filter((i) => i >= 0);
+      if (same.length) {
+        const others = doc.lines.map((_, i) => i).filter((i) => !same.includes(i));
+        if (fill(fill(amount, same), others) > 0) problems.push(`${label}: ลดเกินมูลค่าคงเหลือของเอกสารซื้อ`);
+        return;
+      }
+      // ไม่มีบรรทัดบัญชีเดียวกัน: เฉลี่ยตามมูลค่าคงเหลือ (บรรทัดสุดท้ายที่ยังเหลือรับเศษ)
+      const open = doc.lines.map((_, i) => i).filter((i) => room(i) > 0);
+      const pool = open.reduce((a, i) => a + room(i), 0);
+      if (amount > pool) {
+        problems.push(`${label}: ลดเกินมูลค่าคงเหลือของเอกสารซื้อ`);
+        fill(amount, open);
+        return;
+      }
+      let left = amount;
+      open.forEach((i, k) => {
+        const take = k === open.length - 1 ? left : Math.min(left, Math.round((room(i) * amount) / pool));
+        reduced[i] += take;
+        left -= take;
+      });
+    });
+  });
+  return {
+    lineNets: lineNets.map(fromSatang),
+    reduced: reduced.map(fromSatang),
+    remaining: lineNets.map((n, i) => fromSatang(n - reduced[i])),
+    problems,
+  };
+}
+
+/**
+ * หัก ณ ที่จ่ายของทั้งเอกสารหลังใบลดหนี้ผู้ขาย — ฐานแต่ละประเภท = มูลค่าคงเหลือของบรรทัดในกลุ่มนั้น
+ * (ลดหนี้บรรทัดสินค้าไม่กระทบฐานค่าบริการ) — ไม่มีใบลดหนี้ = `purchaseWhtGroups` เดิม
  */
 export function purchaseAdjustedWhtGroups(state: PaymentState, doc: CalcPurchase): WhtLineItem[] {
-  const groups = purchaseWhtGroups(doc);
-  const credited = purchaseCreditedTotal(state, doc);
-  if (!(toSatang(credited) > 0)) return groups;
-  const { total } = calcDocument(doc);
-  const adjusted = subBaht(total, credited);
-  return groups.map((g) => {
-    const base = prorateBaht(g.base, adjusted, total);
-    return { ...g, base, tax: percentOf(base, g.rate) };
+  const credits = purchaseCreditsOf(state, doc.id);
+  if (!credits.length) return purchaseWhtGroups(doc);
+  const { remaining } = purchaseCreditAllocation(doc, credits);
+  const groups = new Map<string, { incomeType: string; rate: number; base: number }>();
+  doc.lines.forEach((line, index) => {
+    if (!(line.whtRate > 0)) return;
+    const key = `${line.whtIncomeType}|${line.whtRate}`;
+    const g = groups.get(key) ?? { incomeType: line.whtIncomeType, rate: line.whtRate, base: 0 };
+    g.base = sumBaht([g.base, remaining[index]]);
+    groups.set(key, g);
   });
+  return Array.from(groups.values()).map((g) => ({ ...g, tax: percentOf(g.base, g.rate) }));
 }
 
 /** วันที่จ่ายครั้งล่าสุด (ไม่มีคืน undefined) */
@@ -224,20 +336,25 @@ const sameGroup = (a: Pick<WhtLineItem, 'incomeType' | 'rate'>, b: Pick<WhtLineI
  * - ไม่ให้ยอดสะสมเกินของทั้งเอกสาร (กันเศษปัดสะสมจากการจ่ายหลายครั้ง)
  */
 export function planPurchasePayment(state: PaymentState, doc: CalcPurchase, amount: number): PaymentPlan {
-  // ใบลดหนี้ผู้ขายลดยอดเอกสารและฐานหัก ณ ที่จ่ายตามสัดส่วน
+  // ใบลดหนี้ผู้ขายลดยอดเอกสาร และฐานหัก ณ ที่จ่ายเฉพาะบรรทัดที่ลด (`purchaseAdjustedWhtGroups`)
   const total = purchaseAdjustedTotal(state, doc);
+  const outstanding = purchaseOutstanding(state, doc);
+  const credited = purchaseCreditsOf(state, doc.id).length > 0;
   const prior = paymentsOf(state, doc.id);
-  const paidBefore = sumBaht(prior.map((p) => p.amount));
-  const final = toSatang(sumBaht([paidBefore, amount])) >= toSatang(total);
+  const final = toSatang(amount) >= toSatang(outstanding);
   const priorItems = prior.flatMap((p) => p.whtItems);
+  const nonNegative = (v: number) => (toSatang(v) < 0 ? 0 : v);
 
   const whtItems = purchaseAdjustedWhtGroups(state, doc)
     .map((g) => {
       const before = priorItems.filter((i) => sameGroup(i, g));
-      const restBase = subBaht(g.base, sumBaht(before.map((i) => i.base)));
-      const restTax = subBaht(g.tax, sumBaht(before.map((i) => i.tax)));
+      // หักไปแล้วเกินฐานหลังลดหนี้ (ลดหนี้หลังจ่าย) — ไม่หักเพิ่ม ไม่คืนภาษีที่หักไปแล้ว
+      const restBase = nonNegative(subBaht(g.base, sumBaht(before.map((i) => i.base))));
+      const restTax = nonNegative(subBaht(g.tax, sumBaht(before.map((i) => i.tax))));
       if (final) return { ...g, base: restBase, tax: restTax };
-      const base = Math.min(prorateBaht(g.base, amount, total), restBase);
+      // มีใบลดหนี้: ฐานที่เหลือ × ยอดจ่าย ÷ ยอดค้าง (ฐานคงเหลือต่อบรรทัด) — ไม่มี: ฐานทั้งเอกสาร × สัดส่วนเดิม
+      const prorated = credited ? prorateBaht(restBase, amount, outstanding) : prorateBaht(g.base, amount, total);
+      const base = Math.min(prorated, restBase);
       return { ...g, base, tax: Math.min(percentOf(base, g.rate), restTax) };
     })
     .filter((i) => toSatang(i.base) !== 0 || toSatang(i.tax) !== 0);

@@ -26,6 +26,8 @@ export const DOC_PREFIX = {
   whtCert: 'WT',
   /** คืนเงินลูกค้า */
   refund: 'RF',
+  /** รับเงินคืนจากผู้ขาย (ใบลดหนี้หลังจ่ายแล้ว) */
+  supplierRefund: 'SR',
   /** โอนเงินระหว่างบัญชีของบริษัท */
   transfer: 'TR',
   /** ใบเสนอราคา (ไม่ใช่เอกสารภาษี ไม่ลงบัญชี — ไม่บังคับเรียงตามวันที่) */
@@ -55,6 +57,7 @@ export const DATE_ORDERED_PREFIXES: readonly DocPrefix[] = [
   'PV',
   'WT',
   'RF',
+  'SR',
   'TR',
 ];
 

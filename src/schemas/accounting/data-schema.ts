@@ -186,9 +186,10 @@ const PurchaseCreditNoteSchema = zod.object({
   date: isoDate,
   purchaseId: zod.string(),
   contactId: zod.string(),
-  lines: zod.array(DocLineSchema),
+  lines: zod.array(DocLineSchema.extend({ purchaseLineId: zod.string().optional() })),
   vatMode,
   vatRate: zod.number().finite(),
+  refundDue: money.optional(),
   claimVat: zod.boolean(),
   vatClaimPeriod: monthKey.optional(),
   reason: zod.string(),
@@ -231,6 +232,19 @@ const CustomerRefundSchema = zod.object({
   journalId: zod.string(),
 });
 
+const SupplierRefundSchema = zod.object({
+  id: zod.string(),
+  docNo: zod.string(),
+  date: isoDate,
+  contactId: zod.string(),
+  amount: money,
+  accountCode: zod.string(),
+  note: zod.string().optional(),
+  supplier: PartySnapshotSchema.optional(),
+  journalId: zod.string(),
+  createdAt: zod.string(),
+});
+
 const JournalEntrySchema = zod.object({
   id: zod.string(),
   docNo: zod.string(),
@@ -244,6 +258,7 @@ const JournalEntrySchema = zod.object({
     'purchase',
     'payment',
     'refund',
+    'supplier-refund',
     'vat-close',
     'purchase-credit-note',
     'year-close',
@@ -361,6 +376,7 @@ export const AccountingDataSchema: zod.ZodType<AccountingData, zod.ZodTypeDef, u
   refunds: zod.array(CustomerRefundSchema),
   vatCloses: zod.array(VatCloseSchema),
   purchaseCredits: zod.array(PurchaseCreditNoteSchema),
+  supplierRefunds: zod.array(SupplierRefundSchema),
   yearCloses: zod.array(YearCloseSchema),
   openingBalance: OpeningBalanceSchema.optional(),
   bankAccounts: zod.array(BankAccountSchema),

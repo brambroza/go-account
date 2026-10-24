@@ -9,6 +9,8 @@ export const ACC = {
   pettyCash: '1111',
   bank: '1120',
   receivable: '1130',
+  /** ลูกหนี้-เงินคืนจากผู้ขาย — ใบลดหนี้จากผู้ขายหลังจ่ายเงินแล้ว (ส่วนที่เกินยอดค้างจ่าย) */
+  supplierRefundReceivable: '1150',
   whtReceivable: '1160',
   inputVat: '1170',
   /** ภาษีซื้อเกินภาษีขาย ยกไปเดือนถัดไป (ภ.พ.30 ช่อง 12) — ลงโดยการปิดภาษีเดือนเท่านั้น */
@@ -45,6 +47,13 @@ export const DEFAULT_ACCOUNTS: Account[] = [
   { code: ACC.pettyCash, name: 'เงินสดย่อย', nameEn: 'Petty cash', type: 'asset' },
   { code: ACC.bank, name: 'เงินฝากธนาคาร', nameEn: 'Bank deposits', type: 'asset', system: true },
   { code: ACC.receivable, name: 'ลูกหนี้การค้า', nameEn: 'Accounts receivable', type: 'asset', system: true },
+  {
+    code: ACC.supplierRefundReceivable,
+    name: 'ลูกหนี้-เงินคืนจากผู้ขาย',
+    nameEn: 'Supplier refunds receivable',
+    type: 'asset',
+    system: true,
+  },
   {
     code: ACC.whtReceivable,
     name: 'ภาษีถูกหัก ณ ที่จ่าย',
@@ -109,6 +118,7 @@ export const DEFAULT_ACCOUNTS: Account[] = [
  */
 export const CONTROL_ACCOUNTS: readonly string[] = [
   ACC.receivable,
+  ACC.supplierRefundReceivable,
   ACC.whtReceivable,
   ACC.inputVat,
   ACC.vatCredit,

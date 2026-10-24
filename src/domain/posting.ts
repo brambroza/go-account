@@ -16,6 +16,7 @@ import type {
   BankTransfer,
   CustomerRefund,
   OpeningBalance,
+  SupplierRefund,
   PurchaseCreditNote,
 } from './types';
 
@@ -256,6 +257,7 @@ export function postVatClose(
 
 /**
  * ใบลดหนี้จากผู้ขาย: Dr เจ้าหนี้ / Cr ค่าใช้จ่าย/สินทรัพย์ (ตามบัญชีในบรรทัด) + Cr ภาษีซื้อ (ถ้าเอกสารเดิมขอคืน)
+ * ส่วนที่เกินยอดค้างจ่าย (`refundDue` — จ่ายเงินไปแล้ว) Dr ลูกหนี้-เงินคืนจากผู้ขาย 1150 แทนเจ้าหนี้
  * ภาษีซื้อที่ขอคืนไม่ได้ลดรวมกับบรรทัดแรก (กลับรายการเหมือนตอนบันทึกซื้อ)
  */
 export function postPurchaseCreditNote(
@@ -269,8 +271,10 @@ export function postPurchaseCreditNote(
   if (!doc.claimVat && t.vat !== 0 && expenseLines.length) {
     expenseLines[0] = cr(expenseLines[0].accountCode, expenseLines[0].credit + t.vat);
   }
+  const refundDue = doc.refundDue ?? 0;
   const lines = finalize([
-    dr(ACC.payable, t.total, contactName),
+    dr(ACC.payable, subBaht(t.total, refundDue), contactName),
+    dr(ACC.supplierRefundReceivable, refundDue, contactName),
     ...expenseLines,
     ...(doc.claimVat ? [cr(ACC.inputVat, t.vat)] : []),
   ]);
@@ -316,11 +320,12 @@ export function postYearClose(
 
 /**
  * ยอดยกมา: บรรทัดบัญชีแยกประเภทที่ผู้ใช้กรอก + Dr ลูกหนี้ (รวมใบค้างรับ) + Cr เจ้าหนี้ (รวมใบค้างจ่าย)
- * + Dr ภาษีชำระเกินยกมา + Dr ภาษีถูกหัก ณ ที่จ่าย — throw UnbalancedEntryError ถ้าไม่สมดุล
+ * + Dr ภาษีชำระเกินยกมา + Dr ภาษีถูกหัก ณ ที่จ่าย + Cr 2151 ภาษีขายยังไม่ถึงกำหนดของใบแจ้งหนี้งานบริการค้างรับ (U2)
+ * — throw UnbalancedEntryError ถ้าไม่สมดุล
  */
 export function postOpeningBalance(
   opening: Pick<OpeningBalance, 'date' | 'lines' | 'vatCredit' | 'whtReceivable'>,
-  totals: { receivable: number; payable: number },
+  totals: { receivable: number; payable: number; deferredVat?: number },
   meta: EntryMeta
 ): JournalEntry {
   const lines = finalize([
@@ -329,6 +334,7 @@ export function postOpeningBalance(
     dr(ACC.vatCredit, opening.vatCredit, 'ภาษีชำระเกินยกมา'),
     dr(ACC.whtReceivable, opening.whtReceivable, 'ภาษีถูกหัก ณ ที่จ่ายยกมา'),
     cr(ACC.payable, totals.payable, 'เจ้าหนี้คงค้างยกมา'),
+    cr(ACC.deferredOutputVat, totals.deferredVat ?? 0, 'ภาษีขายยังไม่ถึงกำหนดยกมา (งานบริการค้างรับ)'),
   ]);
   return {
     ...meta,
@@ -351,6 +357,23 @@ export function postCustomerRefund(refund: CustomerRefund, meta: EntryMeta, cont
     date: refund.date,
     description: `คืนเงินลูกค้า ${contactName}${refund.note ? ` — ${refund.note}` : ''}`,
     source: 'refund',
+    sourceId: refund.id,
+    sourceDocNo: refund.docNo,
+    lines,
+  };
+}
+
+/** รับเงินคืนจากผู้ขาย: Dr เงินสด/ธนาคาร / Cr ลูกหนี้-เงินคืนจากผู้ขาย 1150 */
+export function postSupplierRefund(refund: SupplierRefund, meta: EntryMeta, contactName: string): JournalEntry {
+  const lines = finalize([
+    dr(refund.accountCode, refund.amount),
+    cr(ACC.supplierRefundReceivable, refund.amount, contactName),
+  ]);
+  return {
+    ...meta,
+    date: refund.date,
+    description: `รับเงินคืนจากผู้ขาย ${contactName}${refund.note ? ` — ${refund.note}` : ''}`,
+    source: 'supplier-refund',
     sourceId: refund.id,
     sourceDocNo: refund.docNo,
     lines,

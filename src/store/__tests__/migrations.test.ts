@@ -223,8 +223,8 @@ describe('migration v5 → v6 (Sprint B batch 4)', () => {
     expect(result.problems).toEqual([]);
     const { data } = result;
     if (!data) throw new Error('migrate failed');
-    expect(DATA_VERSION).toBe(6);
-    expect(data.version).toBe(6);
+    expect(DATA_VERSION).toBe(7);
+    expect(data.version).toBe(7);
     expect(data.accounts.find((a) => a.code === ACC.pettyCash)).toMatchObject({ type: 'asset', name: 'เงินสดย่อย' });
     expect(data.bankAccounts).toEqual([
       { accountCode: ACC.pettyCash, kind: 'petty-cash', bankName: 'เงินสดย่อย', accountNo: '' },

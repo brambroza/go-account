@@ -1,5 +1,6 @@
 import { ACC, DATA_VERSION } from 'src/domain';
 
+import { emptyData } from '../seed';
 import { ln, demo, toV1, toV3, TODAY } from './fixtures';
 import { lockPeriod, issueTaxInvoice, BusinessRuleError } from '../actions';
 import { STORAGE_KEY, createAccountingStore, STORAGE_UNAVAILABLE_MESSAGE } from '../accounting-store';
@@ -259,9 +260,18 @@ describe('accounting store', () => {
     });
     expect(() => locked.replace(demo())).toThrow(/ปิดงวด/);
 
-    // ไฟล์ของบริษัทอื่น (สมุดบัญชีคนละชุด) กู้คืนได้
-    const other = { ...old, company: { ...old.company, taxId: '0105561098763' } };
-    store.replace(other);
+    // U3: แก้ company.taxId ในไฟล์เดิมเพื่อข้ามการตรวจ → ยังถูกปฏิเสธ
+    const edited = { ...old, company: { ...old.company, taxId: '0105561098763' } };
+    expect(() => store.replace(edited)).toThrow(/ออกซ้ำ/);
+    // ไฟล์ของบริษัทอื่นจริง: ต้องล้างข้อมูลก่อน แล้วจึงกู้คืนได้
+    const foreignBase = emptyData();
+    const foreign = issueTaxInvoice(
+      { ...foreignBase, company: { ...foreignBase.company, taxId: '0105561098763' }, contacts: old.contacts },
+      { date: '2026-11-15', dueDate: '2026-11-30', contactId: 'c-abc', vatMode: 'exclusive', lines: [ln(1, 100)] }
+    ).state;
+    expect(() => store.replace(foreign)).toThrow(/บริษัทอื่น/);
+    store.resetEmpty();
+    store.replace(foreign);
     expect(store.getSnapshot().data.company.taxId).toBe('0105561098763');
   });
 });

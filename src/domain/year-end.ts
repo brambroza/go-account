@@ -1,5 +1,6 @@
 import { ACC } from './chart-of-accounts';
 import { profitLossBalances } from './ledger';
+import { isServiceInvoice } from './sales-doc';
 import { calcDocument } from './document-calc';
 import { sumBaht, subBaht, toSatang } from './money';
 import { endOfMonth, monthKeyOf, shiftMonthKey, formatThaiDate, isValidISODate } from './thai-date';
@@ -78,11 +79,15 @@ export function openingPurchases(state: Pick<AccountingData, 'purchases'>): Purc
   return state.purchases.filter((p) => p.opening);
 }
 
-/** ยอดรวมใบค้างรับ/ค้างจ่ายยกมา (รวม VAT) — ต้องเท่ากับยอดลูกหนี้/เจ้าหนี้ในรายการยอดยกมา */
+/**
+ * ยอดรวมใบค้างรับ/ค้างจ่ายยกมา (รวม VAT) — ต้องเท่ากับยอดลูกหนี้/เจ้าหนี้ในรายการยอดยกมา
+ * `deferredVat` = VAT ของใบแจ้งหนี้งานบริการค้างรับ (ยังไม่ถึงกำหนด ม.78/1) ที่ยกมาใน 2151
+ */
 export function openingItemTotals(state: Pick<AccountingData, 'sales' | 'purchases'>) {
   return {
     receivable: sumBaht(openingSales(state).map((s) => calcDocument(s).total)),
     payable: sumBaht(openingPurchases(state).map((p) => calcDocument(p).total)),
+    deferredVat: sumBaht(openingSales(state).filter(isServiceInvoice).map((s) => calcDocument(s).vat)),
   };
 }
 

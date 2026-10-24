@@ -18,6 +18,8 @@ import {
   endOfPreviousMonth,
   trialBalanceTotals,
   purchaseOutstanding,
+  supplierRefundDueOf,
+  purchaseCreditableOf,
   quotationToSalesDraft,
   hasNegativeOutstanding,
   validateAccountingData,
@@ -49,6 +51,7 @@ import {
   issueFromQuotation,
   setOpeningBalances,
   refundCustomerCredit,
+  receiveSupplierRefund,
   addBankStatementLines,
   recordPettyCashExpense,
   recordSupplierCreditNote,
@@ -93,8 +96,8 @@ export function openingStart(): AccountingData {
       receivableControl: 53500,
       payableControl: 53000,
       receivables: [
-        { contactId: 'c-abc', docNo: 'IV6809-0012', date: '2026-09-15', dueDate: '2026-10-15', amount: 32100 },
-        { contactId: 'c-nakhon', docNo: 'IV6809-0020', date: '2026-09-28', dueDate: '2026-11-12', amount: 21400 },
+        { contactId: 'c-abc', docNo: 'EX-IV6809-0012', date: '2026-09-15', dueDate: '2026-10-15', amount: 32100 },
+        { contactId: 'c-nakhon', docNo: 'EX-IV6809-0020', date: '2026-09-28', dueDate: '2026-11-12', amount: 21400 },
       ],
       payables: [
         { contactId: 'v-resin', docNo: 'TP-0901', date: '2026-09-10', amount: 42800, vatAmount: 2800 },
@@ -104,7 +107,31 @@ export function openingStart(): AccountingData {
   ).state;
 }
 
-function run(seed: number, steps: number, start: () => AccountingData = demo, withBatch4 = false) {
+/** ยกยอดพร้อมใบแจ้งหนี้งานบริการค้างรับ (VAT ยังไม่ถึงกำหนด 2151 — U2) */
+export function openingServiceStart(): AccountingData {
+  return setOpeningBalances(
+    { ...emptyData(), contacts: demo().contacts },
+    {
+      date: '2026-09-30',
+      lines: [
+        { accountCode: ACC.bank, debit: 300000, credit: 0 },
+        { accountCode: ACC.capital, debit: 0, credit: 300000 },
+        { accountCode: ACC.retained, debit: 0, credit: 30000 },
+      ],
+      vatCredit: 0,
+      whtReceivable: 0,
+      receivableControl: 53500,
+      payableControl: 21400,
+      receivables: [
+        { contactId: 'c-abc', docNo: 'EX-BL6809-0003', date: '2026-09-15', dueDate: '2026-10-15', amount: 32100, serviceVat: 2100 },
+        { contactId: 'c-nakhon', docNo: 'EX-IV6809-0021', date: '2026-09-28', dueDate: '2026-11-12', amount: 21400 },
+      ],
+      payables: [{ contactId: 'v-resin', docNo: 'TP-0902', date: '2026-09-10', amount: 21400, vatAmount: 1400 }],
+    }
+  ).state;
+}
+
+function run(seed: number, steps: number, start: () => AccountingData = demo, withBatch4 = false, withB1 = false) {
   const rnd = prng(seed);
   const pick = <T,>(items: T[]): T => items[Math.floor(rnd() * items.length)];
   const money = (max: number) => Math.max(0.01, Math.floor(rnd() * max * 100) / 100);
@@ -225,6 +252,49 @@ function run(seed: number, steps: number, start: () => AccountingData = demo, wi
     () => closeYear(state, '2026-12-31').state,
   ];
   // batch 4 (ธนาคาร/เงินสดย่อย ×3, ใบเสนอราคา ×2) — แยกชุดสุ่มเพื่อไม่ให้ความถี่ของ action เดิมใน seed เดิมเปลี่ยน
+  // Sprint B.1 — ใบลดหนี้ผู้ขายของเอกสารที่จ่ายแล้ว (D1) / รับเงินคืนจากผู้ขาย / JV เงินสดย่อย (U9)
+  if (withB1) {
+    actions.push(
+      () => {
+        const doc = pick(state.purchases.filter((p) => !p.opening));
+        const creditable = purchaseCreditableOf(state, doc);
+        const share = rnd() < 0.15 ? 1.2 : rnd();
+        const target = Math.floor(toSatang(creditable) * share) / 100;
+        const unitPrice = doc.vatMode === 'exclusive' ? Math.floor(((target * 100) / 107) * 100) / 100 : target;
+        const line = pick(doc.lines);
+        return recordSupplierCreditNote(state, {
+          purchaseId: doc.id,
+          supplierCreditNoteNo: `SCN-B1-${Math.floor(rnd() * 1e6)}`,
+          supplierCreditNoteDate: date,
+          date,
+          reason: 'สุ่มลดหนี้หลังจ่าย',
+          lines: [{ ...ln(1, unitPrice, line.accountCode), ...(rnd() < 0.5 ? { purchaseLineId: line.id } : {}) }],
+        }).state;
+      },
+      () => {
+        const contactId = pick(VENDORS);
+        const due = supplierRefundDueOf(state, contactId);
+        return receiveSupplierRefund(state, {
+          contactId,
+          date,
+          amount: rnd() < 0.2 ? due + 1 : Math.min(due, money(due || 1)),
+          accountCode: pick([ACC.bank, ACC.cash, ACC.pettyCash]),
+        }).state;
+      },
+      () => {
+        const amount = money(4000);
+        return addManualJournal(state, {
+          date,
+          description: 'สุ่มเบิกเงินสดย่อย',
+          lines: [
+            { accountCode: pick([ACC.misc, ACC.supplies]), debit: amount, credit: 0 },
+            { accountCode: ACC.pettyCash, debit: 0, credit: amount },
+          ],
+        }).state;
+      },
+      () => transferFunds(state, { date, fromAccountCode: ACC.bank, toAccountCode: ACC.pettyCash, amount: money(3000) }).state
+    );
+  }
   if (withBatch4) {
     actions.push(
       () => pick(bankActions)(),
@@ -404,5 +474,27 @@ describe('random action sequences after opening balances from Express', () => {
     // ใบค้างยกมาถูกรับ/จ่ายในระหว่างทาง
     const openingIds = new Set([...state.sales, ...state.purchases].filter((d) => d.opening).map((d) => d.id));
     expect(state.receipts.some((r) => openingIds.has(r.invoiceId)) || state.payments.some((p) => openingIds.has(p.purchaseId))).toBe(true);
+  });
+});
+
+describe('random sequences with Sprint B.1 actions (supplier CN after payment, supplier refunds, petty-cash JV)', () => {
+  it.each([
+    [17, demo],
+    [23, demo],
+    [31, openingServiceStart],
+  ] as const)('seed %i', (seed, start) => {
+    const { state, outcome } = run(seed, 300, start, true, true);
+    expect(validateAccountingData(state)).toEqual([]);
+    expect(hasNegativeOutstanding(state)).toBe(false);
+    expect(trialBalanceTotals(trialBalance(state.accounts, state.journal)).balanced).toBe(true);
+    ['2026-10-31', '2026-12-31', TODAY].forEach((asOf) => expect(balanceSheet(state.accounts, state.journal, asOf).balanced).toBe(true));
+    expect(toSatang(cashBalanceOf(state, ACC.pettyCash))).toBeGreaterThanOrEqual(0);
+    state.contacts.forEach((c) => expect(toSatang(supplierRefundDueOf(state, c.id))).toBeGreaterThanOrEqual(0));
+    state.purchases.forEach((p) => expect(p.paid).toBe(toSatang(purchaseOutstanding(state, p)) === 0));
+    state.payments.flatMap((p) => p.whtItems).forEach((i) => expect(toSatang(i.tax)).toBeGreaterThanOrEqual(0));
+    expect(state.purchaseCredits.some((c) => toSatang(c.refundDue ?? 0) > 0)).toBe(true);
+    expect(state.supplierRefunds.length).toBeGreaterThan(0);
+    expect(outcome.ok).toBeGreaterThan(120);
+    expect(outcome.rejected).toBeGreaterThan(5);
   });
 });

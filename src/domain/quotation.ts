@@ -1,5 +1,6 @@
 import { addDays } from './thai-date';
-import { calcDocument } from './document-calc';
+import { subBaht, toSatang } from './money';
+import { lineAmount, calcDocument } from './document-calc';
 
 import type { ISODate, DocLine, SaleType, Quotation, QuotationStatus } from './types';
 
@@ -66,5 +67,65 @@ export function quotationToSalesDraft(
     saleType: q.saleType ?? 'goods',
     note: q.note ?? '',
     lines: quotationSalesLines(q, newId),
+  };
+}
+
+export type QuotationLineVariance = {
+  /** ลำดับบรรทัด (0-based) */
+  index: number;
+  kind: 'added' | 'removed' | 'changed';
+  description: string;
+  /** ยอดบรรทัด (จำนวน × ราคา − ส่วนลด) ในใบเสนอราคา / ในเอกสารขาย */
+  quoted?: number;
+  draft?: number;
+};
+
+export type QuotationVariance = {
+  /** มีความต่าง (ยอดรวม/บรรทัด/วิธีคิด VAT) — หน้าจอเตือน ไม่บล็อก */
+  hasDifference: boolean;
+  quotedTotal: number;
+  draftTotal: number;
+  /** ยอดเอกสารขาย − ยอดใบเสนอราคา (รวม VAT) */
+  totalDiff: number;
+  vatModeChanged: boolean;
+  lines: QuotationLineVariance[];
+};
+
+/**
+ * D3 — เทียบเอกสารขายที่กำลังออกกับใบเสนอราคา (ยอดรวม + ทีละบรรทัดตามลำดับ) เพื่อเตือนก่อนบันทึก — ไม่บล็อก
+ * ใช้อัตรา VAT ของใบเสนอราคากับทั้งสองฝั่ง
+ */
+export function quotationVariance(
+  quotation: Pick<Quotation, 'lines' | 'vatMode' | 'vatRate'>,
+  salesDraft: { lines: Pick<DocLine, 'description' | 'qty' | 'unitPrice' | 'discount' | 'accountCode'>[]; vatMode: Quotation['vatMode'] }
+): QuotationVariance {
+  const quotedTotal = calcDocument(quotation).total;
+  const draftTotal = calcDocument({ lines: salesDraft.lines, vatMode: salesDraft.vatMode, vatRate: quotation.vatRate }).total;
+  const lines: QuotationLineVariance[] = [];
+  const count = Math.max(quotation.lines.length, salesDraft.lines.length);
+  for (let index = 0; index < count; index += 1) {
+    const q = quotation.lines[index];
+    const d = salesDraft.lines[index];
+    if (q && !d) lines.push({ index, kind: 'removed', description: q.description, quoted: lineAmount(q) });
+    else if (!q && d) lines.push({ index, kind: 'added', description: d.description, draft: lineAmount(d) });
+    else if (q && d) {
+      const changed =
+        toSatang(lineAmount(q)) !== toSatang(lineAmount(d)) ||
+        q.qty !== d.qty ||
+        toSatang(q.unitPrice) !== toSatang(d.unitPrice) ||
+        q.description.trim() !== d.description.trim() ||
+        q.accountCode !== d.accountCode;
+      if (changed) lines.push({ index, kind: 'changed', description: d.description, quoted: lineAmount(q), draft: lineAmount(d) });
+    }
+  }
+  const totalDiff = subBaht(draftTotal, quotedTotal);
+  const vatModeChanged = quotation.vatMode !== salesDraft.vatMode;
+  return {
+    hasDifference: toSatang(totalDiff) !== 0 || vatModeChanged || lines.length > 0,
+    quotedTotal,
+    draftTotal,
+    totalDiff,
+    vatModeChanged,
+    lines,
   };
 }

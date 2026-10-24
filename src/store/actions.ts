@@ -23,10 +23,12 @@ import type {
   JournalEntry,
   AccountingData,
   CustomerRefund,
+  SupplierRefund,
   OpeningBalance,
   QuotationStatus,
   BankAccountKind,
   BankStatementLine,
+  PurchaseCreditLine,
   PurchaseCreditNote,
 } from 'src/domain';
 
@@ -44,6 +46,7 @@ import {
   DOC_PREFIX,
   monthKeyOf,
   paymentsOf,
+  endOfMonth,
   postReceipt,
   calcDocument,
   postPurchase,
@@ -66,6 +69,7 @@ import {
   formatThaiDate,
   isValidISODate,
   unmatchedItems,
+  normalizeTaxId,
   companySnapshot,
   creditedPartsOf,
   vatClaimProblem,
@@ -81,6 +85,7 @@ import {
   sortedYearCloses,
   postBankTransfer,
   bankMatchProblem,
+  normalizeBranch5,
   lastReceiptDateOf,
   yearCloseBalances,
   lastPaymentDateOf,
@@ -92,10 +97,13 @@ import {
   autoMatchProposals,
   minCashBalanceFrom,
   QUOTATION_STATUSES,
+  postSupplierRefund,
   postPurchasePayment,
   purchaseOutstanding,
   planPurchasePayment,
   nextBankAccountCode,
+  supplierCreditSplit,
+  supplierRefundDueOf,
   RECEIPT_WHT_MAX_RATE,
   UnbalancedEntryError,
   openingBlockedReason,
@@ -107,7 +115,8 @@ import {
   postPurchaseCreditNote,
   supplierVatClaimProblem,
   quotationConvertProblem,
-  purchaseAdjustedWhtGroups,
+  purchaseCreditAllocation,
+  findDuplicateSupplierCredit,
   isValidISODate as isISODate,
 } from 'src/domain';
 
@@ -172,6 +181,7 @@ export function lastDocDate(state: AccountingData, prefix: DocPrefix): ISODate |
     ...state.payments,
     ...state.payments.map((p) => ({ docNo: p.whtCertNo, date: p.date })),
     ...state.refunds,
+    ...(state.supplierRefunds ?? []),
     ...state.purchaseCredits,
     ...state.transfers,
     ...state.quotations,
@@ -847,6 +857,11 @@ export function addManualJournal(
   const j = takeNumber(state, DOC_PREFIX.journal, input.date);
   const entry: JournalEntry = buildManualEntry({ id: uid(), docNo: j.docNo }, input.date, input.description, input.lines);
   if (!entry.lines.length) throw new BusinessRuleError('ยอดรวมต้องมากกว่า 0');
+  // U9: เครดิตเงินสดย่อยสุทธิเกินยอดคงเหลือไม่ได้ (เหมือนจ่าย/โอนออก) — ธนาคารเบิกเกินบัญชีได้
+  Array.from(new Set(entry.lines.map((l) => l.accountCode))).forEach((code) => {
+    const net = entry.lines.filter((l) => l.accountCode === code).reduce((a, l) => a + toSatang(l.credit) - toSatang(l.debit), 0);
+    if (net > 0) assertPettyCashAvailable(state, code, input.date, net / 100);
+  });
   return { state: { ...state, journal: [...state.journal, entry], sequences: j.sequences }, entry };
 }
 
@@ -873,8 +888,24 @@ export function importContacts(state: AccountingData, contacts: Omit<Contact, 'i
   return { state: { ...state, contacts: [...state.contacts, ...fresh] }, added: fresh.length, skipped: contacts.length - fresh.length };
 }
 
-/** แก้ข้อมูลบริษัท — วันที่ปิดงวดเปลี่ยนผ่าน `lockPeriod` เท่านั้น (ค่าที่ส่งมาถูกละ) */
+/** มีเอกสารที่ออกในนามบริษัทแล้วหรือยัง (เอกสารขาย ใบเสร็จ ใบสำคัญจ่าย/50 ทวิ ใบคืนเงิน) */
+export function hasIssuedDocuments(state: AccountingData): boolean {
+  return state.sales.length > 0 || state.receipts.length > 0 || state.payments.length > 0 || state.refunds.length > 0;
+}
+
+/**
+ * แก้ข้อมูลบริษัท — วันที่ปิดงวดเปลี่ยนผ่าน `lockPeriod` เท่านั้น (ค่าที่ส่งมาถูกละ)
+ * U3: มีเอกสารที่ออกแล้ว เปลี่ยนเลขผู้เสียภาษี/สาขาไม่ได้ (เป็นตัวระบุบริษัทในเอกสารและการกู้คืน) — แก้รูปแบบการพิมพ์ได้
+ */
 export function updateCompany(state: AccountingData, company: Company): AccountingData {
+  const changedId =
+    normalizeTaxId(company.taxId) !== normalizeTaxId(state.company.taxId) ||
+    normalizeBranch5(company.branchNo) !== normalizeBranch5(state.company.branchNo);
+  if (changedId && hasIssuedDocuments(state)) {
+    throw new BusinessRuleError(
+      'ออกเอกสารในนามบริษัทแล้ว — เปลี่ยนเลขประจำตัวผู้เสียภาษี/สาขาไม่ได้ (เป็นบริษัทใหม่ ให้ล้างข้อมูลแล้วเริ่มสมุดบัญชีใหม่)'
+    );
+  }
   return { ...state, company: { ...company, lockedThrough: state.company.lockedThrough } };
 }
 
@@ -962,19 +993,26 @@ export type SupplierCreditNoteInput = {
   /** วันที่ได้รับ/บันทึก — ภาษีซื้อลดในเดือนนี้ */
   date: string;
   reason: string;
-  lines: DocLine[];
+  /** บรรทัดที่ลด — `purchaseLineId` อ้างบรรทัดของเอกสารซื้อ (ไม่ส่ง = จับคู่ตามบัญชี) */
+  lines: PurchaseCreditLine[];
 };
 
 const normalizeDocNo = (v: string) => v.replace(/[\s\-_/.]/g, '').toUpperCase();
 
 /**
  * บันทึกใบลดหนี้จากผู้ขาย (ม.82/12 — ⚠️ ยืนยันมาตรากับที่ปรึกษาภาษี) อ้างเอกสารซื้อเดิม
- * - ลดได้ไม่เกินยอดค้างจ่ายของเอกสารเดิม (ส่วนที่จ่ายแล้วต้องรับเงินคืนจากผู้ขาย — ยังไม่รองรับ)
- * - มูลค่า/VAT ที่ลดรวมไม่เกินของเอกสารเดิม, วันที่ไม่ก่อนเอกสารเดิมและการจ่ายครั้งล่าสุด, งวดยังไม่ปิด
+ * - D1: ลดได้ไม่เกินยอดเอกสาร − ใบลดหนี้ก่อนหน้า (แม้จ่ายแล้วบางส่วน/ทั้งหมด) — ส่วนที่เกินยอดค้างจ่าย
+ *   ตั้งเป็นลูกหนี้-เงินคืนจากผู้ขาย 1150 (`doc.refundDue`) แล้วรับเงินด้วย `receiveSupplierRefund`
+ * - มูลค่า/VAT ที่ลดรวมไม่เกินของเอกสารเดิม, บรรทัดที่ลดไม่เกินมูลค่าบรรทัดเดิม, วันที่ไม่ก่อนเอกสารเดิมและการจ่ายครั้งล่าสุด
  * - เอกสารเดิมขอคืนภาษีซื้อ: ลดภาษีซื้อในเดือนที่ได้รับ (`vatClaimPeriod` = เดือนของ `date`) ซึ่งต้องไม่ก่อนเดือนใช้สิทธิเดิม
- * - หัก ณ ที่จ่ายของการจ่ายครั้งถัดไปคิดจากยอดหลังลดหนี้ (`purchaseAdjustedWhtGroups`)
+ * - U8: ฐานหัก ณ ที่จ่ายลดเฉพาะบรรทัดที่ลดหนี้ (`purchaseAdjustedWhtGroups`) — การจ่ายครั้งถัดไปหักจากฐานคงเหลือ
+ * - หัก ณ ที่จ่ายที่หักไปแล้วในการจ่ายก่อนหน้าไม่ปรับ (50 ทวิ ออกตามวันที่จ่ายแล้ว) — คืน `warnings` ให้หน้าจอแจ้ง
+ * - U12: กันเลขใบลดหนี้ผู้ขายซ้ำ (ผู้ขายเดียวกันตามเลขผู้เสียภาษี+สาขา แม้เป็นผู้ติดต่อคนละรายการ)
  */
-export function recordSupplierCreditNote(state: AccountingData, input: SupplierCreditNoteInput) {
+export function recordSupplierCreditNote(
+  state: AccountingData,
+  input: SupplierCreditNoteInput
+): { state: AccountingData; doc: PurchaseCreditNote; warnings: string[] } {
   const purchase = state.purchases.find((p) => p.id === input.purchaseId);
   if (!purchase) throw new BusinessRuleError('ไม่พบเอกสารซื้อที่อ้างถึง');
   if (purchase.opening) {
@@ -996,22 +1034,30 @@ export function recordSupplierCreditNote(state: AccountingData, input: SupplierC
   const { claimVat } = purchase;
   const supplierCreditNoteNo = input.supplierCreditNoteNo.trim();
   if (claimVat && !supplierCreditNoteNo) throw new BusinessRuleError('ลดภาษีซื้อต้องมีเลขที่ใบลดหนี้ของผู้ขาย');
-  if (
-    supplierCreditNoteNo &&
-    state.purchaseCredits.some(
-      (c) => c.contactId === purchase.contactId && normalizeDocNo(c.supplierCreditNoteNo) === normalizeDocNo(supplierCreditNoteNo)
-    )
-  ) {
-    throw new BusinessRuleError(`ใบลดหนี้ผู้ขายเลขที่ ${supplierCreditNoteNo} บันทึกไปแล้ว`);
+  const contact = contactOf(state, purchase.contactId);
+  const dup = findDuplicateSupplierCredit(state.purchaseCredits, state.contacts, {
+    contactId: purchase.contactId,
+    supplierCreditNoteNo,
+    party: partySnapshot(contact),
+  });
+  if (dup) {
+    throw new BusinessRuleError(
+      `ใบลดหนี้ผู้ขายเลขที่ ${supplierCreditNoteNo} บันทึกไปแล้วใน ${dup.docNo}${dup.contactId === purchase.contactId ? '' : ' (ผู้ขายเลขผู้เสียภาษีเดียวกัน)'}`
+    );
   }
   assertLines(state, input.lines, 'purchase');
+  input.lines.forEach((l, i) => {
+    if (l.purchaseLineId && !purchase.lines.some((pl) => pl.id === l.purchaseLineId)) {
+      throw new BusinessRuleError(`รายการที่ ${i + 1}: ไม่พบบรรทัดของ ${purchase.docNo} ที่อ้างถึง`);
+    }
+  });
 
   const credit = calcDocument({ lines: input.lines, vatMode: purchase.vatMode, vatRate: purchase.vatRate });
   assertPositiveTotal(credit.total);
-  const outstanding = purchaseOutstanding(state, purchase);
-  if (toSatang(credit.total) > toSatang(outstanding)) {
+  const split = supplierCreditSplit(state, purchase, credit.total);
+  if (toSatang(credit.total) > toSatang(split.limit)) {
     throw new BusinessRuleError(
-      `ยอดลดหนี้ ${credit.total.toFixed(2)} เกินยอดค้างจ่ายของ ${purchase.docNo} (${outstanding.toFixed(2)} บาท) — ส่วนที่จ่ายแล้วให้บันทึกรับเงินคืนจากผู้ขาย`
+      `ยอดลดหนี้ ${credit.total.toFixed(2)} เกินยอดที่ลดได้ของ ${purchase.docNo} (${split.limit.toFixed(2)} บาท = ยอดเอกสารหักใบลดหนี้ก่อนหน้า)`
     );
   }
   const original = calcDocument(purchase);
@@ -1032,7 +1078,6 @@ export function recordSupplierCreditNote(state: AccountingData, input: SupplierC
     }
   }
 
-  const contact = contactOf(state, purchase.contactId);
   const n = takeNumber(state, DOC_PREFIX.purchaseCredit, input.date);
   const j = takeNumber({ ...state, sequences: n.sequences }, DOC_PREFIX.journal, input.date);
   const journalId = uid();
@@ -1047,6 +1092,7 @@ export function recordSupplierCreditNote(state: AccountingData, input: SupplierC
     lines: input.lines,
     vatMode: purchase.vatMode,
     vatRate: purchase.vatRate,
+    ...(toSatang(split.refundDue) > 0 ? { refundDue: split.refundDue } : {}),
     claimVat,
     vatClaimPeriod: claimVat ? month : undefined,
     reason: input.reason.trim(),
@@ -1055,20 +1101,23 @@ export function recordSupplierCreditNote(state: AccountingData, input: SupplierC
     createdAt: new Date().toISOString(),
   };
 
+  // ลดหนี้แต่ละบรรทัดได้ไม่เกินมูลค่าคงเหลือของบรรทัดเดิม (ฐานหัก ณ ที่จ่ายรายบรรทัด)
+  const allocation = purchaseCreditAllocation(purchase, [...purchaseCreditsOfState(state, purchase.id), doc]);
+  if (allocation.problems.length) throw new BusinessRuleError(allocation.problems[allocation.problems.length - 1]);
+
   const withCredit: AccountingData = { ...state, purchaseCredits: [...state.purchaseCredits, doc] };
-  // หัก ณ ที่จ่ายที่หักไปแล้วต้องไม่เกินฐานหลังลดหนี้ (เผื่อเศษปัด 1 สตางค์ต่อการจ่าย)
-  const pvs = paymentsOf(state, purchase.id);
-  purchaseAdjustedWhtGroups(withCredit, purchase).forEach((g) => {
-    const withheld = pvs
-      .flatMap((pv) => pv.whtItems)
-      .filter((i) => i.incomeType === g.incomeType && i.rate === g.rate)
-      .reduce((a, i) => a + toSatang(i.base), 0);
-    if (withheld - toSatang(g.base) > pvs.length) {
-      throw new BusinessRuleError(
-        `หัก ณ ที่จ่าย ${g.incomeType} ${g.rate}% ไปแล้วเกินฐานหลังลดหนี้ — ลดหนี้ได้เฉพาะส่วนที่ยังไม่ได้จ่าย`
-      );
-    }
-  });
+  const warnings: string[] = [];
+  const withheld = sumBaht(paymentsOf(state, purchase.id).map((pv) => pv.whtAmount));
+  if (toSatang(withheld) > 0) {
+    warnings.push(
+      `${purchase.docNo} หักภาษี ณ ที่จ่ายไปแล้ว ${withheld.toFixed(2)} บาท ในการจ่ายก่อนหน้า — ระบบไม่ปรับภาษีที่หักและ 50 ทวิ ที่ออกไปแล้ว (เข้างวดตามวันที่จ่าย) การจ่ายครั้งถัดไปหักจากฐานคงเหลือหลังลดหนี้ ถ้าต้องคืนภาษีที่หักเกินให้ผู้ขาย ให้ตกลงกับผู้ขายและปรับปรุงเอง`
+    );
+  }
+  if (toSatang(split.refundDue) > 0) {
+    warnings.push(
+      `ยอด ${split.refundDue.toFixed(2)} บาท เกินยอดค้างจ่าย (จ่ายไปแล้ว) — ตั้งเป็นลูกหนี้-เงินคืนจากผู้ขาย ${ACC.supplierRefundReceivable} บันทึกรับเงินคืนเมื่อได้รับ`
+    );
+  }
 
   const entry = postPurchaseCreditNote(doc, { id: journalId, docNo: j.docNo }, contactDisplayName(contact), purchase.docNo);
   const updated: PurchaseDoc = { ...purchase, paid: toSatang(purchaseOutstanding(withCredit, purchase)) <= 0 };
@@ -1080,6 +1129,63 @@ export function recordSupplierCreditNote(state: AccountingData, input: SupplierC
       sequences: j.sequences,
     },
     doc,
+    warnings,
+  };
+}
+
+const purchaseCreditsOfState = (state: AccountingData, purchaseId: string) => state.purchaseCredits.filter((c) => c.purchaseId === purchaseId);
+
+export type SupplierRefundInput = {
+  contactId: string;
+  date: string;
+  amount: number;
+  /** บัญชีเงินสด/ธนาคารที่รับเงิน */
+  accountCode: string;
+  note?: string;
+};
+
+/**
+ * D1 — รับเงินคืนจากผู้ขาย (ใบลดหนี้หลังจ่ายเงินแล้ว): Dr เงินสด/ธนาคาร / Cr ลูกหนี้-เงินคืนจากผู้ขาย 1150 — เลขที่ SR เรียงตามวันที่
+ * รับได้ไม่เกินยอดคงค้าง ณ วันที่รับ (เฉพาะใบลดหนี้ที่ลงวันที่ไม่เกินวันนั้น — วันที่รับต้องไม่ก่อนวันที่ใบลดหนี้)
+ */
+export function receiveSupplierRefund(state: AccountingData, input: SupplierRefundInput): { state: AccountingData; refund: SupplierRefund } {
+  const contact = contactOf(state, input.contactId);
+  assertPostingDate(state, input.date, 'วันที่รับเงินคืน');
+  if (!Number.isFinite(input.amount) || !(toSatang(input.amount) > 0)) throw new BusinessRuleError('ยอดรับเงินคืนต้องมากกว่า 0');
+  const n = takeNumber(state, DOC_PREFIX.supplierRefund, input.date);
+  const available = supplierRefundDueOf(state, contact.id, input.date);
+  if (toSatang(input.amount) > toSatang(available)) {
+    const total = supplierRefundDueOf(state, contact.id);
+    throw new BusinessRuleError(
+      toSatang(total) > toSatang(available)
+        ? `ยอดรับคืนเกินยอดเงินคืนจากผู้ขาย ณ วันที่ ${formatThaiDate(input.date)} (รับได้ ${Math.max(0, available).toFixed(2)} บาท — ใบลดหนี้บางใบลงวันที่หลังวันรับเงิน)`
+        : `ยอดรับคืนเกินยอดเงินคืนจากผู้ขาย (รับได้ ${Math.max(0, available).toFixed(2)} บาท)`
+    );
+  }
+  assertCashAccount(state, input.accountCode);
+  const j = takeNumber({ ...state, sequences: n.sequences }, DOC_PREFIX.journal, input.date);
+  const journalId = uid();
+  const refund: SupplierRefund = {
+    id: uid(),
+    docNo: n.docNo,
+    date: input.date,
+    contactId: contact.id,
+    amount: round2(input.amount),
+    accountCode: input.accountCode,
+    ...(input.note?.trim() ? { note: input.note.trim() } : {}),
+    supplier: partySnapshot(contact),
+    journalId,
+    createdAt: new Date().toISOString(),
+  };
+  const entry = postSupplierRefund(refund, { id: journalId, docNo: j.docNo }, contactDisplayName(contact));
+  return {
+    state: {
+      ...state,
+      supplierRefunds: [...(state.supplierRefunds ?? []), refund],
+      journal: [...state.journal, entry],
+      sequences: j.sequences,
+    },
+    refund,
   };
 }
 
@@ -1120,12 +1226,18 @@ export function closeYear(
 
 export type OpeningReceivableInput = {
   contactId: string;
-  /** เลขที่ใบกำกับ/ใบแจ้งหนี้ในระบบเดิม */
+  /** เลขที่ใบกำกับ/ใบแจ้งหนี้ในระบบเดิม (ห้ามรูปแบบเลขที่ของระบบนี้ เช่น IV6910-0001) */
   docNo: string;
   date: string;
   dueDate: string;
-  /** ยอดค้างรับ (รวม VAT ที่ยื่นในระบบเดิมแล้ว) */
+  /** ยอดค้างรับ (รวม VAT) */
   amount: number;
+  /**
+   * U2 — ใบแจ้งหนี้งานบริการ (ม.78/1) ที่ภาษีขายยังไม่ถึงกำหนด: VAT ที่รวมอยู่ในยอดค้าง (ยังไม่ได้ยื่นในระบบเดิม)
+   * ยกมาเป็น 2151 รับเงินแล้วออกใบเสร็จรับเงิน/ใบกำกับภาษี (RT) และย้าย VAT เข้า 2150 ในเดือนที่รับเงิน
+   * ไม่ส่ง/0 = ใบค้างรับธรรมดา (ภาษีขายยื่นในระบบเดิมแล้ว รับเงินออกใบเสร็จ RE)
+   */
+  serviceVat?: number;
 };
 
 export type OpeningPayableInput = {
@@ -1156,6 +1268,19 @@ export type OpeningBalanceInput = {
   payables: OpeningPayableInput[];
 };
 
+/**
+ * ใบค้างรับงานบริการยกมา: VAT ที่ยังไม่ถึงกำหนดต้องเท่ากับ VAT ตามอัตราของมูลค่า (คิดแยก หรือรวมในยอด) —
+ * คืนวิธีคิด VAT ที่ให้ VAT ตรงกับที่กรอก หรือ null ถ้าไม่ตรง (ต่างกันเกินเศษปัด)
+ */
+export function openingServiceVatMode(amount: number, serviceVat: number): { vatMode: VatMode; unitPrice: number } | null {
+  const net = subBaht(amount, serviceVat);
+  const exclusive = calcDocument({ lines: [{ qty: 1, unitPrice: net, discount: 0, accountCode: ACC.service }], vatMode: 'exclusive', vatRate: VAT_RATE });
+  if (toSatang(exclusive.vat) === toSatang(serviceVat) && toSatang(exclusive.total) === toSatang(amount)) return { vatMode: 'exclusive', unitPrice: net };
+  const inclusive = calcDocument({ lines: [{ qty: 1, unitPrice: round2(amount), discount: 0, accountCode: ACC.service }], vatMode: 'inclusive', vatRate: VAT_RATE });
+  if (toSatang(inclusive.vat) === toSatang(serviceVat)) return { vatMode: 'inclusive', unitPrice: round2(amount) };
+  return null;
+}
+
 /** บัญชีที่กรอกในยอดยกมาผ่านช่องเฉพาะ (ลูกหนี้/เจ้าหนี้จากรายการค้าง, 1180, 1160) */
 const OPENING_FIELD_ACCOUNTS: readonly string[] = [ACC.receivable, ACC.payable, ACC.vatCredit, ACC.whtReceivable];
 
@@ -1174,6 +1299,13 @@ function assertAmount(value: number, label: string, positive = false) {
  */
 export function setOpeningBalances(state: AccountingData, input: OpeningBalanceInput) {
   assertISODate(input.date, 'วันที่ยอดยกมา');
+  // D4: ยกยอด ณ สิ้นเดือนเท่านั้น — เดือนถัดไปเริ่มในระบบนี้ทั้งเดือน (ภาษีขาย/ซื้อของเดือนยกยอดยื่นในระบบเดิม)
+  // ข้อมูลเดิมที่ยกยอดกลางเดือนไว้แล้วยังใช้ได้ (ไม่ตรวจย้อนหลังใน validateAccountingData)
+  if (endOfMonth(monthKeyOf(input.date)) !== input.date) {
+    throw new BusinessRuleError(
+      `วันที่ยอดยกมาต้องเป็นวันสิ้นเดือน (เช่น ${formatThaiDate(endOfMonth(monthKeyOf(input.date)))}) — ภาษีของเดือนยกยอดยื่นในระบบเดิมทั้งเดือน`
+    );
+  }
   assertOpenPeriod(state, input.date);
   const prior = state.openingBalance;
   const blocked = openingBlockedReason(state);
@@ -1208,6 +1340,12 @@ export function setOpeningBalances(state: AccountingData, input: OpeningBalanceI
     if (side === 'ar' && contact.kind === 'vendor') throw new BusinessRuleError(`${no}: ${contactDisplayName(contact)} เป็นผู้ขายเท่านั้น`);
     if (side === 'ap' && contact.kind === 'customer') throw new BusinessRuleError(`${no}: ${contactDisplayName(contact)} เป็นลูกค้าเท่านั้น`);
     if (!item.docNo.trim()) throw new BusinessRuleError(`${no}: ระบุเลขที่เอกสารในระบบเดิม`);
+    // U12: เลขที่รูปแบบเดียวกับระบบนี้ (PREFIX + งวด + ลำดับ) จะชนกับเลขที่ที่ระบบออกภายหลัง
+    if (parseDocNo(item.docNo.trim().toUpperCase())) {
+      throw new BusinessRuleError(
+        `${no}: เลขที่ ${item.docNo.trim()} ซ้ำรูปแบบเลขที่ของระบบนี้ (เช่น IV6910-0001) — เติมคำนำหน้า เช่น EX-${item.docNo.trim()}`
+      );
+    }
     assertISODate(item.date, `${no}: วันที่เอกสาร`);
     if (item.date > input.date) throw new BusinessRuleError(`${no}: วันที่เอกสารต้องไม่หลังวันยอดยกมา`);
     assertAmount(item.amount, `${no}: ยอดค้าง`, true);
@@ -1237,18 +1375,41 @@ export function setOpeningBalances(state: AccountingData, input: OpeningBalanceI
     assertISODate(item.dueDate, `ลูกหนี้รายการที่ ${i + 1}: วันครบกำหนด`);
     if (item.dueDate < item.date) throw new BusinessRuleError(`ลูกหนี้รายการที่ ${i + 1}: วันครบกำหนดต้องไม่ก่อนวันที่เอกสาร`);
     const docNo = item.docNo.trim();
+    const serviceVat = round2(item.serviceVat ?? 0);
+    assertAmount(serviceVat, `ลูกหนี้รายการที่ ${i + 1}: ภาษีขายยังไม่ถึงกำหนด`);
+    let service: { vatMode: VatMode; unitPrice: number } | null = null;
+    if (toSatang(serviceVat) > 0) {
+      if (!state.company.vatRegistered) throw new BusinessRuleError(`ลูกหนี้รายการที่ ${i + 1}: บริษัทไม่จด VAT — ไม่มีภาษีขายยังไม่ถึงกำหนด`);
+      service = openingServiceVatMode(item.amount, serviceVat);
+      if (!service) {
+        const expected = calcDocument({ lines: [{ qty: 1, unitPrice: round2(item.amount), discount: 0, accountCode: ACC.service }], vatMode: 'inclusive', vatRate: VAT_RATE }).vat;
+        throw new BusinessRuleError(
+          `ลูกหนี้รายการที่ ${i + 1}: ภาษีขายยังไม่ถึงกำหนด ${serviceVat.toFixed(2)} ไม่ตรงกับ VAT ${VAT_RATE}% ของยอดค้าง (ควรเป็น ${expected.toFixed(2)})`
+        );
+      }
+    }
     return {
       id: uid(),
       kind: 'tax-invoice',
       isTaxInvoice: false,
+      ...(service ? { saleType: 'service' as const } : {}),
       opening: true,
       docNo,
       date: item.date,
       dueDate: item.dueDate,
       contactId: contact.id,
-      lines: [{ id: uid(), description: `ยอดยกมา ${docNo}`, qty: 1, unitPrice: round2(item.amount), discount: 0, accountCode: ACC.sales }],
-      vatMode: 'none',
-      vatRate: 0,
+      lines: [
+        {
+          id: uid(),
+          description: `ยอดยกมา ${docNo}${service ? ' (งานบริการ ภาษีขายยังไม่ถึงกำหนด)' : ''}`,
+          qty: 1,
+          unitPrice: service ? service.unitPrice : round2(item.amount),
+          discount: 0,
+          accountCode: service ? ACC.service : ACC.sales,
+        },
+      ],
+      vatMode: service ? service.vatMode : 'none',
+      vatRate: service ? VAT_RATE : 0,
       status: 'issued',
       paidAmount: 0,
       etax: 'not-required',
@@ -1326,9 +1487,10 @@ export function setOpeningBalances(state: AccountingData, input: OpeningBalanceI
   }
   const j = nextDocNo(sequences, DOC_PREFIX.journal, input.date);
   sequences = { ...sequences, [j.key]: j.value };
+  const deferredVat = sumBaht(sales.filter((x) => x.saleType === 'service').map((x) => calcDocument(x).vat));
   let entry: JournalEntry;
   try {
-    entry = postOpeningBalance(opening, { receivable, payable }, { id: journalId, docNo: j.docNo });
+    entry = postOpeningBalance(opening, { receivable, payable, deferredVat }, { id: journalId, docNo: j.docNo });
   } catch (error) {
     if (error instanceof UnbalancedEntryError) {
       throw new BusinessRuleError(

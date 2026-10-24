@@ -13,6 +13,7 @@ import {
   isBankKindCode,
   companySnapshot,
   DEFAULT_ACCOUNTS,
+  purchaseWhtGroups,
   dateOrderInversions,
   validateAccountingData,
 } from 'src/domain';
@@ -54,6 +55,15 @@ import {
 //   - bankAccounts: ลงทะเบียนบัญชีเงินที่มีอยู่ตามช่วงรหัส — 112x = ธนาคาร (ชื่อธนาคาร/เลขที่บัญชีว่าง ให้ผู้ใช้กรอก),
 //     1111–1119 = เงินสดย่อย; 1110 เงินสด ไม่ลงทะเบียน
 //   - transfers / bankStatements / bankMatches / quotations = [] — ไม่มีรายการบัญชีใหม่ ตัวเลขทุกรายงานเท่าเดิม
+//
+// v6 → v7 (Sprint B.1)
+//   - ผังบัญชีเพิ่ม 1150 ลูกหนี้-เงินคืนจากผู้ขาย (ใบลดหนี้ผู้ขายหลังจ่ายเงินแล้ว), supplierRefunds = []
+//   - ใบลดหนี้ผู้ขายเดิมไม่มี refundDue (= ลดเจ้าหนี้ทั้งหมด ตามกติกาเดิมที่ลดได้ไม่เกินยอดค้าง)
+//   - U10: ใบสำคัญจ่ายจาก v1 ที่หัก ณ ที่จ่ายปัดเป็น 0 (เงินได้ต่ำมาก เช่น 0.10 บาท × 3%) เดิมไม่มี whtItems
+//     ทำให้ตรวจไม่ผ่าน (แอปเป็นอ่านอย่างเดียว) — เติม whtItems ตามกลุ่มของเอกสาร ภาษี 0.00
+//     กติกา: แถว ภ.ง.ด. ของการจ่ายนั้นแสดงเงินได้และภาษี 0.00 ตามที่ v1 รายงานไว้ (ไม่ตัดทิ้ง เพื่อให้ยอดเงินได้ตรงกับที่ยื่น)
+//     — การจ่ายใหม่ก็ได้แถวภาษี 0.00 แบบเดียวกัน (planPurchasePayment เก็บบรรทัดที่ฐาน > 0)
+//   - การหักลดหนี้ฐานหัก ณ ที่จ่ายเปลี่ยนเป็นรายบรรทัด (U8) — ใบลดหนี้เดิมที่ไม่มี purchaseLineId จับคู่ตามบัญชี
 // ----------------------------------------------------------------------
 
 /** เอกสารซื้อโครง v3 (หัก ณ ที่จ่ายระดับเอกสาร + ข้อมูลการจ่ายครั้งเดียว) */
@@ -71,8 +81,11 @@ type PurchaseV3 = Omit<PurchaseDoc, 'lines' | 'supplierInvoiceDate' | 'vatClaimP
 
 type PaymentV3 = Omit<Payment, 'whtItems'>;
 
-/** โครง v5 = ปัจจุบันที่ยังไม่มีทะเบียนธนาคาร / โอนเงิน / กระทบยอด / ใบเสนอราคา */
-export type DataV5 = Omit<AccountingData, 'version' | 'bankAccounts' | 'transfers' | 'bankStatements' | 'bankMatches' | 'quotations'> & {
+/** โครง v6 = ปัจจุบันที่ยังไม่มีการรับเงินคืนจากผู้ขาย */
+export type DataV6 = Omit<AccountingData, 'version' | 'supplierRefunds'> & { version: 6 };
+
+/** โครง v5 = v6 ที่ยังไม่มีทะเบียนธนาคาร / โอนเงิน / กระทบยอด / ใบเสนอราคา */
+export type DataV5 = Omit<DataV6, 'version' | 'bankAccounts' | 'transfers' | 'bankStatements' | 'bankMatches' | 'quotations'> & {
   version: 5;
 };
 
@@ -236,7 +249,8 @@ export function migrateV3(data: DataV3): DataV4 {
   });
   const payments: Payment[] = data.payments.map((pv) => {
     const p = purchaseById.get(pv.purchaseId);
-    const withheld = !!p && p.whtRate > 0 && toSatang(pv.whtAmount) > 0;
+    // U10: v1 ที่หัก ณ ที่จ่ายปัดเป็น 0 ก็ได้รายการ (ภาษี 0.00) — ตรงกับรายงาน ภ.ง.ด. ของ v1 และกลุ่มหัก ณ ที่จ่ายของเอกสาร
+    const withheld = !!p && p.whtRate > 0 && toSatang(pv.whtAmount) >= 0 && toSatang(calcDocument(p).net) > 0;
     return {
       ...pv,
       whtItems: withheld && p ? [{ incomeType: p.whtIncomeType, rate: p.whtRate, base: calcDocument(p).net, tax: pv.whtAmount }] : [],
@@ -266,7 +280,7 @@ export function migrateV4(data: DataV4): DataV5 {
 }
 
 /** v5 → v6 (pure): บัญชี 1111 เงินสดย่อย, ทะเบียนบัญชีเงินจากผังบัญชีเดิม, รายการธนาคาร/ใบเสนอราคาว่าง */
-export function migrateV5(data: DataV5): AccountingData {
+export function migrateV5(data: DataV5): DataV6 {
   const knownAccounts = new Set(data.accounts.map((a) => a.code));
   const accounts = [...data.accounts, ...DEFAULT_ACCOUNTS.filter((a) => !knownAccounts.has(a.code))];
   const bankAccounts: BankAccount[] = accounts
@@ -279,13 +293,40 @@ export function migrateV5(data: DataV5): AccountingData {
     );
   return {
     ...data,
-    version: DATA_VERSION,
+    version: 6,
     accounts,
     bankAccounts,
     transfers: [],
     bankStatements: [],
     bankMatches: [],
     quotations: [],
+  };
+}
+
+/**
+ * v6 → v7 (pure): บัญชี 1150, supplierRefunds ว่าง, เติม whtItems ภาษี 0.00 ให้ใบสำคัญจ่าย v1 ที่หัก ณ ที่จ่ายปัดเป็น 0 (U10)
+ * — เฉพาะเอกสารจ่ายครั้งเดียวเต็มจำนวนที่ไม่มีใบลดหนี้ และกลุ่มหัก ณ ที่จ่ายของเอกสารทุกกลุ่มภาษีเป็น 0
+ */
+export function migrateV6(data: DataV6): AccountingData {
+  const knownAccounts = new Set(data.accounts.map((a) => a.code));
+  const purchases = new Map(data.purchases.map((p) => [p.id, p]));
+  const credited = new Set(data.purchaseCredits.map((c) => c.purchaseId));
+  const count = new Map<string, number>();
+  data.payments.forEach((pv) => count.set(pv.purchaseId, (count.get(pv.purchaseId) ?? 0) + 1));
+  const payments = data.payments.map((pv) => {
+    const p = purchases.get(pv.purchaseId);
+    if (!p || pv.whtItems.length || toSatang(pv.whtAmount) !== 0 || count.get(p.id) !== 1 || credited.has(p.id)) return pv;
+    const groups = purchaseWhtGroups(p);
+    if (!groups.length || groups.some((g) => toSatang(g.tax) !== 0)) return pv;
+    if (toSatang(pv.amount) !== toSatang(calcDocument(p).total)) return pv;
+    return { ...pv, whtItems: groups };
+  });
+  return {
+    ...data,
+    version: DATA_VERSION,
+    accounts: [...data.accounts, ...DEFAULT_ACCOUNTS.filter((a) => !knownAccounts.has(a.code))],
+    payments,
+    supplierRefunds: [],
   };
 }
 
@@ -314,6 +355,16 @@ function looksLikeV3(value: Record<string, unknown>): value is DataV3 {
 
 function looksLikeV4(value: Record<string, unknown>): value is DataV4 {
   return value.version === 4 && Array.isArray(value.vatCloses) && looksLikeV3(value);
+}
+
+function looksLikeV6(value: Record<string, unknown>): value is DataV6 {
+  return (
+    value.version === 6 &&
+    ['vatCloses', 'purchaseCredits', 'yearCloses', 'bankAccounts', 'transfers', 'bankStatements', 'bankMatches', 'quotations'].every((k) =>
+      Array.isArray(value[k])
+    ) &&
+    looksLikeV3(value)
+  );
 }
 
 function looksLikeV5(value: Record<string, unknown>): value is DataV5 {
@@ -347,7 +398,7 @@ export function readAccountingData(raw: unknown): LoadResult {
   if (raw.version === 1) {
     if (!looksLikeV1(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 1 ไม่ครบ (ขาดรายการบางส่วน)'] };
     try {
-      candidate = migrateV5(migrateV4(migrateV3(migrateV1(raw))));
+      candidate = migrateV6(migrateV5(migrateV4(migrateV3(migrateV1(raw)))));
       migratedFrom = 1;
     } catch (error) {
       return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน 1 ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
@@ -357,7 +408,7 @@ export function readAccountingData(raw: unknown): LoadResult {
     const from = raw.version;
     if (!looksLikeV3(raw)) return { data: null, problems: [`ข้อมูลเวอร์ชัน ${from} ไม่ครบ (ขาดรายการบางส่วน)`] };
     try {
-      candidate = migrateV5(migrateV4(migrateV3({ ...raw, version: 3 })));
+      candidate = migrateV6(migrateV5(migrateV4(migrateV3({ ...raw, version: 3 }))));
       migratedFrom = from;
     } catch (error) {
       return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน ${from} ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
@@ -365,15 +416,19 @@ export function readAccountingData(raw: unknown): LoadResult {
   } else if (raw.version === 4) {
     if (!looksLikeV4(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 4 ไม่ครบ (ขาดรายการบางส่วน)'] };
     try {
-      candidate = migrateV5(migrateV4(raw));
+      candidate = migrateV6(migrateV5(migrateV4(raw)));
       migratedFrom = 4;
     } catch (error) {
       return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน 4 ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
     }
   } else if (raw.version === 5) {
     if (!looksLikeV5(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 5 ไม่ครบ (ขาดรายการบางส่วน)'] };
-    candidate = migrateV5(raw);
+    candidate = migrateV6(migrateV5(raw));
     migratedFrom = 5;
+  } else if (raw.version === 6) {
+    if (!looksLikeV6(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 6 ไม่ครบ (ขาดรายการบางส่วน)'] };
+    candidate = migrateV6(raw);
+    migratedFrom = 6;
   } else if (raw.version !== DATA_VERSION) {
     return { data: null, problems: [`ไม่รองรับข้อมูลเวอร์ชัน ${String(raw.version)}`] };
   }
