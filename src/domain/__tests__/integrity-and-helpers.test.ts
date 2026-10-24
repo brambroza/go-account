@@ -1,10 +1,11 @@
 import { buildDemoData } from 'src/store/seed';
+import { transferFunds } from 'src/store/actions';
 
 import { ACC } from '../chart-of-accounts';
 import { isValidISODate } from '../thai-date';
-import { subBaht, prorateBaht } from '../money';
 import { csvCell, vatReportCsv } from '../vat-report';
 import { validateAccountingData } from '../integrity';
+import { sumBaht, subBaht, prorateBaht } from '../money';
 import { VAT_RATE, calcDocument } from '../document-calc';
 import { isTaxDocument, salesDocTitle } from '../sales-doc';
 import { trialBalance, trialBalanceTotals } from '../ledger';
@@ -131,6 +132,18 @@ describe('domain helpers (A13, A14)', () => {
     expect(hasNegativeOutstanding(data)).toBe(false);
     const cn = data.sales.find((s) => s.kind === 'credit-note');
     expect(cn && outstandingOf(data, cn)).toBe(0);
+  });
+
+  it('counts every cash and bank account in the dashboard cash total', () => {
+    const data = buildDemoData(TODAY);
+    const before = dashboardStats(data, TODAY).cash;
+    // โอนเข้าเงินสดย่อย 1111 = ย้ายเงินระหว่างบัญชี ยอดเงินสดและเงินฝากรวมต้องไม่เปลี่ยน (เดิมนับเฉพาะ 1110 + 1120 จึงลดลง)
+    const next = transferFunds(data, { date: TODAY, fromAccountCode: ACC.bank, toAccountCode: ACC.pettyCash, amount: 1_000 }).state;
+    const stats = dashboardStats(next, TODAY);
+    expect(stats.cash).toBe(before);
+    const cashRows = trialBalance(next.accounts, next.journal, TODAY).filter((r) => /^11[12]\d$/.test(r.account.code));
+    expect(cashRows.map((r) => r.account.code)).toContain(ACC.pettyCash);
+    expect(stats.cash).toBe(sumBaht(cashRows.map((r) => r.balance)));
   });
 
   it('names documents by tax status', () => {

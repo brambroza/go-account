@@ -29155,7 +29155,7 @@
           "dashboard": {
             "aging": [],
             "badContacts": [],
-            "cash": 2000000,
+            "cash": 10000000,
             "customerCredits": 0,
             "etaxWaiting": [],
             "overdue": [],
@@ -29649,7 +29649,7 @@
           "dashboard": {
             "aging": [],
             "badContacts": [],
-            "cash": 2100000,
+            "cash": 9961500,
             "customerCredits": 0,
             "etaxWaiting": [],
             "overdue": [],
@@ -30395,7 +30395,7 @@
           "dashboard": {
             "aging": [],
             "badContacts": [],
-            "cash": 0,
+            "cash": 5749000,
             "customerCredits": 0,
             "etaxWaiting": [
               "IV6910-0001"
@@ -31241,7 +31241,7 @@
           "dashboard": {
             "aging": [],
             "badContacts": [],
-            "cash": 0,
+            "cash": 6816000,
             "customerCredits": 0,
             "etaxWaiting": [
               "IV6910-0001",

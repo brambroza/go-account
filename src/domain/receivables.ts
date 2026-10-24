@@ -1,10 +1,10 @@
-import { ACC } from './chart-of-accounts';
 import { pp30ForPeriod } from './vat-close';
 import { isTaxDocument } from './sales-doc';
 import { calcDocument } from './document-calc';
 import { purchaseOutstanding } from './purchase';
 import { periodOf, shiftPeriod } from './thai-date';
 import { whtTotals, whtPayeesForPeriod } from './wht';
+import { ACC, isCashAccount } from './chart-of-accounts';
 import { arAging, balanceOf, trialBalance } from './ledger';
 import { round2, sumBaht, subBaht, toSatang } from './money';
 
@@ -171,7 +171,7 @@ export function eTaxWaiting(state: Pick<AccountingData, 'sales' | 'receipts'>): 
 }
 
 export type DashboardStats = {
-  /** เงินสด + ธนาคาร ณ วันนี้ */
+  /** เงินสดและเงินฝาก ณ วันนี้ = ทุกบัญชีเงินสด/ธนาคาร (111x เงินสด/เงินสดย่อย, 112x ธนาคาร รวมบัญชีที่เพิ่มเอง) */
   cash: number;
   receivable: number;
   overdue: ArAgingRow[];
@@ -201,7 +201,8 @@ export function dashboardStats(data: AccountingData, today: ISODate): DashboardS
     whtTotals(whtPayeesForPeriod(data, prev, 'PND53')).tax,
   ]);
   return {
-    cash: sumBaht([balanceOf(tb, ACC.bank), balanceOf(tb, ACC.cash)]),
+    // ทุกบัญชีเงิน (เดิมนับเฉพาะ 1110 + 1120 — เงินสดย่อย 1111 และบัญชีธนาคารที่เพิ่ม 1121–1129 หายจากยอด)
+    cash: sumBaht(tb.filter((r) => isCashAccount(r.account)).map((r) => r.balance)),
     receivable: sumBaht(aging.map((a) => a.outstanding)),
     overdue: aging.filter((a) => a.daysOverdue > 0),
     payable: sumBaht(unpaidPurchases.map((p) => purchaseOutstanding(data, p))),
