@@ -1,7 +1,7 @@
 {
   "file": "money.json",
   "generator": "go-account/scripts/export-golden.ts (yarn golden)",
-  "count": 165,
+  "count": 169,
   "vectors": [
     {
       "name": "toSatang/0",
@@ -1209,6 +1209,38 @@
         "b": 0.335
       },
       "output": -1.01
+    },
+    {
+      "name": "mulBaht/0.3*12345678.95",
+      "input": {
+        "a": 0.3,
+        "b": 12345678.95
+      },
+      "output": 3703703.69
+    },
+    {
+      "name": "mulBaht/0.7*12345678.95",
+      "input": {
+        "a": 0.7,
+        "b": 12345678.95
+      },
+      "output": 8641975.27
+    },
+    {
+      "name": "mulBaht/2.5*0.001",
+      "input": {
+        "a": 2.5,
+        "b": 0.001
+      },
+      "output": 0
+    },
+    {
+      "name": "mulBaht/1e-7*50000000",
+      "input": {
+        "a": 1e-7,
+        "b": 50000000
+      },
+      "output": 5
     },
     {
       "name": "percentOf/100000@7",
