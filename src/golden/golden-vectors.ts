@@ -64,6 +64,8 @@ import {
   formatThaiDateShort,
 } from 'src/domain/thai-date';
 
+import { runScenario, SALES_SCENARIOS } from './scenarios';
+
 // ----------------------------------------------------------------------
 // Golden vectors: รันตรรกะ TS บนชุด input ที่กำหนดตายตัว แล้วเขียนผลลง `golden/*.json`
 // ฝั่ง C# (go-account-api) อ่านไฟล์เดียวกันและต้องได้ผลตรงทุกตัว — ดู docs/adr-0001-backend.md
@@ -770,6 +772,18 @@ function chartOfAccountsVectors(): GoldenVector[] {
 
 // ----------------------------------------------------------------------
 
+/**
+ * Scenario golden (C4): ลำดับ action ของ store ฝั่งขาย พร้อมผลที่สังเกตได้ทุกขั้น — input = { description, company, steps },
+ * output = ผลทีละขั้น ({ ok, output } หรือ { ok: false, error: { code, message } }) ดู `scenarios.ts`
+ */
+function salesScenarioVectors(): GoldenVector[] {
+  return SALES_SCENARIOS.map((s) => ({
+    name: s.name,
+    input: { description: s.description, company: s.company, steps: s.steps },
+    output: runScenario(s),
+  }));
+}
+
 /** สร้าง golden vectors ทั้งหมด (pure — ไม่อ่าน/เขียนไฟล์) */
 export function buildGoldenSet(): GoldenSet {
   return {
@@ -781,6 +795,7 @@ export function buildGoldenSet(): GoldenSet {
     'numbering.json': numberingVectors(),
     'thai-date.json': thaiDateVectors(),
     'chart-of-accounts.json': chartOfAccountsVectors(),
+    'scenarios-sales.json': salesScenarioVectors(),
   };
 }
 
