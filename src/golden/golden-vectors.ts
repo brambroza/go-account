@@ -3,6 +3,7 @@ import type { VatMode, Payment, WhtLineItem, PurchaseLine, PurchaseCreditNote } 
 
 import { bahtText } from 'src/domain/baht-text';
 import { lineAmount, calcDocument, lineNetAmounts } from 'src/domain/document-calc';
+import { ACC, DEFAULT_ACCOUNTS, CONTROL_ACCOUNTS } from 'src/domain/chart-of-accounts';
 import { receiptWhtAmount, RECEIPT_WHT_MAX_RATE, PURCHASE_WHT_MAX_RATE } from 'src/domain/wht';
 import {
   nextDocNo,
@@ -752,6 +753,21 @@ function thaiDateVectors(): GoldenVector[] {
   return list;
 }
 
+// ---------------- chart of accounts ----------------
+
+/** ผังบัญชีตั้งต้น (seed ตอน signup ฝั่งเซิร์ฟเวอร์) + รหัสบัญชีที่ posting ใช้ + บัญชีคุม — `system` ที่ไม่ได้ระบุ = false */
+function chartOfAccountsVectors(): GoldenVector[] {
+  const { list, add } = collector();
+  add(
+    'defaultAccounts/all',
+    {},
+    DEFAULT_ACCOUNTS.map((a) => ({ code: a.code, name: a.name, nameEn: a.nameEn, type: a.type, system: a.system ?? false }))
+  );
+  add('acc/all', {}, { ...ACC });
+  add('controlAccounts/all', {}, [...CONTROL_ACCOUNTS]);
+  return list;
+}
+
 // ----------------------------------------------------------------------
 
 /** สร้าง golden vectors ทั้งหมด (pure — ไม่อ่าน/เขียนไฟล์) */
@@ -764,6 +780,7 @@ export function buildGoldenSet(): GoldenSet {
     'baht-text.json': bahtTextVectors(),
     'numbering.json': numberingVectors(),
     'thai-date.json': thaiDateVectors(),
+    'chart-of-accounts.json': chartOfAccountsVectors(),
   };
 }
 

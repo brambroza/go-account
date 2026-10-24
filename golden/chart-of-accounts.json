@@ -1,0 +1,275 @@
+{
+  "file": "chart-of-accounts.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 3,
+  "vectors": [
+    {
+      "name": "defaultAccounts/all",
+      "input": {},
+      "output": [
+        {
+          "code": "1110",
+          "name": "เงินสด",
+          "nameEn": "Cash",
+          "system": true,
+          "type": "asset"
+        },
+        {
+          "code": "1111",
+          "name": "เงินสดย่อย",
+          "nameEn": "Petty cash",
+          "system": false,
+          "type": "asset"
+        },
+        {
+          "code": "1120",
+          "name": "เงินฝากธนาคาร",
+          "nameEn": "Bank deposits",
+          "system": true,
+          "type": "asset"
+        },
+        {
+          "code": "1130",
+          "name": "ลูกหนี้การค้า",
+          "nameEn": "Accounts receivable",
+          "system": true,
+          "type": "asset"
+        },
+        {
+          "code": "1150",
+          "name": "ลูกหนี้-เงินคืนจากผู้ขาย",
+          "nameEn": "Supplier refunds receivable",
+          "system": true,
+          "type": "asset"
+        },
+        {
+          "code": "1160",
+          "name": "ภาษีถูกหัก ณ ที่จ่าย",
+          "nameEn": "Withholding tax receivable",
+          "system": true,
+          "type": "asset"
+        },
+        {
+          "code": "1170",
+          "name": "ภาษีซื้อ",
+          "nameEn": "Input VAT",
+          "system": true,
+          "type": "asset"
+        },
+        {
+          "code": "1180",
+          "name": "ภาษีมูลค่าเพิ่มชำระเกินยกไป",
+          "nameEn": "VAT credit carried forward",
+          "system": true,
+          "type": "asset"
+        },
+        {
+          "code": "1200",
+          "name": "สินค้าคงเหลือ",
+          "nameEn": "Inventory",
+          "system": false,
+          "type": "asset"
+        },
+        {
+          "code": "1500",
+          "name": "อุปกรณ์สำนักงาน",
+          "nameEn": "Office equipment",
+          "system": false,
+          "type": "asset"
+        },
+        {
+          "code": "2110",
+          "name": "เจ้าหนี้การค้า",
+          "nameEn": "Accounts payable",
+          "system": true,
+          "type": "liability"
+        },
+        {
+          "code": "2120",
+          "name": "เงินรอคืนลูกค้า (ลดหนี้หลังรับชำระ)",
+          "nameEn": "Customer credits payable",
+          "system": true,
+          "type": "liability"
+        },
+        {
+          "code": "2150",
+          "name": "ภาษีขาย",
+          "nameEn": "Output VAT",
+          "system": true,
+          "type": "liability"
+        },
+        {
+          "code": "2151",
+          "name": "ภาษีขายยังไม่ถึงกำหนดชำระ (งานบริการ)",
+          "nameEn": "Deferred output VAT (services)",
+          "system": true,
+          "type": "liability"
+        },
+        {
+          "code": "2160",
+          "name": "ภาษีหัก ณ ที่จ่ายค้างจ่าย",
+          "nameEn": "Withholding tax payable",
+          "system": true,
+          "type": "liability"
+        },
+        {
+          "code": "2170",
+          "name": "ภาษีมูลค่าเพิ่มค้างจ่าย",
+          "nameEn": "VAT payable",
+          "system": true,
+          "type": "liability"
+        },
+        {
+          "code": "3100",
+          "name": "ทุนจดทะเบียน",
+          "nameEn": "Share capital",
+          "system": false,
+          "type": "equity"
+        },
+        {
+          "code": "3200",
+          "name": "กำไร (ขาดทุน) สะสม",
+          "nameEn": "Retained earnings",
+          "system": false,
+          "type": "equity"
+        },
+        {
+          "code": "4100",
+          "name": "รายได้จากการขาย",
+          "nameEn": "Sales revenue",
+          "system": true,
+          "type": "revenue"
+        },
+        {
+          "code": "4200",
+          "name": "รายได้ค่าบริการ",
+          "nameEn": "Service revenue",
+          "system": false,
+          "type": "revenue"
+        },
+        {
+          "code": "4900",
+          "name": "รายได้อื่น",
+          "nameEn": "Other income",
+          "system": false,
+          "type": "revenue"
+        },
+        {
+          "code": "5100",
+          "name": "ต้นทุนขาย / วัตถุดิบ",
+          "nameEn": "Cost of goods sold",
+          "system": false,
+          "type": "expense"
+        },
+        {
+          "code": "5200",
+          "name": "ค่าจ้างผลิต / รับเหมา",
+          "nameEn": "Subcontract",
+          "system": false,
+          "type": "expense"
+        },
+        {
+          "code": "5300",
+          "name": "ค่าเช่า",
+          "nameEn": "Rent",
+          "system": false,
+          "type": "expense"
+        },
+        {
+          "code": "5400",
+          "name": "ค่าขนส่ง",
+          "nameEn": "Freight",
+          "system": false,
+          "type": "expense"
+        },
+        {
+          "code": "5500",
+          "name": "ค่าโฆษณา",
+          "nameEn": "Advertising",
+          "system": false,
+          "type": "expense"
+        },
+        {
+          "code": "5600",
+          "name": "ค่าบริการวิชาชีพ",
+          "nameEn": "Professional fees",
+          "system": false,
+          "type": "expense"
+        },
+        {
+          "code": "5700",
+          "name": "ค่าน้ำ ค่าไฟ ค่าโทรศัพท์",
+          "nameEn": "Utilities",
+          "system": false,
+          "type": "expense"
+        },
+        {
+          "code": "5800",
+          "name": "วัสดุสิ้นเปลือง",
+          "nameEn": "Supplies",
+          "system": false,
+          "type": "expense"
+        },
+        {
+          "code": "5900",
+          "name": "ค่าใช้จ่ายเบ็ดเตล็ด",
+          "nameEn": "Miscellaneous expense",
+          "system": false,
+          "type": "expense"
+        }
+      ]
+    },
+    {
+      "name": "acc/all",
+      "input": {},
+      "output": {
+        "advertising": "5500",
+        "bank": "1120",
+        "capital": "3100",
+        "cash": "1110",
+        "cogs": "5100",
+        "customerCredit": "2120",
+        "deferredOutputVat": "2151",
+        "equipment": "1500",
+        "freight": "5400",
+        "inputVat": "1170",
+        "inventory": "1200",
+        "misc": "5900",
+        "otherIncome": "4900",
+        "outputVat": "2150",
+        "payable": "2110",
+        "pettyCash": "1111",
+        "professional": "5600",
+        "receivable": "1130",
+        "rent": "5300",
+        "retained": "3200",
+        "sales": "4100",
+        "service": "4200",
+        "subcontract": "5200",
+        "supplierRefundReceivable": "1150",
+        "supplies": "5800",
+        "utilities": "5700",
+        "vatCredit": "1180",
+        "vatPayable": "2170",
+        "whtPayable": "2160",
+        "whtReceivable": "1160"
+      }
+    },
+    {
+      "name": "controlAccounts/all",
+      "input": {},
+      "output": [
+        "1130",
+        "1150",
+        "1160",
+        "1170",
+        "1180",
+        "2110",
+        "2120",
+        "2150",
+        "2151",
+        "2160"
+      ]
+    }
+  ]
+}
