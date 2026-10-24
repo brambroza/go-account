@@ -37,6 +37,7 @@ import {
   isTaxDocument,
   salesDocTitle,
   formatThaiDate,
+  creditNoteWhtNote,
   serviceCreditNotePlan,
 } from 'src/domain';
 
@@ -141,6 +142,8 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
   }
 
   const isTax = plan ? plan.isTaxInvoice : isTaxDocument(invoice);
+  // D2: ลูกค้าหัก ณ ที่จ่ายไว้แล้ว — อธิบายว่าภาษีถูกหักไม่เปลี่ยน (ใบลดหนี้เท่านั้น)
+  const whtNote = isDebit ? null : creditNoteWhtNote(data, invoice);
   const docTitle = salesDocTitle({ kind: isDebit ? 'debit-note' : 'credit-note', isTaxInvoice: isTax, vatMode: invoice.vatMode });
   const verb = isDebit ? 'เพิ่ม' : 'ลด';
   const change = isDebit ? 'เพิ่มขึ้น' : 'ลดลง';
@@ -176,7 +179,7 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
 
       <Form methods={methods}>
         <Grid container spacing={3} onKeyDown={formKeyHandler(save)}>
-          <Grid item xs={12} lg={8}>
+          <Grid item xs={12} xl={8}>
             <Card>
               <CardHeader
                 title="เหตุผลและวันที่"
@@ -210,7 +213,7 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
             </Card>
           </Grid>
 
-          <Grid item xs={12} lg={4}>
+          <Grid item xs={12} xl={4}>
             <Card sx={{ p: 3 }}>
               <Stack spacing={1} sx={{ mb: 2 }}>
                 <Stack direction="row" justifyContent="space-between">
@@ -258,6 +261,11 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
                   ยอดลดหนี้เกินยอดที่ลดได้ ({creditable.toFixed(2)} บาท = ยอดใบกำกับหักใบลดหนี้ก่อนหน้า)
                 </Alert>
               )}
+              {whtNote && (
+                <Alert severity="info" variant="outlined" sx={{ mt: 2 }}>
+                  {whtNote}
+                </Alert>
+              )}
               {!overLimit && toSatang(toCustomerCredit) > 0 && (
                 <Alert severity="info" variant="outlined" sx={{ mt: 2 }}>
                   ลูกค้าชำระแล้ว — ส่วนที่เกินยอดค้าง <Money value={toCustomerCredit} sx={{ fontWeight: 600 }} /> บาท
@@ -287,30 +295,37 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
         onClose={confirm.onFalse}
         title={`ยืนยันออก${docTitle}`}
         content={
-          <ConfirmSummary
-            rows={[
-              { label: 'ชนิดเอกสาร', value: `${docTitle} อ้างถึง ${refReceipt ? `${refReceipt.docNo} (${invoice.docNo})` : invoice.docNo}` },
-              { label: 'ลูกค้า', value: contacts.name(invoice.contactId) },
-              { label: `วันที่${docTitle}`, value: formatThaiDate((date ?? '').slice(0, 10)) },
-              { label: 'เหตุผล', value: methods.getValues('reason') || '-' },
-              { label: 'มูลค่าตามใบกำกับเดิม', value: originalNet },
-              { label: 'มูลค่าที่ถูกต้องตามจริง', value: correctNet },
-              { label: `ผลต่าง (มูลค่าที่${change})`, value: totals.net },
-              { label: `ภาษีขาย${change} ${invoice.vatRate}%`, value: totals.vat, hidden: !showVat },
-              { label: `รวม${verb}หนี้`, value: totals.total, strong: true },
-              { label: isDebit ? 'เพิ่มยอดลูกหนี้' : 'ลดยอดลูกหนี้', value: toReceivable },
-              { label: 'ตั้งเป็นเงินรอคืนลูกค้า', value: toCustomerCredit, hidden: toSatang(toCustomerCredit) <= 0 },
-              {
-                label: 'งวดภาษี',
-                value:
-                  plan?.mode === 'deferred'
-                    ? 'ไม่เข้ารายงานภาษีขาย (กลับภาษีขายยังไม่ถึงกำหนด)'
-                    : `${verb}ภาษีขายเดือน${periodLabel(periodOf((date ?? todayISO()).slice(0, 10)))}`,
-                hidden: !showVat,
-              },
-            ]}
-            note={`${docTitle}ออกแล้วแก้ไขหรือลบไม่ได้`}
-          />
+          <Stack spacing={2}>
+            <ConfirmSummary
+              rows={[
+                { label: 'ชนิดเอกสาร', value: `${docTitle} อ้างถึง ${refReceipt ? `${refReceipt.docNo} (${invoice.docNo})` : invoice.docNo}` },
+                { label: 'ลูกค้า', value: contacts.name(invoice.contactId) },
+                { label: `วันที่${docTitle}`, value: formatThaiDate((date ?? '').slice(0, 10)) },
+                { label: 'เหตุผล', value: methods.getValues('reason') || '-' },
+                { label: 'มูลค่าตามใบกำกับเดิม', value: originalNet },
+                { label: 'มูลค่าที่ถูกต้องตามจริง', value: correctNet },
+                { label: `ผลต่าง (มูลค่าที่${change})`, value: totals.net },
+                { label: `ภาษีขาย${change} ${invoice.vatRate}%`, value: totals.vat, hidden: !showVat },
+                { label: `รวม${verb}หนี้`, value: totals.total, strong: true },
+                { label: isDebit ? 'เพิ่มยอดลูกหนี้' : 'ลดยอดลูกหนี้', value: toReceivable },
+                { label: 'ตั้งเป็นเงินรอคืนลูกค้า', value: toCustomerCredit, hidden: toSatang(toCustomerCredit) <= 0 },
+                {
+                  label: 'งวดภาษี',
+                  value:
+                    plan?.mode === 'deferred'
+                      ? 'ไม่เข้ารายงานภาษีขาย (กลับภาษีขายยังไม่ถึงกำหนด)'
+                      : `${verb}ภาษีขายเดือน${periodLabel(periodOf((date ?? todayISO()).slice(0, 10)))}`,
+                  hidden: !showVat,
+                },
+              ]}
+              note={`${docTitle}ออกแล้วแก้ไขหรือลบไม่ได้`}
+            />
+            {whtNote && (
+              <Alert severity="info" variant="outlined">
+                {whtNote}
+              </Alert>
+            )}
+          </Stack>
         }
         action={
           <LoadingButton variant="contained" color={isDebit ? 'primary' : 'error'} onClick={save}>

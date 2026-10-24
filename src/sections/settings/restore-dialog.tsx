@@ -1,16 +1,20 @@
 import type { LoadResult } from 'src/store';
 
+import { useState, useEffect } from 'react';
+
 import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import TableRow from '@mui/material/TableRow';
+import Checkbox from '@mui/material/Checkbox';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
-import { useAccounting } from 'src/store';
+import { useAccounting, blankCompanyData } from 'src/store';
 import { formatThaiDate, restoreRegressions } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
@@ -33,12 +37,43 @@ type Props = {
  * รวมถึงไฟล์ของบริษัทเดียวกันที่เก่ากว่าข้อมูลปัจจุบัน (วันปิดงวด/ตัวนับเลขที่ถอยหลัง → เลขที่ซ้ำ)
  */
 export function RestoreDialog({ file, onClose }: Props) {
-  const { data, replace } = useAccounting();
+  const { data, replace, resetEmpty } = useAccounting();
+  const [acceptWipe, setAcceptWipe] = useState(false);
   const result = file?.result;
   const problems = result
     ? [...(result.data ? restoreRegressions(data, result.data) : []), ...result.problems]
     : [];
   const blocked = !result?.data || problems.length > 0;
+  // ไฟล์ของบริษัทอื่น: ทางเดียวคือล้างข้อมูลปัจจุบันก่อน — เสนอทำให้ในขั้นตอนเดียว (สำรองไฟล์ให้ก่อน)
+  // เฉพาะเมื่อปัญหาเดียวคือ "บริษัทอื่น" และไฟล์ผ่านการตรวจเมื่อเทียบกับข้อมูลที่ล้างแล้ว
+  const otherCompany =
+    !!result?.data &&
+    result.problems.length === 0 &&
+    problems.length > 0 &&
+    problems.every((p) => p.includes('บริษัทอื่น')) &&
+    restoreRegressions(blankCompanyData(data), result.data).length === 0;
+
+  useEffect(() => {
+    setAcceptWipe(false);
+  }, [file]);
+
+  const wipeAndRestore = () => {
+    if (!result?.data || !otherCompany || !acceptWipe) return;
+    try {
+      downloadBackup(data, '-before-restore');
+    } catch (error) {
+      toast.error(`ดาวน์โหลดไฟล์สำรองไม่สำเร็จ จึงยังไม่ล้างข้อมูล: ${error instanceof Error ? error.message : ''}`);
+      return;
+    }
+    try {
+      resetEmpty();
+      replace(result.data);
+      toast.success('สำรองข้อมูลเดิม ล้างข้อมูล และกู้คืนไฟล์แล้ว');
+      onClose();
+    } catch (error) {
+      toast.error(`กู้คืนไม่สำเร็จ (ข้อมูลเดิมอยู่ในไฟล์สำรองที่ดาวน์โหลด): ${error instanceof Error ? error.message : ''}`);
+    }
+  };
   const current = backupCounts(data);
   const incoming = result?.data ? backupCounts(result.data) : [];
 
@@ -78,9 +113,9 @@ export function RestoreDialog({ file, onClose }: Props) {
             )}
 
             {blocked ? (
-              <Alert severity="error">
+              <Alert severity={otherCompany ? 'warning' : 'error'}>
                 <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                  กู้คืนไม่ได้ — ไฟล์ไม่ผ่านการตรวจ {problems.length} ข้อ
+                  {otherCompany ? 'กู้คืนทับข้อมูลปัจจุบันโดยตรงไม่ได้' : `กู้คืนไม่ได้ — ไฟล์ไม่ผ่านการตรวจ ${problems.length} ข้อ`}
                 </Typography>
                 <Stack component="ul" sx={{ m: 0, pl: 2.5 }}>
                   {problems.slice(0, 20).map((p) => (
@@ -95,7 +130,20 @@ export function RestoreDialog({ file, onClose }: Props) {
                   )}
                 </Stack>
               </Alert>
-            ) : (
+            ) : null}
+            {otherCompany && (
+              <Alert severity="warning" variant="outlined">
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  ถ้าต้องการใช้ไฟล์ของบริษัท {result.data?.company.name} แทนข้อมูลปัจจุบัน ระบบจะดาวน์โหลดไฟล์สำรองข้อมูลปัจจุบันให้
+                  ล้างข้อมูลในเบราว์เซอร์นี้ แล้วกู้คืนไฟล์นี้ในขั้นตอนเดียว
+                </Typography>
+                <FormControlLabel
+                  control={<Checkbox size="small" checked={acceptWipe} onChange={(e) => setAcceptWipe(e.target.checked)} />}
+                  label={`เข้าใจแล้วว่าข้อมูลของ ${data.company.name} ในเบราว์เซอร์นี้จะถูกแทนที่`}
+                />
+              </Alert>
+            )}
+            {!blocked && (
               <Alert severity="warning" variant="outlined">
                 ข้อมูลปัจจุบันในเบราว์เซอร์นี้ทั้งหมดจะถูกแทนที่ด้วยข้อมูลในไฟล์ ย้อนกลับไม่ได้ —
                 สำรองข้อมูลปัจจุบันไว้ก่อน
@@ -143,9 +191,15 @@ export function RestoreDialog({ file, onClose }: Props) {
         )
       }
       action={
-        <Button variant="contained" color="error" onClick={restore} disabled={blocked}>
-          แทนที่ด้วยข้อมูลในไฟล์
-        </Button>
+        otherCompany ? (
+          <Button variant="contained" color="error" onClick={wipeAndRestore} disabled={!acceptWipe}>
+            สำรอง ล้างข้อมูล แล้วกู้คืน
+          </Button>
+        ) : (
+          <Button variant="contained" color="error" onClick={restore} disabled={blocked}>
+            แทนที่ด้วยข้อมูลในไฟล์
+          </Button>
+        )
       }
     />
   );

@@ -23,6 +23,7 @@ import {
   normalizeBranch5,
   contactCodePrefix,
   contactDisplayName,
+  defaultContactTitle,
   contactsWithSameTaxId,
 } from 'src/domain';
 
@@ -51,7 +52,7 @@ function toForm(c: Contact | null | undefined, nextCode: string, defaults: { kin
     code: c?.code ?? nextCode,
     kind: c?.kind ?? defaults.kind ?? 'customer',
     legalForm: c?.legalForm ?? 'juristic',
-    title: c?.title ?? 'บริษัท',
+    title: c?.title ?? defaultContactTitle(defaults.name ?? '', 'juristic'),
     name: c?.name ?? defaults.name ?? '',
     lastName: c?.lastName ?? '',
     taxId: c?.taxId ?? '',
@@ -79,7 +80,10 @@ export function ContactDialog({ open, onClose, contact, defaultKind, defaultName
   const codeFor = (kind: ContactKind) => nextContactCode(data.contacts, contactCodePrefix(kind));
   const initial = () => toForm(contact, codeFor(defaultKind ?? 'customer'), { kind: defaultKind, name: defaultName });
   const methods = useForm<ContactSchemaType>({ resolver: zodResolver(ContactSchema), defaultValues: initial() });
-  const [legalForm, taxId, branchNo, kind] = useWatch({ control: methods.control, name: ['legalForm', 'taxId', 'branchNo', 'kind'] });
+  const [legalForm, taxId, branchNo, kind, name] = useWatch({
+    control: methods.control,
+    name: ['legalForm', 'taxId', 'branchNo', 'kind', 'name'],
+  });
   // ผู้ติดต่อใหม่: เปลี่ยนประเภทแล้วรหัสอัตโนมัติเปลี่ยนตาม (ถ้ายังไม่ได้แก้รหัสเอง)
   const autoCode = useRef('');
   // เตือน (ไม่บล็อก) เมื่อมีผู้ติดต่ออื่นเลขผู้เสียภาษี + สาขาเดียวกัน — ผู้ขายซ้ำทำให้ตรวจใบกำกับซ้ำยาก
@@ -93,9 +97,22 @@ export function ContactDialog({ open, onClose, contact, defaultKind, defaultName
     if (!open) return;
     const values = initial();
     autoCode.current = contact ? '' : values.code;
+    autoTitle.current = contact ? null : values.title;
     methods.reset(values);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, contact, defaultKind, defaultName]);
+
+  // ผู้ติดต่อใหม่: คำนำหน้าตามชื่อ/สถานะ จนกว่าผู้ใช้จะแก้คำนำหน้าเอง (ไม่เติม "บริษัท" หน้า "ร้าน…" / บุคคลธรรมดา)
+  const autoTitle = useRef<string | null>(null);
+  useEffect(() => {
+    if (contact) return;
+    const current = methods.getValues('title') ?? '';
+    if (autoTitle.current !== null && current !== autoTitle.current) return;
+    const next = defaultContactTitle(name ?? '', legalForm ?? 'juristic');
+    autoTitle.current = next;
+    if (current !== next) methods.setValue('title', next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [name, legalForm, contact]);
 
   useEffect(() => {
     if (contact || !kind || !autoCode.current || methods.getValues('code') !== autoCode.current) return;

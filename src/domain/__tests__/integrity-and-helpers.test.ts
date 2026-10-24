@@ -1,6 +1,5 @@
 import { buildDemoData } from 'src/store/seed';
 
-import { parseDocNo } from '../numbering';
 import { ACC } from '../chart-of-accounts';
 import { isValidISODate } from '../thai-date';
 import { subBaht, prorateBaht } from '../money';
@@ -10,6 +9,7 @@ import { VAT_RATE, calcDocument } from '../document-calc';
 import { isTaxDocument, salesDocTitle } from '../sales-doc';
 import { trialBalance, trialBalanceTotals } from '../ledger';
 import { receiptWhtAmount, whtPayeesForPeriod } from '../wht';
+import { parseDocNo, openingNumberConflict } from '../numbering';
 import { resolveParty, partySnapshot, partyDisplayName } from '../snapshot';
 import { outstandingOf, dashboardStats, hasNegativeOutstanding } from '../receivables';
 
@@ -138,6 +138,7 @@ describe('domain helpers (A13, A14)', () => {
     expect(isTaxDocument({ vatMode: 'exclusive' })).toBe(true);
     expect(salesDocTitle({ kind: 'tax-invoice', vatMode: 'exclusive' })).toBe('ใบกำกับภาษี/ใบแจ้งหนี้');
     expect(salesDocTitle({ kind: 'credit-note', vatMode: 'exclusive', isTaxInvoice: true })).toBe('ใบลดหนี้/ใบกำกับภาษี');
+    expect(salesDocTitle({ kind: 'tax-invoice', vatMode: 'none', isTaxInvoice: false, opening: true })).toBe('ยอดลูกหนี้ยกมา');
   });
 
   it('resolves party snapshots', () => {
@@ -153,5 +154,19 @@ describe('domain helpers (A13, A14)', () => {
     expect(
       whtPayeesForPeriod({ purchases: [{ ...p, supplier: undefined }], payments: pvs, contacts: [] }, { year: 2026, month: 10 }, 'PND3')
     ).toEqual([]);
+  });
+});
+
+describe('openingNumberConflict', () => {
+  it('only system-format numbers the system could still issue conflict', () => {
+    expect(openingNumberConflict('IV6910-0001', '2026-09-30')).toBe(true);
+    expect(openingNumberConflict(' iv6910-0001 ', '2026-09-30')).toBe(true);
+    expect(openingNumberConflict('IV6909-0001', '2026-09-30')).toBe(false);
+    expect(openingNumberConflict('IV6908-0001', '2026-09-30')).toBe(false);
+    expect(openingNumberConflict('JV6909-0001', '2026-09-30')).toBe(true);
+    expect(openingNumberConflict('EX6912-0001', '2026-09-30')).toBe(false);
+    expect(openingNumberConflict('INV-001', '2026-09-30')).toBe(false);
+    // ข้อมูลเดิมที่ยกยอดกลางเดือน: งวดเดียวกันระบบยังออกต่อได้
+    expect(openingNumberConflict('IV6909-0001', '2026-09-20')).toBe(true);
   });
 });

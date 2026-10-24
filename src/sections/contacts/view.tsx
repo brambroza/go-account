@@ -21,7 +21,7 @@ import { useSearchParams } from 'src/routes/hooks';
 import { useBoolean } from 'src/hooks/use-boolean';
 
 import { useAccounting, useContactLookup } from 'src/store';
-import { toSatang, formatTaxId, branchLabel, isValidThaiTaxId, customerCreditOf } from 'src/domain';
+import { toSatang, formatTaxId, branchLabel, isValidThaiTaxId, customerCreditOf, supplierRefundDueOf } from 'src/domain';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -33,6 +33,7 @@ import { useTable, rowInPage, TableHeadCustom, TablePaginationCustom } from 'src
 
 import { Money } from 'src/sections/shared';
 import { RefundDialog } from 'src/sections/sales/refund-dialog';
+import { SupplierRefundDialog } from 'src/sections/purchases/supplier-refund-dialog';
 
 import { ContactDialog } from './contact-dialog';
 import { ImportContactsDialog } from './import-dialog';
@@ -45,7 +46,7 @@ const TABLE_HEAD = [
   { id: 'taxId', label: 'เลขผู้เสียภาษี' },
   { id: 'kind', label: 'ประเภท' },
   { id: 'province', label: 'จังหวัด' },
-  { id: 'credit', label: 'เงินรอคืน', align: 'right' },
+  { id: 'credit', label: 'เงินรอคืน / เงินคืนค้างรับ', align: 'right' },
   { id: '' },
 ];
 
@@ -63,6 +64,7 @@ export function ContactsView() {
   const dialog = useBoolean();
   const importDialog = useBoolean();
   const [refundFor, setRefundFor] = useState<string | null>(null);
+  const [supplierRefundFor, setSupplierRefundFor] = useState<string | null>(null);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -130,6 +132,7 @@ export function ContactsView() {
               {rowInPage(rows, table.page, table.rowsPerPage).map((c) => {
                 const badTaxId = !!c.taxId && !isValidThaiTaxId(c.taxId);
                 const credit = customerCreditOf(data, c.id);
+                const supplierDue = supplierRefundDueOf(data, c.id);
                 return (
                   <TableRow key={c.id} hover>
                     <TableCell>{c.code}</TableCell>
@@ -155,6 +158,14 @@ export function ContactsView() {
                           <Money value={credit} sx={{ color: 'warning.main' }} />
                           <Button size="small" variant="soft" color="warning" onClick={() => setRefundFor(c.id)}>
                             คืนเงินลูกค้า
+                          </Button>
+                        </Stack>
+                      )}
+                      {toSatang(supplierDue) > 0 && (
+                        <Stack alignItems="flex-end" spacing={0.5} sx={{ mt: toSatang(credit) > 0 ? 1 : 0 }}>
+                          <Money value={supplierDue} sx={{ color: 'info.main' }} />
+                          <Button size="small" variant="soft" color="info" onClick={() => setSupplierRefundFor(c.id)}>
+                            รับเงินคืนจากผู้ขาย
                           </Button>
                         </Stack>
                       )}
@@ -198,6 +209,9 @@ export function ContactsView() {
       <ContactDialog open={dialog.value} onClose={dialog.onFalse} contact={editing} defaultKind={kind === 'vendor' ? 'vendor' : 'customer'} />
       <ImportContactsDialog open={importDialog.value} onClose={importDialog.onFalse} />
       {refundFor && <RefundDialog open={!!refundFor} onClose={() => setRefundFor(null)} contactId={refundFor} />}
+      {supplierRefundFor && (
+        <SupplierRefundDialog open={!!supplierRefundFor} onClose={() => setSupplierRefundFor(null)} contactId={supplierRefundFor} />
+      )}
     </>
   );
 }

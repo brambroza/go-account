@@ -200,7 +200,7 @@ export function BankReconcileView() {
               inputProps={{ inputMode: 'decimal' }}
             />
             <IsoDatePicker
-              label="เริ่มกระทบยอดตั้งแต่"
+              label="เริ่มกระทบยอดตั้งแต่ (จำไว้ต่อบัญชี)"
               value={from ?? ''}
               onChange={(iso) =>
                 act(() => {
@@ -310,7 +310,17 @@ export function BankReconcileView() {
         </Grid>
       </Grid>
 
-      <StatementImportDialog open={importDialog.value} onClose={importDialog.onFalse} accountCode={code} />
+      <StatementImportDialog
+        open={importDialog.value}
+        onClose={importDialog.onFalse}
+        accountCode={code}
+        onImported={(ending) => {
+          // U7: เติมยอดคงเหลือปลายงวดและวันที่ของรายการล่าสุดจากช่องคงเหลือในไฟล์ (แก้ได้)
+          if (!ending) return;
+          setAsOf(ending.date);
+          setStatementInput(ending.balance.toFixed(2));
+        }}
+      />
       <StatementLineDialog open={lineDialog.value} onClose={lineDialog.onFalse} accountCode={code} />
     </>
   );

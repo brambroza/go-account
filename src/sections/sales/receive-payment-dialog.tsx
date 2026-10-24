@@ -2,8 +2,8 @@ import type { SalesDoc } from 'src/domain';
 import type { ReceiptSchemaType } from 'src/schemas/accounting/doc-schemas';
 
 import { useForm, useWatch } from 'react-hook-form';
-import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useRef, useMemo, useState, useEffect } from 'react';
 
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
@@ -83,21 +83,32 @@ export function ReceivePaymentDialog({ open, onClose, invoice }: Props) {
     resolver: zodResolver(makeReceiptSchema(outstanding, invoice.date)),
     defaultValues,
   });
-  const { control, reset, setValue, handleSubmit } = methods;
+  const { control, reset, setValue, getValues, handleSubmit } = methods;
   const [date, amount, whtRate, whtAmount, account] = useWatch({
     control,
     name: ['date', 'amount', 'whtRate', 'whtAmount', 'depositAccountCode'],
   });
 
+  // ภาษีถูกหักคิดจากมูลค่าก่อน VAT ตามสัดส่วนที่รับครั้งนี้ (domain) — ผู้ใช้แก้ตาม 50 ทวิ ที่ได้รับได้
+  // ค่าที่ระบบคำนวณล่าสุด: ถ้ายอดในช่องยังเท่าค่านี้ = ผู้ใช้ยังไม่แก้เอง → คำนวณใหม่เมื่อยอด/อัตราเปลี่ยน
+  const autoWht = useRef(0);
+
   useEffect(() => {
-    if (open) reset({ ...defaultValues, amount: outstanding });
+    if (!open) return;
+    // อัตราที่จำไว้ต้องได้ยอดหักทันทีที่เปิด (UAT U4: เดิมแสดง 3% แต่ยอดหักเป็น 0)
+    const wht = receiptWhtAmount(totals, outstanding, defaultValues.whtRate);
+    autoWht.current = wht;
+    reset({ ...defaultValues, amount: outstanding, whtAmount: wht });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // ภาษีถูกหักคิดจากมูลค่าก่อน VAT ตามสัดส่วนที่รับครั้งนี้ (domain) — ผู้ใช้แก้ตาม 50 ทวิ ที่ได้รับได้
   useEffect(() => {
-    setValue('whtAmount', receiptWhtAmount(totals, amount ?? 0, whtRate ?? 0));
-  }, [whtRate, amount, totals, setValue]);
+    const next = receiptWhtAmount(totals, amount ?? 0, whtRate ?? 0);
+    const current = getValues('whtAmount') ?? 0;
+    const editedByUser = toSatang(current) !== toSatang(autoWht.current);
+    autoWht.current = next;
+    if (!editedByUser || !(whtRate ?? 0)) setValue('whtAmount', next);
+  }, [whtRate, amount, totals, setValue, getValues]);
 
   const netReceived = subBaht(amount ?? 0, whtAmount ?? 0);
   // งานบริการ (ม.78/1): รับเงินแล้วออกใบเสร็จรับเงิน/ใบกำกับภาษี — ภาษีขายของส่วนที่รับ (domain คำนวณ)

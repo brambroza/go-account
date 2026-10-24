@@ -114,6 +114,8 @@ export function DashboardLayout({ children }: Props) {
             aria-label="ค้นหา (Ctrl+K)"
             sx={{
               flexGrow: 1,
+              // มือถือ 390px: ให้ช่องค้นหาหดได้ (ข้อความตัด …) ไม่ดันปุ่มด้านขวาล้นจอ (UAT U6)
+              minWidth: 0,
               maxWidth: 480,
               height: 40,
               px: 1.5,
@@ -131,10 +133,10 @@ export function DashboardLayout({ children }: Props) {
             <Label sx={{ display: { xs: 'none', sm: 'inline-flex' } }}>Ctrl K</Label>
           </ButtonBase>
 
-          <Box sx={{ flexGrow: 1 }} />
+          <Box sx={{ flexGrow: 1, display: { xs: 'none', sm: 'block' } }} />
 
           <Tooltip title="ข้อมูลทั้งหมดเก็บในเบราว์เซอร์นี้ — กดเพื่อล้างและสร้างข้อมูลตัวอย่างใหม่ (ต้องยืนยัน)">
-            <ButtonBase onClick={resetConfirm.onTrue} sx={{ borderRadius: 0.75 }}>
+            <ButtonBase onClick={resetConfirm.onTrue} sx={{ borderRadius: 0.75, flexShrink: 0 }}>
               <Label variant="soft" color="warning" sx={{ cursor: 'pointer' }}>
                 ข้อมูลตัวอย่าง
               </Label>

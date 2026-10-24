@@ -1,13 +1,6 @@
 import { demo } from '../../store/__tests__/fixtures';
 import { quotationTotals, quotationValidUntil, QUOTATION_STATUS_LABEL, quotationConvertProblem } from '../quotation';
 import {
-  readStatementCsv,
-  mapStatementRows,
-  parseStatementDate,
-  parseStatementAmount,
-  guessStatementMapping,
-} from '../bank-statement-import';
-import {
   contactMatches,
   filterContacts,
   isSubmitShortcut,
@@ -15,6 +8,15 @@ import {
   lastReceiptWhtRate,
   shouldAppendLineOnEnter,
 } from '../quick-entry';
+import {
+  readStatementCsv,
+  mapStatementRows,
+  parseStatementDate,
+  parseStatementAmount,
+  decodeStatementBytes,
+  guessStatementMapping,
+  statementEndingBalance,
+} from '../bank-statement-import';
 import {
   bankMovements,
   transferTitle,
@@ -117,6 +119,13 @@ describe('bank helpers', () => {
     expect(isBankKindCode('1110', 'petty-cash')).toBe(false);
     expect(cashAccountLabel({ code: '1120', name: 'เงินฝากธนาคาร' }, { bankName: 'กสิกรไทย', accountNo: '123' })).toBe('1120 เงินฝากธนาคาร · กสิกรไทย 123');
     expect(cashAccountLabel({ code: '1110', name: 'เงินสด' })).toBe('1110 เงินสด');
+    // ชื่อที่ระบบตั้งมีธนาคาร/เลขที่อยู่แล้ว ไม่ต่อท้ายซ้ำ
+    expect(cashAccountLabel({ code: '1121', name: 'เงินฝากธนาคาร กสิกรไทย 123' }, { bankName: 'กสิกรไทย', accountNo: '123' })).toBe(
+      '1121 เงินฝากธนาคาร กสิกรไทย 123'
+    );
+    expect(cashAccountLabel({ code: '1121', name: 'เงินฝากธนาคาร กสิกรไทย' }, { bankName: 'กสิกรไทย', accountNo: '123' })).toBe(
+      '1121 เงินฝากธนาคาร กสิกรไทย · 123'
+    );
     const data = demo();
     expect(cashAccountsOf(data).map((a) => a.code)).toEqual(['1110', '1111', '1120']);
     expect(transferTitle({ fromAccountCode: '1120', toAccountCode: '1111' }, data)).toBe('เบิกชดเชยเงินสดย่อย');
@@ -208,3 +217,44 @@ function calcTotal(lines: { qty: number; unitPrice: number; discount: number }[]
   const net = lines.reduce((a, l) => a + l.qty * l.unitPrice - l.discount, 0);
   return Math.round(net * 107) / 100;
 }
+
+// ---------------- U7 encoding / ending balance ----------------
+
+/** เข้ารหัสแบบ TIS-620 (อักษรไทย U+0E01–U+0E5B → 0xA1–0xFB, ASCII คงเดิม) สำหรับทดสอบ */
+const tis620 = (text: string) =>
+  Uint8Array.from(Array.from(text).map((ch) => {
+    const c = ch.charCodeAt(0);
+    return c >= 0x0e01 && c <= 0x0e5b ? c - 0x0e01 + 0xa1 : c;
+  }));
+
+describe('U7 statement file encoding and ending balance', () => {
+  const csv = 'วันที่,รายการ,ถอน,ฝาก,คงเหลือ\r\n01/10/2569,ค่าธรรมเนียม,10.00,,990.00\r\n';
+
+  it('auto-detects Windows-874 / TIS-620 when UTF-8 produces replacement characters', () => {
+    const bytes = tis620(csv);
+    expect(decodeStatementBytes(bytes, 'utf-8').text).toContain('\uFFFD');
+    const auto = decodeStatementBytes(bytes);
+    expect(auto).toEqual({ text: csv, encoding: 'windows-874' });
+    const read = readStatementCsv(auto.text);
+    expect(mapStatementRows(read.table, read.mapping).rows[0]).toMatchObject({ description: 'ค่าธรรมเนียม', amount: -10, balance: 990 });
+  });
+
+  it('keeps UTF-8 (with or without BOM) and honours an explicit choice', () => {
+    const utf8 = new TextEncoder().encode(`\uFEFF${csv}`);
+    expect(decodeStatementBytes(utf8)).toEqual({ text: csv, encoding: 'utf-8' });
+    expect(decodeStatementBytes(tis620(csv), 'windows-874').text).toBe(csv);
+  });
+
+  it('ending balance = balance of the latest dated row (file order either way)', () => {
+    const rows = [
+      { date: '2026-10-01', description: 'a', amount: 100, balance: 1100 },
+      { date: '2026-10-03', description: 'b', amount: -50, balance: 1050 },
+      { date: '2026-10-03', description: 'c', amount: -50, balance: 1000 },
+      { date: '2026-10-02', description: 'no balance', amount: 1 },
+    ];
+    expect(statementEndingBalance(rows)).toEqual({ date: '2026-10-03', balance: 1000 });
+    // ไฟล์เรียงใหม่→เก่า: วันเดียวกันใช้แถวแรก
+    expect(statementEndingBalance([rows[2], rows[1], rows[0]])).toEqual({ date: '2026-10-03', balance: 1000 });
+    expect(statementEndingBalance([{ date: '2026-10-01', description: 'x', amount: 1 }])).toBeNull();
+  });
+});

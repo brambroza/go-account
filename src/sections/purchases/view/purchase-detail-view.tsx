@@ -35,7 +35,9 @@ import {
   whtSummaryLabel,
   partyDisplayName,
   purchaseCreditsOf,
+  supplierRefundDueOf,
   purchaseOutstanding,
+  purchaseCreditableOf,
   purchaseCreditedTotal,
   purchaseAdjustedWhtGroups,
 } from 'src/domain';
@@ -49,6 +51,7 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { Money, PaidLabel, formatAddress } from 'src/sections/shared';
 
 import { PayPurchaseDialog } from '../pay-purchase-dialog';
+import { SupplierRefundDialog } from '../supplier-refund-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -73,14 +76,20 @@ export function PurchaseDetailView() {
   const contacts = useContactLookup();
   const accounts = useAccountLookup();
   const [paying, setPaying] = useState(false);
+  const [refunding, setRefunding] = useState(false);
 
   const doc = data.purchases.find((p) => p.id === id);
   const related = useMemo(() => {
-    if (!doc) return { payments: [], credits: [], journal: [] };
+    if (!doc) return { payments: [], credits: [], refunds: [], journal: [] };
     const payments = paymentsOf(data, doc.id);
     const credits = purchaseCreditsOf(data, doc.id);
-    const ids = new Set([doc.journalId, ...payments.map((p) => p.journalId), ...credits.map((c) => c.journalId)]);
-    return { payments, credits, journal: data.journal.filter((j) => ids.has(j.id) && j.source !== 'opening') };
+    // รับเงินคืนจากผู้ขาย (SR) ผูกกับผู้ติดต่อ ไม่ใช่เอกสาร — แสดงเมื่อเอกสารนี้มีใบลดหนี้ที่ตั้งเงินคืน
+    const firstRefundDue = credits.filter((c) => toSatang(c.refundDue ?? 0) > 0).map((c) => c.date).sort()[0];
+    const refunds = firstRefundDue
+      ? (data.supplierRefunds ?? []).filter((r) => r.contactId === doc.contactId && r.date >= firstRefundDue)
+      : [];
+    const ids = new Set([doc.journalId, ...payments.map((p) => p.journalId), ...credits.map((c) => c.journalId), ...refunds.map((r) => r.journalId)]);
+    return { payments, credits, refunds, journal: data.journal.filter((j) => ids.has(j.id) && j.source !== 'opening') };
   }, [data, doc]);
 
   if (!doc) {
@@ -103,7 +112,9 @@ export function PurchaseDetailView() {
   const outstanding = purchaseOutstanding(data, doc);
   const credited = purchaseCreditedTotal(data, doc);
   const wht = purchaseAdjustedWhtGroups(data, doc);
-  const canCredit = !doc.opening && toSatang(outstanding) > 0;
+  // D1: ลดหนี้ได้แม้จ่ายแล้ว (ส่วนเกินยอดค้างตั้งเป็นเงินคืนจากผู้ขาย)
+  const canCredit = !doc.opening && toSatang(purchaseCreditableOf(data, doc)) > 0;
+  const refundDue = supplierRefundDueOf(data, doc.contactId);
 
   return (
     <>
@@ -125,6 +136,11 @@ export function PurchaseDetailView() {
                 startIcon={<Iconify icon="solar:undo-left-round-bold" />}
               >
                 บันทึกใบลดหนี้จากผู้ขาย
+              </Button>
+            )}
+            {toSatang(refundDue) > 0 && (
+              <Button variant="outlined" color="warning" startIcon={<Iconify icon="solar:hand-money-bold" />} onClick={() => setRefunding(true)}>
+                รับเงินคืนจากผู้ขาย
               </Button>
             )}
             {toSatang(outstanding) > 0 && (
@@ -203,9 +219,12 @@ export function PurchaseDetailView() {
                 <Row label="มูลค่าก่อนภาษี">
                   <Money value={t.net} />
                 </Row>
-                <Row label={doc.claimVat ? `ภาษีซื้อ ${doc.vatRate}%` : `ภาษี ${doc.vatRate}% (ขอคืนไม่ได้ — เป็นค่าใช้จ่าย)`}>
-                  <Money value={t.vat} />
-                </Row>
+                {/* ยอดยกมา/เอกสารไม่มี VAT: ไม่ขึ้น "ภาษี 0% เป็นค่าใช้จ่าย" (UAT U13) */}
+                {!doc.opening && (doc.vatMode !== 'none' || toSatang(t.vat) > 0) && (
+                  <Row label={doc.claimVat ? `ภาษีซื้อ ${doc.vatRate}%` : `ภาษี ${doc.vatRate}% (ขอคืนไม่ได้ — เป็นค่าใช้จ่าย)`}>
+                    <Money value={t.vat} />
+                  </Row>
+                )}
                 <Divider sx={{ borderStyle: 'dashed' }} />
                 <Row label="รวมทั้งสิ้น">
                   <Money value={t.total} variant="subtitle1" />
@@ -246,6 +265,11 @@ export function PurchaseDetailView() {
                     <Money value={credited} />
                   </Row>
                 )}
+                {toSatang(refundDue) > 0 && (
+                  <Row label="เงินคืนค้างรับจากผู้ขายรายนี้">
+                    <Money value={refundDue} sx={{ color: 'warning.main' }} />
+                  </Row>
+                )}
                 <Row label="ภาษีซื้อ">
                   {doc.opening ? (
                     'ใช้สิทธิในระบบเดิมแล้ว'
@@ -284,9 +308,22 @@ export function PurchaseDetailView() {
                       <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
                         ใบลดหนี้ผู้ขาย {c.supplierCreditNoteNo || '-'} · {formatThaiDate(c.date)} · {c.reason}
                         {c.claimVat && c.vatClaimPeriod ? ` · ลดภาษีซื้อเดือน${periodLabel(periodFromKey(c.vatClaimPeriod))}` : ''}
+                        {toSatang(c.refundDue ?? 0) > 0 ? ` · ตั้งเงินคืนจากผู้ขาย ${(c.refundDue ?? 0).toFixed(2)}` : ''}
                       </Typography>
                     </div>
                     <Money value={-calcDocument(c).total} signed />
+                  </Stack>
+                ))}
+                {related.refunds.map((r) => (
+                  <Stack key={r.id} direction="row" justifyContent="space-between">
+                    <div>
+                      <Typography variant="subtitle2">{r.docNo}</Typography>
+                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                        รับเงินคืนจากผู้ขาย · {formatThaiDate(r.date)} · เข้า {accounts.name(r.accountCode)}
+                        {r.note ? ` · ${r.note}` : ''}
+                      </Typography>
+                    </div>
+                    <Money value={r.amount} />
                   </Stack>
                 ))}
                 {!related.payments.length && !related.credits.length && (
@@ -327,6 +364,7 @@ export function PurchaseDetailView() {
       </Grid>
 
       <PayPurchaseDialog open={paying} doc={paying ? doc : null} onClose={() => setPaying(false)} />
+      <SupplierRefundDialog open={refunding} onClose={() => setRefunding(false)} contactId={doc.contactId} />
     </>
   );
 }

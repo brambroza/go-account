@@ -19,7 +19,12 @@ const isoDate = (label: string) =>
   zod
     .string({ required_error: `เลือก${label}` })
     .min(10, { message: `เลือก${label}` })
-    .transform((v) => v.slice(0, 10));
+    .transform((v) => v.slice(0, 10))
+    // U13: วันที่ที่ไม่มีในปฏิทิน (เช่น 31/09) ต้องฟ้องที่ช่องนี้เอง ไม่ใช่ช่องวันครบกำหนด
+    .refine((v) => isValidISODate(v), { message: `${label}ไม่ถูกต้อง — ไม่มีวันนี้ในปฏิทิน` });
+
+/** เทียบวันที่สองช่องเฉพาะเมื่อทั้งคู่ถูกต้อง (ช่องที่ผิดฟ้องที่ตัวเองแล้ว) */
+const dateNotBefore = (later: string, earlier: string) => !isValidISODate(later) || !isValidISODate(earlier) || later >= earlier;
 
 export const SalesInvoiceSchema = zod
   .object({
@@ -32,7 +37,7 @@ export const SalesInvoiceSchema = zod
     note: zod.string().optional(),
     lines: zod.array(DocLineSchema).min(1, { message: 'ต้องมีอย่างน้อย 1 รายการ' }),
   })
-  .refine((v) => v.dueDate >= v.date, { message: 'วันครบกำหนดต้องไม่ก่อนวันที่เอกสาร', path: ['dueDate'] });
+  .refine((v) => dateNotBefore(v.dueDate, v.date), { message: 'วันครบกำหนดต้องไม่ก่อนวันที่เอกสาร', path: ['dueDate'] });
 
 export type SalesInvoiceSchemaType = zod.input<typeof SalesInvoiceSchema>;
 
@@ -51,9 +56,10 @@ export const SupplierCreditNoteSchema = zod
     supplierCreditNoteDate: isoDate('วันที่ในใบลดหนี้ของผู้ขาย'),
     date: isoDate('วันที่ได้รับ'),
     reason: zod.string().trim().min(1, { message: 'ระบุเหตุผลการลดหนี้' }),
-    lines: zod.array(DocLineSchema).min(1, { message: 'ต้องมีอย่างน้อย 1 รายการ' }),
+    // D1: บรรทัดอ้างบรรทัดของเอกสารซื้อ (ฐานหัก ณ ที่จ่ายลดเฉพาะบรรทัดนั้น) — บรรทัดที่เพิ่มเองไม่มีค่า
+    lines: zod.array(DocLineSchema.extend({ purchaseLineId: zod.string().optional() })).min(1, { message: 'ต้องมีอย่างน้อย 1 รายการ' }),
   })
-  .refine((v) => v.supplierCreditNoteDate <= v.date, {
+  .refine((v) => dateNotBefore(v.date, v.supplierCreditNoteDate), {
     message: 'วันที่ในใบลดหนี้ต้องไม่หลังวันที่ได้รับ',
     path: ['supplierCreditNoteDate'],
   });
@@ -95,7 +101,7 @@ export const PurchaseSchema = zod
     message: 'ขอคืนภาษีซื้อต้องระบุวันที่ในใบกำกับของผู้ขาย',
     path: ['supplierInvoiceDate'],
   })
-  .refine((v) => !v.supplierInvoiceDate || v.supplierInvoiceDate.slice(0, 10) <= v.date, {
+  .refine((v) => !v.supplierInvoiceDate || dateNotBefore(v.date, v.supplierInvoiceDate.slice(0, 10)), {
     message: 'วันที่ใบกำกับผู้ขายต้องไม่หลังวันที่บันทึก',
     path: ['supplierInvoiceDate'],
   })
@@ -229,6 +235,22 @@ export function makeRefundSchema(available: number) {
 
 export type RefundSchemaType = zod.input<ReturnType<typeof makeRefundSchema>>;
 
+/** รับเงินคืนจากผู้ขาย (SR) — ไม่เกินยอดเงินคืนคงค้าง (ตรวจตามวันที่อีกครั้งที่ `receiveSupplierRefund`) */
+export function makeSupplierRefundSchema(available: number) {
+  return zod.object({
+    date: isoDate('วันที่รับเงินคืน'),
+    amount: money('ยอดรับเงินคืน')
+      .refine((v) => toSatang(v) > 0, { message: 'ยอดรับเงินคืนต้องมากกว่า 0' })
+      .refine((v) => toSatang(v) <= toSatang(available), {
+        message: `ยอดรับเงินคืนเกินยอดเงินคืนจากผู้ขาย (รับได้ ${available.toFixed(2)} บาท)`,
+      }),
+    accountCode: zod.string().min(1, { message: 'เลือกบัญชีที่รับเงิน' }),
+    note: zod.string().optional(),
+  });
+}
+
+export type SupplierRefundSchemaType = zod.input<ReturnType<typeof makeSupplierRefundSchema>>;
+
 /** วันสุดท้ายของเดือนของวันที่ ISO (`2026-02-10` → `2026-02-28`) */
 export function monthEndOf(date: string): string {
   const y = Number(date.slice(0, 4));
@@ -286,7 +308,7 @@ export const OpeningBalanceFormSchema = zod.object({
         /** U2: VAT ของใบแจ้งหนี้งานบริการที่ยังไม่ถึงกำหนด (รวมอยู่ในยอดค้าง) */
         serviceVat: amount('ภาษีขายยังไม่ถึงกำหนด').optional(),
       })
-      .refine((v) => v.dueDate >= v.date, { message: 'ครบกำหนดก่อนวันที่เอกสาร', path: ['dueDate'] })
+      .refine((v) => dateNotBefore(v.dueDate, v.date), { message: 'ครบกำหนดก่อนวันที่เอกสาร', path: ['dueDate'] })
       .refine((v) => toSatang(v.serviceVat ?? 0) < toSatang(v.amount), { message: 'VAT ต้องน้อยกว่ายอดค้าง', path: ['serviceVat'] })
   ),
   payables: zod.array(

@@ -107,6 +107,18 @@ export type ContactImportResult = {
 
 const JURISTIC_HINT = /บริษัท|ห้างหุ้นส่วน|หจก|บจก|บมจ|จำกัด|co\.|ltd|limited/i;
 
+/** คำนำหน้าที่มักพิมพ์รวมมากับชื่อ — มีแล้วไม่ต้องเติมคำนำหน้าให้อีก */
+const NAME_PREFIX = /^(บริษัท|บจก\.?|บมจ\.?|ห้างหุ้นส่วน|หจก\.?|หสม\.?|ร้าน|นางสาว|นาย|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.|คุณ|มูลนิธิ|สมาคม|สหกรณ์|วิสาหกิจ|โรงเรียน|มหาวิทยาลัย|กลุ่ม|คณะบุคคล)/;
+
+/**
+ * คำนำหน้าเริ่มต้นของผู้ติดต่อ (UAT U13): นิติบุคคลที่ชื่อยังไม่มีคำนำหน้า = "บริษัท"
+ * ชื่อที่ขึ้นต้นด้วยคำนำหน้าอื่นอยู่แล้ว (ร้าน / หจก. / นาย …) หรือบุคคลธรรมดา = ไม่เติม
+ */
+export function defaultContactTitle(name: string, legalForm: LegalForm): string {
+  if (legalForm !== 'juristic') return '';
+  return NAME_PREFIX.test(name.trim()) ? '' : 'บริษัท';
+}
+
 function toKind(value: string): ContactKind {
   const v = value.trim().toLowerCase();
   if (['vendor', 'supplier', 'ผู้ขาย', 'ผู้จำหน่าย', 'เจ้าหนี้'].includes(v)) return 'vendor';
@@ -148,7 +160,7 @@ export function importContactsCsv(text: string): ContactImportResult {
       code: r.code || `C${String(rowNo - 1).padStart(4, '0')}`,
       kind: toKind(r.kind ?? ''),
       legalForm,
-      title: r.title || (legalForm === 'juristic' ? 'บริษัท' : ''),
+      title: r.title || defaultContactTitle(r.name, legalForm),
       name: r.name,
       lastName: r.lastName || undefined,
       taxId: taxId || undefined,

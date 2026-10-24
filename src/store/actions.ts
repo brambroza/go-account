@@ -107,6 +107,7 @@ import {
   RECEIPT_WHT_MAX_RATE,
   UnbalancedEntryError,
   openingBlockedReason,
+  openingNumberConflict,
   findDuplicatePurchase,
   PURCHASE_WHT_MAX_RATE,
   DATE_ORDERED_PREFIXES,
@@ -437,7 +438,7 @@ export function issueCreditNote(state: AccountingData, input: CreditNoteInput) {
     originalNet,
     correctNet: subBaht(originalNet, credit.net),
     creditToCustomer,
-    note: invoice.note,
+    // หมายเหตุของใบเดิม (เช่นเงื่อนไขจากใบเสนอราคา) ไม่ติดไปใบลด/เพิ่มหนี้ — เอกสารนี้ใช้ `reason` (UAT U13)
     status: 'issued',
     paidAmount: 0,
     etax: isTaxInvoice && invoice.vatMode !== 'none' ? 'pending-sign' : 'not-required',
@@ -500,7 +501,7 @@ export function issueDebitNote(state: AccountingData, input: DebitNoteInput) {
     reason: input.reason,
     originalNet,
     correctNet: sumBaht([originalNet, debit.net]),
-    note: invoice.note,
+    // หมายเหตุของใบเดิม (เช่นเงื่อนไขจากใบเสนอราคา) ไม่ติดไปใบลด/เพิ่มหนี้ — เอกสารนี้ใช้ `reason` (UAT U13)
     status: 'issued',
     paidAmount: 0,
     etax: isTaxInvoice && invoice.vatMode !== 'none' ? 'pending-sign' : 'not-required',
@@ -1226,7 +1227,7 @@ export function closeYear(
 
 export type OpeningReceivableInput = {
   contactId: string;
-  /** เลขที่ใบกำกับ/ใบแจ้งหนี้ในระบบเดิม (ห้ามรูปแบบเลขที่ของระบบนี้ เช่น IV6910-0001) */
+  /** เลขที่ใบกำกับ/ใบแจ้งหนี้ในระบบเดิม (ห้ามรูปแบบเลขที่ของระบบนี้ที่งวดหลังเดือนยอดยกมา — `openingNumberConflict`) */
   docNo: string;
   date: string;
   dueDate: string;
@@ -1340,10 +1341,11 @@ export function setOpeningBalances(state: AccountingData, input: OpeningBalanceI
     if (side === 'ar' && contact.kind === 'vendor') throw new BusinessRuleError(`${no}: ${contactDisplayName(contact)} เป็นผู้ขายเท่านั้น`);
     if (side === 'ap' && contact.kind === 'customer') throw new BusinessRuleError(`${no}: ${contactDisplayName(contact)} เป็นลูกค้าเท่านั้น`);
     if (!item.docNo.trim()) throw new BusinessRuleError(`${no}: ระบุเลขที่เอกสารในระบบเดิม`);
-    // U12: เลขที่รูปแบบเดียวกับระบบนี้ (PREFIX + งวด + ลำดับ) จะชนกับเลขที่ที่ระบบออกภายหลัง
-    if (parseDocNo(item.docNo.trim().toUpperCase())) {
+    // U12: เลขที่รูปแบบเดียวกับระบบนี้ที่งวดหลังเดือนยอดยกมา จะชนกับเลขที่ที่ระบบออกภายหลัง
+    // (เลขของ Express งวดไม่เกินเดือนยอดยกมาใช้ได้ — ระบบไม่ออกเลขงวดนั้นอีก)
+    if (openingNumberConflict(item.docNo, input.date)) {
       throw new BusinessRuleError(
-        `${no}: เลขที่ ${item.docNo.trim()} ซ้ำรูปแบบเลขที่ของระบบนี้ (เช่น IV6910-0001) — เติมคำนำหน้า เช่น EX-${item.docNo.trim()}`
+        `${no}: เลขที่ ${item.docNo.trim()} ซ้ำรูปแบบเลขที่ที่ระบบนี้จะออกหลังวันยอดยกมา — เติมคำนำหน้า เช่น EX-${item.docNo.trim()}`
       );
     }
     assertISODate(item.date, `${no}: วันที่เอกสาร`);

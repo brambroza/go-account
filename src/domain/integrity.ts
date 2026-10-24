@@ -1,5 +1,4 @@
 import { calcDocument } from './document-calc';
-import { parseDocNo, DATE_ORDERED_PREFIXES } from './numbering';
 import { subBaht, sumBaht, toSatang, fromSatang } from './money';
 import { normalizeTaxId, normalizeBranch5 } from './thai-tax-id';
 import { salesVatReport, purchaseVatReport } from './vat-report';
@@ -7,6 +6,7 @@ import { taxedPartsOf, receiptVatOf, deferredVatOf } from './service-vat';
 import { isBankKindCode, bankMatchProblem, minCashBalanceFrom } from './bank';
 import { isTaxDocument, isServiceInvoice, isDeferredVatDoc } from './sales-doc';
 import { sortedYearCloses, yearCloseBalances, openingItemTotals } from './year-end';
+import { parseDocNo, DATE_ORDERED_PREFIXES, openingNumberConflict } from './numbering';
 import { ACC, isCashAccount, isControlAccount, lineAccountProblem } from './chart-of-accounts';
 import { vatCloseDraft, latestVatCredit, vatCloseFigures, vatActivityMonths } from './vat-close';
 import { endOfMonth, monthKeyOf, docPeriodCode, shiftMonthKey, formatThaiDate, isValidISODate } from './thai-date';
@@ -774,6 +774,9 @@ function checkOpening(data: AccountingData, problems: string[]) {
     if (d.journalId !== opening.journalId) problems.push(`${d.docNo}: เอกสารยอดยกมาไม่ได้ผูกกับรายการยอดยกมา`);
     if (d.date > opening.date) problems.push(`${d.docNo}: เอกสารยอดยกมาลงวันที่หลังวันยอดยกมา`);
     if (systemNumbers.has(d.docNo.trim())) problems.push(`${d.docNo}: เลขที่ยอดยกมาซ้ำกับเลขที่เอกสารของระบบ`);
+    else if (openingNumberConflict(d.docNo, opening.date)) {
+      problems.push(`${d.docNo}: เลขที่ยอดยกมาเป็นรูปแบบเลขที่ที่ระบบจะออกหลังวันยอดยกมา`);
+    }
     // U2: ใบแจ้งหนี้งานบริการค้างรับยกมาคิด VAT ได้ (ภาษีขายยังไม่ถึงกำหนด 2151) — ใบอื่นต้องไม่คิด VAT
     const deferredService = 'kind' in d && isServiceInvoice(d);
     if (d.vatMode !== 'none' && !deferredService) problems.push(`${d.docNo}: เอกสารยอดยกมาต้องไม่คิด VAT`);

@@ -1,4 +1,4 @@
-import { docPeriodCode } from './thai-date';
+import { endOfMonth, monthKeyOf, docPeriodCode } from './thai-date';
 
 import type { ISODate } from './types';
 
@@ -82,4 +82,21 @@ export function nextDocNo(
   const key = `${prefix}${docPeriodCode(date)}`;
   const value = (sequences[key] ?? 0) + 1;
   return { docNo: `${key}-${String(value).padStart(4, '0')}`, key, value };
+}
+
+const SYSTEM_PREFIXES: readonly string[] = Object.values(DOC_PREFIX);
+
+/**
+ * เลขที่ของระบบเดิม (ใบค้างรับ/ค้างจ่ายยอดยกมา) ที่ระบบนี้อาจออกเลขซ้ำภายหลัง — ใช้ตอนบันทึกยอดยกมาและตรวจข้อมูล
+ * - รูปแบบเลขที่ของระบบนี้ (prefix ของระบบ + งวด พ.ศ. YYMM + ลำดับ) และงวดอยู่หลังเดือนยอดยกมา → ชนได้
+ * - งวดไม่เกินเดือนยอดยกมา (เช่นเลขของ Express เดือนก่อน ๆ) ระบบไม่ออกอีกแล้ว เพราะทุกรายการลงวันที่หลังวันยอดยกมา
+ *   ยกเว้น JV ของเดือนยอดยกมา (รายการบัญชียอดยกมาใช้เลข JV งวดนั้น) และข้อมูลเดิมที่ยกยอดกลางเดือน (งวดเดียวกันยังออกต่อได้)
+ */
+export function openingNumberConflict(docNo: string, openingDate: ISODate): boolean {
+  const parsed = parseDocNo(docNo.trim().toUpperCase());
+  if (!parsed || !SYSTEM_PREFIXES.includes(parsed.prefix)) return false;
+  const openingPeriod = docPeriodCode(openingDate);
+  if (parsed.period > openingPeriod) return true;
+  if (parsed.period < openingPeriod) return false;
+  return parsed.prefix === DOC_PREFIX.journal || endOfMonth(monthKeyOf(openingDate)) !== openingDate;
 }

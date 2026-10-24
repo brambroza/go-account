@@ -31,18 +31,22 @@ type Props = {
   side: 'customer' | 'vendor';
   sx?: SxProps<Theme>;
   disabled?: boolean;
+  /** ฟอร์มใหม่: โฟกัสช่องนี้ทันทีเพื่อพิมพ์ค้นได้เลย (UAT U13) */
+  autoFocus?: boolean;
 };
 
 /**
  * เลือกลูกค้า/ผู้ขายแบบพิมพ์ค้น (รหัส ชื่อ หรือเลขผู้เสียภาษี) — ตัวเลือกสุดท้าย "+ เพิ่มใหม่" เปิดฟอร์มผู้ติดต่อ
  * บันทึกแล้วเลือกให้ทันที (ค่าที่เก็บในฟอร์ม = contact id)
  */
-export function ContactAutocomplete({ name, label, side, sx, disabled }: Props) {
+export function ContactAutocomplete({ name, label, side, sx, disabled, autoFocus }: Props) {
   const { control, setValue } = useFormContext();
   const { data } = useAccounting();
   const dialog = useBoolean();
   const [input, setInput] = useState('');
   const [draftName, setDraftName] = useState('');
+  // โฟกัสอัตโนมัติตอนเปิดฟอร์ม: ไม่เปิดรายการทับฟอร์มทันที — เปิดเมื่อพิมพ์/คลิก (โฟกัสครั้งถัดไปเปิดตามปกติ)
+  const [quietFocus, setQuietFocus] = useState(!!autoFocus);
 
   const pool = useMemo(
     () => data.contacts.filter((c) => (side === 'customer' ? c.kind !== 'vendor' : c.kind !== 'customer')),
@@ -69,7 +73,7 @@ export function ContactAutocomplete({ name, label, side, sx, disabled }: Props) 
               options={options}
               disabled={disabled}
               autoHighlight
-              openOnFocus
+              openOnFocus={!quietFocus}
               size="small"
               sx={sx}
               isOptionEqualToValue={(a, b) => a.id === b.id}
@@ -90,7 +94,10 @@ export function ContactAutocomplete({ name, label, side, sx, disabled }: Props) 
                 }
                 field.onChange(option?.id ?? '');
               }}
-              onBlur={field.onBlur}
+              onBlur={() => {
+                setQuietFocus(false);
+                field.onBlur();
+              }}
               renderOption={(props, option) =>
                 option.id === ADD_NEW ? (
                   <Box component="li" {...props} key={ADD_NEW} sx={{ color: 'primary.main', gap: 1 }}>
@@ -114,6 +121,7 @@ export function ContactAutocomplete({ name, label, side, sx, disabled }: Props) 
                   {...params}
                   inputRef={field.ref}
                   label={label}
+                  autoFocus={autoFocus && !disabled}
                   placeholder="พิมพ์รหัส ชื่อ หรือเลขผู้เสียภาษี"
                   error={!!error}
                   helperText={error?.message}

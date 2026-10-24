@@ -32,6 +32,7 @@ import {
   transferFunds,
   recordPurchase,
   receivePayment,
+  issueDebitNote,
   issueCreditNote,
   issueTaxInvoice,
   addManualJournal,
@@ -165,9 +166,22 @@ describe('D4 + U12 opening date and numbers', () => {
   });
 
   it('F6: opening numbers in this system’s format are rejected; a tampered collision is detected', () => {
-    ['IV6910-0001', 'iv6910-0001', 'PV6909-0003'].forEach((docNo) =>
-      expect(() => setOpeningBalances(blank(), { ...OPEN, receivables: [{ ...OPEN.receivables[0], docNo }] })).toThrow(/รูปแบบเลขที่ของระบบ/)
+    // งวดหลังเดือนยอดยกมา (ก.ย. 69 = 6909) หรือ JV ของเดือนยอดยกมา → ชนกับเลขที่ระบบจะออก
+    ['IV6910-0001', 'iv6910-0001', 'PV6911-0003', 'JV6909-0001', 'RT7001-0001'].forEach((docNo) =>
+      expect(() => setOpeningBalances(blank(), { ...OPEN, receivables: [{ ...OPEN.receivables[0], docNo }] })).toThrow(
+        /รูปแบบเลขที่ที่ระบบนี้จะออกหลังวันยอดยกมา/
+      )
     );
+    // เลขของ Express งวดไม่เกินเดือนยอดยกมา / prefix ที่ระบบไม่ใช้ → บันทึกได้และผ่านการตรวจ
+    ['IV6909-0007', 'IV6812-0001', 'PV6909-0003', 'EX6911-0001'].forEach((docNo) => {
+      const ok = setOpeningBalances(blank(), { ...OPEN, receivables: [{ ...OPEN.receivables[0], docNo }] }).state;
+      expect(ok.sales[0].docNo).toBe(docNo);
+      expect(validateAccountingData(ok)).toEqual([]);
+    });
+    // แก้ไฟล์ให้ใบยกมาใช้เลขงวดหลังวันยอดยกมา (ยังไม่ชนจริง) → ตรวจพบ
+    const tampered = clone(setOpeningBalances(blank(), OPEN).state);
+    tampered.sales[0].docNo = 'IV6910-0009';
+    expect(validateAccountingData(tampered).join()).toMatch(/ระบบจะออกหลังวันยอดยกมา/);
     const s = setOpeningBalances(blank(), OPEN).state;
     const iv = issueTaxInvoice(s, { date: '2026-10-02', dueDate: '2026-10-02', contactId: 'c-abc', vatMode: 'exclusive', lines: [ln(1, 100)] });
     const t = clone(iv.state);
@@ -549,6 +563,22 @@ describe('D2 credit note after customer WHT, D3 quotation variance', () => {
     expect(balanceOf(trialBalance(cn.state.accounts, cn.state.journal), ACC.whtReceivable)).toBe(
       balanceOf(trialBalance(r.state.accounts, r.state.journal), ACC.whtReceivable)
     );
+  });
+
+  it('U13: the invoice note (e.g. quotation terms) is not copied to credit / debit notes', () => {
+    const i = issueTaxInvoice(demo(), {
+      date: D,
+      dueDate: D,
+      contactId: 'c-abc',
+      lines: [ln(1, 1000)],
+      vatMode: 'exclusive',
+      note: 'อ้างอิงใบเสนอราคา QT6910-0001 ยืนราคา 30 วัน',
+    });
+    expect(i.doc.note).toMatch(/QT6910/);
+    const dn = issueDebitNote(i.state, { invoiceId: i.doc.id, date: D, reason: 'เพิ่มราคา', lines: [ln(1, 100)] });
+    expect(dn.doc.note).toBeUndefined();
+    const cn = issueCreditNote(dn.state, { invoiceId: i.doc.id, date: D, reason: 'ลด', lines: [ln(1, 100)] });
+    expect(cn.doc.note).toBeUndefined();
   });
 
   it('quotationVariance lists total and line differences without blocking', () => {

@@ -26,9 +26,12 @@ import {
   subBaht,
   VAT_RATE,
   todayISO,
+  toSatang,
   calcDocument,
   cashBalanceOf,
+  isValidISODate,
   formatThaiDate,
+  cashAccountLabel,
   vatClaimPeriodOptions,
 } from 'src/domain';
 
@@ -99,24 +102,41 @@ export function PettyCashDialog({ open, onClose, pettyAccountCode }: Props) {
     confirm.onTrue();
   });
 
+  const toInput = (v: PettyCashExpenseSchemaType) => {
+    const claiming = vatRegistered && v.vatMode !== 'none' && !!v.claimVat;
+    return {
+      pettyAccountCode: v.pettyAccountCode,
+      date: v.date.slice(0, 10),
+      contactId: v.contactId || undefined,
+      vatMode: v.vatMode,
+      claimVat: claiming,
+      supplierInvoiceNo: (v.supplierInvoiceNo ?? '').trim(),
+      supplierInvoiceDate: v.supplierInvoiceDate?.slice(0, 10) || undefined,
+      vatClaimPeriod: claiming ? claimPeriod : undefined,
+      note: v.note,
+      lines: v.lines.map((l) => ({ id: l.id, description: (l.description ?? '').trim(), accountCode: l.accountCode, amount: l.amount })),
+    };
+  };
+
+  // U13: ทดลองบันทึก (ไม่เปลี่ยนข้อมูล) เพื่อบอกปัญหาที่ตรวจได้เฉพาะตอนบันทึก — เงินสดย่อยไม่พอ, วันที่ก่อนเอกสารล่าสุด, งวดปิด
+  // แสดงก่อนกดยืนยันและปิดปุ่มยืนยันพร้อมเหตุผล (เดิมรู้หลังกดยืนยันเท่านั้น)
+  const dryRunProblem = (v: PettyCashExpenseSchemaType | null): string | null => {
+    if (!v || !isValidISODate((v.date ?? '').slice(0, 10))) return null;
+    try {
+      recordPettyCashExpense(data, toInput(v));
+      return null;
+    } catch (error) {
+      return error instanceof Error ? error.message : 'บันทึกไม่ได้';
+    }
+  };
+  const draft = methods.getValues();
+  const liveProblem = open && toSatang(totals.total) > 0 && (lines ?? []).every((l) => (l.description ?? '').trim()) ? dryRunProblem(draft) : null;
+  const pendingProblem = confirm.value ? dryRunProblem(pending) : null;
+
   const submit = () => {
     if (!pending) return;
     try {
-      const claiming = vatRegistered && pending.vatMode !== 'none' && pending.claimVat;
-      const r = run((s) =>
-        recordPettyCashExpense(s, {
-          pettyAccountCode: pending.pettyAccountCode,
-          date: pending.date.slice(0, 10),
-          contactId: pending.contactId || undefined,
-          vatMode: pending.vatMode,
-          claimVat: claiming,
-          supplierInvoiceNo: pending.supplierInvoiceNo.trim(),
-          supplierInvoiceDate: pending.supplierInvoiceDate?.slice(0, 10) || undefined,
-          vatClaimPeriod: claiming ? claimPeriod : undefined,
-          note: pending.note,
-          lines: pending.lines.map((l) => ({ id: l.id, description: l.description.trim(), accountCode: l.accountCode, amount: l.amount })),
-        })
-      );
+      const r = run((s) => recordPettyCashExpense(s, toInput(pending)));
       confirm.onFalse();
       toast.success(`บันทึกจ่ายเงินสดย่อย ${r.payment?.docNo ?? r.doc.docNo} แล้ว`);
       onClose();
@@ -141,7 +161,7 @@ export function PettyCashDialog({ open, onClose, pettyAccountCode }: Props) {
               >
                 {pettyAccounts.map((b) => (
                   <MenuItem key={b.accountCode} value={b.accountCode}>
-                    {b.accountCode} {accounts.name(b.accountCode)} {b.bankName ? `· ${b.bankName}` : ''}
+                    {cashAccountLabel({ code: b.accountCode, name: accounts.name(b.accountCode) }, { bankName: b.bankName, accountNo: '' })}
                   </MenuItem>
                 ))}
               </Field.Select>
@@ -199,6 +219,11 @@ export function PettyCashDialog({ open, onClose, pettyAccountCode }: Props) {
                   เพิ่มรายการ
                 </Button>
               </Box>
+              {liveProblem && (
+                <Alert severity="warning" variant="outlined">
+                  {liveProblem}
+                </Alert>
+              )}
               <Stack direction="row" justifyContent="flex-end" spacing={3}>
                 {vatMode !== 'none' && (
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -215,7 +240,7 @@ export function PettyCashDialog({ open, onClose, pettyAccountCode }: Props) {
             <Button variant="outlined" color="inherit" onClick={onClose}>
               ยกเลิก
             </Button>
-            <LoadingButton variant="contained" onClick={onReview}>
+            <LoadingButton variant="contained" onClick={onReview} disabled={!!liveProblem}>
               บันทึกจ่าย
             </LoadingButton>
           </DialogActions>
@@ -229,6 +254,8 @@ export function PettyCashDialog({ open, onClose, pettyAccountCode }: Props) {
         title="ยืนยันจ่ายเงินสดย่อย"
         content={
           pending && (
+            <Stack spacing={2}>
+            {pendingProblem && <Alert severity="error">{pendingProblem}</Alert>}
             <ConfirmSummary
               rows={[
                 { label: 'วันที่จ่าย', value: formatThaiDate(pending.date.slice(0, 10)) },
@@ -240,10 +267,11 @@ export function PettyCashDialog({ open, onClose, pettyAccountCode }: Props) {
               ]}
               note="บันทึกแล้วระบบจะออกเอกสารซื้อ (PI) + ใบสำคัญจ่าย (PV) และลงบัญชีทันที แก้ไขไม่ได้"
             />
+            </Stack>
           )
         }
         action={
-          <LoadingButton variant="contained" onClick={submit}>
+          <LoadingButton variant="contained" onClick={submit} disabled={!!pendingProblem}>
             ยืนยันจ่าย
           </LoadingButton>
         }

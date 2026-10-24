@@ -45,6 +45,18 @@ const CONDITIONS: { value: WhtCertificate['condition'] | '4'; label: string }[] 
   { value: '4', label: '(4) อื่น ๆ (ระบุ)' },
 ];
 
+/**
+ * พิมพ์ให้จบใน A4 หน้าเดียวรวมช่องลงชื่อ (UAT U5) — ย่อระยะห่าง/ตัวอักษรเฉพาะตอนพิมพ์
+ * หน้าจอยังใช้ขนาดปกติ (≥14px)
+ */
+const PRINT_COMPACT_SX = {
+  '& .MuiTableCell-root': { py: 0.5, px: 1 },
+  '& .MuiTypography-body2, & .MuiTableCell-root': { fontSize: 12.5, lineHeight: 1.45 },
+  '& .MuiTypography-subtitle2': { fontSize: 13 },
+  '& .MuiTypography-caption': { fontSize: 11 },
+  '& .MuiTypography-h6': { fontSize: 16 },
+} as const;
+
 type Props = {
   cert: WhtCertificate;
   /** ฉบับที่ 1 (แนบแบบแสดงรายการ) หรือ 2 (เก็บเป็นหลักฐาน) */
@@ -73,7 +85,7 @@ export function WhtCertificatePreview({ cert, copy }: Props) {
   );
 
   return (
-    <Card sx={{ p: { xs: 2.5, md: 4 } }} className="print-area">
+    <Card sx={{ p: { xs: 2.5, md: 4 }, '@media print': PRINT_COMPACT_SX }} className="print-area">
       <Typography variant="caption" component="div" sx={{ textAlign: 'right', color: 'text.secondary' }}>
         {copy === 1
           ? 'ฉบับที่ 1 (สำหรับผู้ถูกหักภาษี ณ ที่จ่าย ใช้แนบพร้อมกับแบบแสดงรายการภาษี)'

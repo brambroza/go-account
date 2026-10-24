@@ -30,7 +30,11 @@ export function isServiceInvoice(doc: Pick<SalesDoc, 'kind' | 'saleType' | 'isTa
 }
 
 /** ชื่อเอกสารที่ต้องพิมพ์บนหัวกระดาษ */
-export function salesDocTitle(doc: Pick<SalesDoc, 'kind' | 'isTaxInvoice' | 'vatMode'> & Partial<Pick<SalesDoc, 'saleType' | 'vatRate'>>): string {
+export function salesDocTitle(
+  doc: Pick<SalesDoc, 'kind' | 'isTaxInvoice' | 'vatMode'> & Partial<Pick<SalesDoc, 'saleType' | 'vatRate' | 'opening'>>
+): string {
+  // ใบค้างรับจากระบบเดิม ไม่ใช่เอกสารที่ระบบนี้ออก — ห้ามพิมพ์เป็นใบแจ้งหนี้/ใบเสร็จรับเงิน (UAT U13)
+  if (doc.opening) return 'ยอดลูกหนี้ยกมา';
   const tax = isTaxDocument(doc);
   if (doc.kind === 'credit-note') return tax ? 'ใบลดหนี้/ใบกำกับภาษี' : 'ใบลดหนี้';
   if (doc.kind === 'debit-note') return tax ? 'ใบเพิ่มหนี้/ใบกำกับภาษี' : 'ใบเพิ่มหนี้';

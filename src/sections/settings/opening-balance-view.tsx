@@ -34,8 +34,11 @@ import {
   sumBaht,
   todayISO,
   toSatang,
+  endOfMonth,
+  monthKeyOf,
   calcDocument,
   formatThaiDate,
+  isValidISODate,
   isControlAccount,
   WHT_INCOME_TYPES,
   endOfPreviousMonth,
@@ -69,6 +72,7 @@ function initialValues(data: AccountingData): FormValues {
     date: s.date,
     dueDate: s.dueDate,
     amount: calcDocument(s).total,
+    serviceVat: s.saleType === 'service' ? calcDocument(s).vat : 0,
   }));
   const payables = ap.map((p) => ({
     contactId: p.contactId,
@@ -128,6 +132,7 @@ export function OpeningBalanceView() {
 
   const glAccounts = useMemo(() => data.accounts.filter((a) => !isControlAccount(a.code)), [data.accounts]);
   const customers = data.contacts.filter((c) => c.kind !== 'vendor');
+  const {vatRegistered} = data.company;
   const vendors = data.contacts.filter((c) => c.kind !== 'customer');
 
   const input = {
@@ -144,6 +149,12 @@ export function OpeningBalanceView() {
     payableControl: values.payableControl ?? 0,
   });
   const balanced = toSatang(totals.difference) === 0 && toSatang(totals.debit) > 0;
+  // ยังไม่กรอกยอดเลย — ไม่ขึ้น "ต่างกัน 0.00" (UAT U13)
+  const nothingEntered = toSatang(totals.debit) === 0 && toSatang(totals.credit) === 0;
+  // D4: ยกยอด ณ วันสิ้นเดือนเท่านั้น — เลือกวันอื่นแล้วเสนอปรับเป็นวันสิ้นเดือนของเดือนนั้น
+  const openingDate = (values.date ?? '').slice(0, 10);
+  const monthEnd = isValidISODate(openingDate) ? endOfMonth(monthKeyOf(openingDate)) : null;
+  const notMonthEnd = !!monthEnd && monthEnd !== openingDate;
   const reconciled = isOpeningReconciled(recon);
 
   const onReview = handleSubmit(() => confirm.onTrue());
@@ -159,7 +170,12 @@ export function OpeningBalanceView() {
           whtReceivable: v.whtReceivable,
           receivableControl: v.receivableControl,
           payableControl: v.payableControl,
-          receivables: v.receivables.map((r) => ({ ...r, date: r.date.slice(0, 10), dueDate: r.dueDate.slice(0, 10) })),
+          receivables: v.receivables.map((r) => ({
+            ...r,
+            date: r.date.slice(0, 10),
+            dueDate: r.dueDate.slice(0, 10),
+            serviceVat: vatRegistered ? r.serviceVat ?? 0 : 0,
+          })),
           payables: v.payables.map((p) => ({ ...p, date: p.date.slice(0, 10) })),
         })
       );
@@ -199,7 +215,7 @@ export function OpeningBalanceView() {
 
       <Form methods={methods}>
         <Grid container spacing={3} onKeyDown={preventEnterSubmit}>
-          <Grid item xs={12} lg={8}>
+          <Grid item xs={12} xl={8}>
             <Stack spacing={3}>
               <Card>
                 <CardHeader
@@ -207,8 +223,27 @@ export function OpeningBalanceView() {
                   subheader="ยอด ณ สิ้นวันที่เลือก — รายการใหม่ในระบบนี้ต้องลงวันที่หลังวันนี้"
                 />
                 <Box sx={{ p: 3, display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' } }}>
-                  <Field.DatePicker name="date" label="วันที่ยอดยกมา" />
-                  <Box />
+                  <Field.DatePicker
+                    name="date"
+                    label="วันที่ยอดยกมา"
+                    shouldDisableDate={(d) => d.date() !== d.daysInMonth()}
+                    slotProps={{ textField: { helperText: 'วันสิ้นเดือนเท่านั้น — เดือนถัดไปเริ่มในระบบนี้ทั้งเดือน' } }}
+                  />
+                  {notMonthEnd && monthEnd ? (
+                    <Alert
+                      severity="warning"
+                      variant="outlined"
+                      action={
+                        <Button color="inherit" size="small" onClick={() => methods.setValue('date', monthEnd, { shouldValidate: true })}>
+                          ใช้ {formatThaiDate(monthEnd)}
+                        </Button>
+                      }
+                    >
+                      ยกยอดได้ ณ วันสิ้นเดือนเท่านั้น
+                    </Alert>
+                  ) : (
+                    <Box />
+                  )}
                   <RHFAmountField name="receivableControl" label={`${ACC.receivable} ลูกหนี้การค้า (ตามงบทดลองเดิม)`} />
                   <RHFAmountField name="payableControl" label={`${ACC.payable} เจ้าหนี้การค้า (ตามงบทดลองเดิม)`} />
                   <RHFAmountField name="vatCredit" label={`${ACC.vatCredit} ภาษีชำระเกินยกมา (ภ.พ.30 เดือนสุดท้าย)`} />
@@ -220,10 +255,10 @@ export function OpeningBalanceView() {
                 <CardHeader title="2. ยอดคงเหลือบัญชีอื่น" subheader="เงินสด ธนาคาร สินทรัพย์ หนี้สินอื่น ทุน กำไรสะสม (และรายได้/ค่าใช้จ่ายสะสมถ้ายกยอดกลางปี)" />
                 <Box sx={{ p: 3 }}>
                   <Scrollbar>
-                    <Table size="small" sx={{ minWidth: 560 }}>
+                    <Table size="small" sx={{ tableLayout: 'fixed', minWidth: 300 + 160 * 2 + 48, '& td, & th': { px: 1 } }}>
                       <TableHead>
                         <TableRow>
-                          <TableCell>บัญชี</TableCell>
+                          <TableCell sx={{ minWidth: 300 }}>บัญชี</TableCell>
                           <TableCell align="right" sx={{ width: 160 }}>
                             เดบิต
                           </TableCell>
@@ -264,19 +299,31 @@ export function OpeningBalanceView() {
               </Card>
 
               <Card>
-                <CardHeader title="3. ลูกหนี้คงค้างรายใบ" subheader="ใบกำกับ/ใบแจ้งหนี้ที่ยังไม่ได้รับเงิน (ภาษีขายยื่นในระบบเดิมแล้ว) — รับชำระต่อในระบบนี้ได้" />
+                <CardHeader
+                  title="3. ลูกหนี้คงค้างรายใบ"
+                  subheader={
+                    vatRegistered
+                      ? 'ใบกำกับ/ใบแจ้งหนี้ที่ยังไม่ได้รับเงิน — ภาษีขายยื่นในระบบเดิมแล้วให้เว้นช่อง VAT งานบริการ · ใบแจ้งหนี้งานบริการที่ภาษีขายยังไม่ถึงกำหนด (ม.78/1) กรอก VAT ที่รวมอยู่ แล้วรับเงินจะออกใบเสร็จรับเงิน/ใบกำกับภาษี'
+                      : 'ใบแจ้งหนี้ที่ยังไม่ได้รับเงิน — รับชำระต่อในระบบนี้ได้'
+                  }
+                />
                 <Box sx={{ p: 3 }}>
                   <Scrollbar>
-                    <Table size="small" sx={{ minWidth: 820 }}>
+                    <Table size="small" sx={{ tableLayout: 'fixed', minWidth: 220 + 130 + 160 * 2 + 130 + (vatRegistered ? 130 : 0) + 48, '& td, & th': { px: 1 } }}>
                       <TableHead>
                         <TableRow>
-                          <TableCell>ลูกค้า</TableCell>
-                          <TableCell sx={{ width: 150 }}>เลขที่เดิม</TableCell>
-                          <TableCell sx={{ width: 170 }}>วันที่</TableCell>
-                          <TableCell sx={{ width: 170 }}>ครบกำหนด</TableCell>
-                          <TableCell align="right" sx={{ width: 150 }}>
+                          <TableCell sx={{ minWidth: 220 }}>ลูกค้า</TableCell>
+                          <TableCell sx={{ width: 130 }}>เลขที่เดิม</TableCell>
+                          <TableCell sx={{ width: 160 }}>วันที่</TableCell>
+                          <TableCell sx={{ width: 160 }}>ครบกำหนด</TableCell>
+                          <TableCell align="right" sx={{ width: 130 }}>
                             ยอดค้าง (รวม VAT)
                           </TableCell>
+                          {vatRegistered && (
+                            <TableCell align="right" sx={{ width: 130 }}>
+                              VAT งานบริการ ที่ยังไม่ถึงกำหนด
+                            </TableCell>
+                          )}
                           <TableCell sx={{ width: 48 }} />
                         </TableRow>
                       </TableHead>
@@ -304,6 +351,11 @@ export function OpeningBalanceView() {
                             <TableCell>
                               <RHFAmountField name={`receivables.${i}.amount`} />
                             </TableCell>
+                            {vatRegistered && (
+                              <TableCell>
+                                <RHFAmountField name={`receivables.${i}.serviceVat`} inputProps={{ 'aria-label': `VAT งานบริการรายการที่ ${i + 1}` }} />
+                              </TableCell>
+                            )}
                             <TableCell>{removeButton(`ลบลูกหนี้รายการที่ ${i + 1}`, () => receivables.remove(i))}</TableCell>
                           </TableRow>
                         ))}
@@ -315,7 +367,14 @@ export function OpeningBalanceView() {
                     sx={{ mt: 1 }}
                     startIcon={<Iconify icon="mingcute:add-line" />}
                     onClick={() =>
-                      receivables.append({ contactId: '', docNo: '', date: values.date ?? todayISO(), dueDate: values.date ?? todayISO(), amount: 0 })
+                      receivables.append({
+                        contactId: '',
+                        docNo: '',
+                        date: values.date ?? todayISO(),
+                        dueDate: values.date ?? todayISO(),
+                        amount: 0,
+                        serviceVat: 0,
+                      })
                     }
                   >
                     เพิ่มลูกหนี้
@@ -327,20 +386,20 @@ export function OpeningBalanceView() {
                 <CardHeader title="4. เจ้าหนี้คงค้างรายใบ" subheader="ใบกำกับผู้ขายที่ยังไม่ได้จ่าย (ภาษีซื้อใช้สิทธิในระบบเดิมแล้ว) — ระบุหัก ณ ที่จ่ายเพื่อออก 50 ทวิ ตอนจ่าย" />
                 <Box sx={{ p: 3 }}>
                   <Scrollbar>
-                    <Table size="small" sx={{ minWidth: 980 }}>
+                    <Table size="small" sx={{ tableLayout: 'fixed', minWidth: 200 + 130 + 160 + 130 + 120 + 180 + 80 + 48, '& td, & th': { px: 1 } }}>
                       <TableHead>
                         <TableRow>
-                          <TableCell>ผู้ขาย</TableCell>
-                          <TableCell sx={{ width: 140 }}>เลขที่ใบกำกับ</TableCell>
-                          <TableCell sx={{ width: 170 }}>วันที่</TableCell>
-                          <TableCell align="right" sx={{ width: 140 }}>
+                          <TableCell sx={{ minWidth: 200 }}>ผู้ขาย</TableCell>
+                          <TableCell sx={{ width: 130 }}>เลขที่ใบกำกับ</TableCell>
+                          <TableCell sx={{ width: 160 }}>วันที่</TableCell>
+                          <TableCell align="right" sx={{ width: 130 }}>
                             ยอดค้าง (รวม VAT)
                           </TableCell>
                           <TableCell align="right" sx={{ width: 120 }}>
                             VAT ที่รวมอยู่
                           </TableCell>
                           <TableCell sx={{ width: 180 }}>หัก ณ ที่จ่าย</TableCell>
-                          <TableCell sx={{ width: 90 }}>อัตรา %</TableCell>
+                          <TableCell sx={{ width: 80 }}>อัตรา %</TableCell>
                           <TableCell sx={{ width: 48 }} />
                         </TableRow>
                       </TableHead>
@@ -411,8 +470,8 @@ export function OpeningBalanceView() {
             </Stack>
           </Grid>
 
-          <Grid item xs={12} lg={4}>
-            <Card sx={{ p: 3, position: { lg: 'sticky' }, top: { lg: 96 } }}>
+          <Grid item xs={12} xl={4}>
+            <Card sx={{ p: 3, position: { xl: 'sticky' }, top: { xl: 96 } }}>
               <Typography variant="h6" sx={{ mb: 2 }}>
                 ตรวจก่อนบันทึก
               </Typography>
@@ -429,9 +488,15 @@ export function OpeningBalanceView() {
                   </Typography>
                   <Money value={totals.credit} />
                 </Stack>
-                <Alert severity={balanced ? 'success' : 'warning'} variant="outlined">
-                  {balanced ? 'ยอดยกมาสมดุล' : `ยังไม่สมดุล ต่างกัน ${Math.abs(totals.difference).toFixed(2)} บาท`}
-                </Alert>
+                {nothingEntered ? (
+                  <Alert severity="info" variant="outlined">
+                    ยังไม่ได้กรอกยอด — กรอกตามงบทดลอง ณ วันยอดยกมาของระบบเดิม
+                  </Alert>
+                ) : (
+                  <Alert severity={balanced ? 'success' : 'warning'} variant="outlined">
+                    {balanced ? 'ยอดยกมาสมดุล' : `ยังไม่สมดุล ต่างกัน ${Math.abs(totals.difference).toFixed(2)} บาท`}
+                  </Alert>
+                )}
                 {recon.map((r) => (
                   <Stack key={r.accountCode} spacing={0.5}>
                     <Typography variant="subtitle2">

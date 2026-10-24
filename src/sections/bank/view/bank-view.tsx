@@ -39,6 +39,14 @@ import { BankAccountDialog } from '../bank-account-dialog';
 
 type TabValue = 'transfers' | 'petty';
 
+/** บรรทัดรายละเอียดใต้ชื่อบัญชี — ไม่ซ้ำธนาคาร/เลขที่ที่อยู่ในชื่อบัญชีแล้ว (UAT U13) */
+function bankDetailLine(accountName: string, bank: { bankName: string; accountNo: string; branch?: string }): string {
+  const parts = [bank.bankName || 'ยังไม่ระบุธนาคาร', bank.accountNo, bank.branch ? `สาขา ${bank.branch}` : ''].filter(
+    (x) => x && !accountName.includes(x)
+  );
+  return parts.join(' · ') || 'บัญชีธนาคาร';
+}
+
 /** ภาพรวมบัญชีเงิน: ยอดคงเหลือต่อบัญชี, โอนเงินระหว่างบัญชี, เงินสดย่อย (จ่าย/เบิกชดเชย), ทางเข้าไปกระทบยอด */
 export function BankView() {
   const { data } = useAccounting();
@@ -107,7 +115,7 @@ export function BankView() {
                     {a.code} {data.accounts.find((x) => x.code === a.code)?.name}
                   </Typography>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
-                    {bank ? [bank.bankName || 'ยังไม่ระบุธนาคาร', bank.accountNo, bank.branch].filter(Boolean).join(' · ') : 'เงินสดในมือ'}
+                    {bank ? bankDetailLine(data.accounts.find((x) => x.code === a.code)?.name ?? '', bank) : 'เงินสดในมือ'}
                   </Typography>
                 </Box>
                 <Label variant="soft" color={a.kind === 'bank' ? 'info' : a.kind === 'petty-cash' ? 'warning' : 'default'}>

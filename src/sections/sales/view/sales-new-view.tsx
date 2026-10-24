@@ -1,3 +1,5 @@
+import type { QuotationVariance } from 'src/domain';
+import type { Theme, SxProps } from '@mui/material/styles';
 import type { SalesInvoiceSchemaType } from 'src/schemas/accounting/doc-schemas';
 
 import { useForm, useWatch } from 'react-hook-form';
@@ -26,6 +28,7 @@ import {
   addDays,
   VAT_RATE,
   todayISO,
+  toSatang,
   periodOf,
   formatTaxId,
   branchLabel,
@@ -36,6 +39,7 @@ import {
   formatThaiDate,
   isValidISODate,
   buyerTaxIdWarning,
+  quotationVariance,
   quotationToSalesDraft,
   quotationConvertProblem,
 } from 'src/domain';
@@ -56,6 +60,37 @@ import {
 } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
+
+/** ข้อความความต่างจากใบเสนอราคา (ยอดรวม, วิธีคิด VAT, รายบรรทัด) */
+function describeQuotationVariance(v: QuotationVariance): string[] {
+  const baht = (n: number) => n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const items: string[] = [];
+  if (toSatang(v.totalDiff) !== 0) {
+    items.push(`ยอดรวม ${baht(v.quotedTotal)} → ${baht(v.draftTotal)} (${v.totalDiff > 0 ? '+' : ''}${baht(v.totalDiff)} บาท)`);
+  }
+  if (v.vatModeChanged) items.push('เปลี่ยนวิธีคิด VAT จากใบเสนอราคา');
+  v.lines.forEach((l) => {
+    const name = `รายการที่ ${l.index + 1}${l.description ? ` (${l.description})` : ''}`;
+    if (l.kind === 'added') items.push(`${name}: เพิ่มใหม่ ${baht(l.draft ?? 0)}`);
+    else if (l.kind === 'removed') items.push(`${name}: ตัดออก (เสนอ ${baht(l.quoted ?? 0)})`);
+    else items.push(`${name}: ${baht(l.quoted ?? 0)} → ${baht(l.draft ?? 0)}`);
+  });
+  return items;
+}
+
+function QuotationVarianceAlert({ docNo, items, sx }: { docNo: string; items: string[]; sx?: SxProps<Theme> }) {
+  return (
+    <Alert severity="warning" variant="outlined" sx={sx}>
+      ต่างจากใบเสนอราคา {docNo} — ตรวจว่าตกลงกับลูกค้าแล้ว (ออกได้)
+      <Box component="ul" sx={{ m: 0, mt: 0.5, pl: 2.5 }}>
+        {items.slice(0, 6).map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+        {items.length > 6 && <li>และอีก {items.length - 6} รายการ</li>}
+      </Box>
+    </Alert>
+  );
+}
 
 /** ฟอร์มออกใบกำกับภาษี (บริษัทจด VAT) หรือใบแจ้งหนี้ (ไม่จด VAT) — ยืนยันสรุปยอดก่อนออกเลขที่ */
 export function SalesNewView() {
@@ -123,6 +158,13 @@ export function SalesNewView() {
     vatRate,
   });
   const docShortTitle = isTaxInvoice ? 'ใบกำกับภาษี' : 'ใบแจ้งหนี้';
+
+  // D3: ออกจากใบเสนอราคา — เตือน (ไม่บล็อก) เมื่อยอด/รายการต่างจากที่เสนอ
+  const variance = useMemo(
+    () => (fromQuotation && quotation ? quotationVariance(quotation, { lines: lines ?? [], vatMode: vatMode ?? 'none' }) : null),
+    [fromQuotation, quotation, lines, vatMode]
+  );
+  const varianceItems = variance?.hasDifference ? describeQuotationVariance(variance) : [];
   const showVat = vatRegistered && vatMode !== 'none';
 
   const readiness = customer && vatRegistered ? eTaxReadiness(data.company, customer) : [];
@@ -182,7 +224,7 @@ export function SalesNewView() {
 
       <Form methods={methods} onSubmit={onSubmit}>
         <Grid container spacing={3} onKeyDown={formKeyHandler(onSubmit)}>
-          <Grid item xs={12} lg={8}>
+          <Grid item xs={12} xl={8}>
             <Card>
               <CardHeader title="ลูกค้าและวันที่" />
               <Box
@@ -215,6 +257,7 @@ export function SalesNewView() {
                   name="contactId"
                   label="ลูกค้า"
                   side="customer"
+                  autoFocus
                   disabled={!!fromQuotation}
                   sx={{ gridColumn: { sm: 'span 2' } }}
                 />
@@ -268,12 +311,15 @@ export function SalesNewView() {
             </Card>
           </Grid>
 
-          <Grid item xs={12} lg={4}>
-            <Card sx={{ p: 3, position: { lg: 'sticky' }, top: { lg: 96 } }}>
+          <Grid item xs={12} xl={4}>
+            <Card sx={{ p: 3, position: { xl: 'sticky' }, top: { xl: 96 } }}>
               <Typography variant="h6" sx={{ mb: 2 }}>
                 สรุปยอด
               </Typography>
               <TotalsSummary totals={totals} vatRate={vatRate} showVat={showVat} />
+              {varianceItems.length > 0 && quotation && (
+                <QuotationVarianceAlert docNo={quotation.docNo} items={varianceItems} sx={{ mt: 2 }} />
+              )}
 
               <Stack spacing={1} sx={{ mt: 3 }}>
                 <LoadingButton type="submit" variant="contained" size="large" loading={isSubmitting}>
@@ -294,6 +340,7 @@ export function SalesNewView() {
         title={`ยืนยันออก${docTitle}`}
         content={
           pending && (
+            <Stack spacing={2}>
             <ConfirmSummary
               rows={[
                 { label: 'ชนิดเอกสาร', value: docTitle },
@@ -320,6 +367,8 @@ export function SalesNewView() {
               }
               severity={pendingBuyerWarning ? 'warning' : undefined}
             />
+            {varianceItems.length > 0 && quotation && <QuotationVarianceAlert docNo={quotation.docNo} items={varianceItems} />}
+            </Stack>
           )
         }
         action={

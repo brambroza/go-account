@@ -49,7 +49,10 @@ export function nextBankAccountCode(accounts: Pick<Account, 'code'>[], kind: Ban
 
 /** ชื่อแสดงของบัญชีเงิน: "1120 เงินฝากธนาคาร · กสิกรไทย 123-4-56789-0" */
 export function cashAccountLabel(account: Pick<Account, 'code' | 'name'>, bank?: Pick<BankAccount, 'bankName' | 'accountNo'>): string {
-  const extra = bank ? [bank.bankName, bank.accountNo].filter((x) => x && x.trim()).join(' ') : '';
+  // ชื่อบัญชีที่ระบบตั้งให้มีชื่อธนาคาร/เลขที่อยู่แล้ว ("เงินฝากธนาคาร กสิกรไทย 123-4") — ไม่ต่อท้ายซ้ำ (UAT U13)
+  const extra = bank
+    ? [bank.bankName, bank.accountNo].filter((x) => x && x.trim() && !account.name.includes(x.trim())).join(' ')
+    : '';
   return `${account.code} ${account.name}${extra ? ` · ${extra}` : ''}`;
 }
 

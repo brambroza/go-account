@@ -83,6 +83,8 @@ input[type='number']::-webkit-inner-spin-button {
  * - ตัดทุก element ที่ไม่ใช่ .print-area หรือบรรพบุรุษของมันออกจาก layout (display: none) ไม่ใช่แค่ซ่อน
  *   เดิมใช้ visibility อย่างเดียว ส่วนที่ซ่อนยังกินพื้นที่ → หน้า 2 ว่าง (UAT)
  * - เบราว์เซอร์ที่ไม่รองรับ :has() ยังใช้ visibility + position เดิมเป็น fallback
+ * - บรรพบุรุษของ .print-area ต้องเป็น block กว้างเท่าหน้ากระดาษ: Grid container ของ MUI มี
+ *   width: calc(100% + spacing) + margin ติดลบ — ถ้าตัดแค่ margin เอกสารจะล้นขอบขวา ~24px (UAT U1)
  */
 @page {
   size: A4;
@@ -121,11 +123,21 @@ input[type='number']::-webkit-inner-spin-button {
     position: static;
   }
   body:has(.print-area) *:has(.print-area) {
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    flex: none !important;
     margin: 0 !important;
     padding: 0 !important;
     min-height: 0 !important;
     height: auto !important;
     box-shadow: none !important;
+    overflow: visible !important;
+  }
+  body:has(.print-area) .print-area {
+    width: auto !important;
+    max-width: 100% !important;
+    margin: 0 !important;
     overflow: visible !important;
   }
   .print-area tr {

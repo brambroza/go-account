@@ -85,6 +85,21 @@ export function CommandPalette({ open, onClose }: Props) {
       path: paths.purchases.view(c.purchaseId),
       haystack: `${c.docNo} ${c.supplierCreditNoteNo} ${contacts.name(c.contactId)}`.toLowerCase(),
     }));
+    // รับเงินคืนจากผู้ขาย (SR): ไปที่เอกสารซื้อของใบลดหนี้ที่ตั้งเงินคืนล่าสุดก่อนวันรับ — ไม่มีให้ไปที่ผู้ติดต่อ
+    const supplierRefunds = (data.supplierRefunds ?? []).map((r) => {
+      const source = data.purchaseCredits
+        .filter((c) => c.contactId === r.contactId && (c.refundDue ?? 0) > 0 && c.date <= r.date)
+        .sort((a, b) => b.date.localeCompare(a.date))[0];
+      const code = data.contacts.find((c) => c.id === r.contactId)?.code ?? '';
+      return {
+        key: `sr-${r.id}`,
+        title: `${r.docNo} · ${contacts.name(r.contactId)}`,
+        caption: `รับเงินคืนจากผู้ขาย ${r.amount.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
+        icon: 'solar:hand-money-bold',
+        path: source ? paths.purchases.view(source.purchaseId) : `${paths.contacts}?q=${encodeURIComponent(code)}`,
+        haystack: `${r.docNo} ${r.note ?? ''} ${contacts.name(r.contactId)} รับเงินคืน`.toLowerCase(),
+      };
+    });
     const today = todayISO();
     const quotations = data.quotations.map((qt) => ({
       key: `qt-${qt.id}`,
@@ -111,7 +126,7 @@ export function CommandPalette({ open, onClose }: Props) {
       haystack: `${c.code} ${contacts.name(c.id)} ${c.taxId ?? ''}`.toLowerCase(),
     }));
 
-    return [...menus, ...docs, ...quotations, ...receipts, ...purchases, ...payments, ...supplierCredits, ...transfers, ...people]
+    return [...menus, ...docs, ...quotations, ...receipts, ...purchases, ...payments, ...supplierCredits, ...supplierRefunds, ...transfers, ...people]
       .filter((r) => r.haystack.includes(q))
       .slice(0, 12);
   }, [
@@ -122,6 +137,7 @@ export function CommandPalette({ open, onClose }: Props) {
     data.purchases,
     data.payments,
     data.purchaseCredits,
+    data.supplierRefunds,
     data.transfers,
     data.contacts,
     contacts,

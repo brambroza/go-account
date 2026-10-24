@@ -161,3 +161,42 @@ export function readStatementCsv(text: string): { table: string[][]; mapping: St
   const table = parseCsv(text);
   return { table, mapping: guessStatementMapping(table[0] ?? []) };
 }
+
+// ----------------------------------------------------------------------
+// U7: การเข้ารหัสไฟล์ — ธนาคารไทยหลายแห่ง / Excel ภาษาไทย ส่งออก CSV เป็น Windows-874 (TIS-620)
+
+export type StatementEncoding = 'auto' | 'utf-8' | 'windows-874';
+
+export const STATEMENT_ENCODING_LABEL: Record<StatementEncoding, string> = {
+  auto: 'ตรวจอัตโนมัติ',
+  'utf-8': 'UTF-8',
+  'windows-874': 'Windows-874 / TIS-620 (ภาษาไทย)',
+};
+
+/**
+ * ถอดรหัสไฟล์ statement — `auto`: ลอง UTF-8 ก่อน ถ้าได้อักขระแทนที่ (U+FFFD = ไบต์ที่ไม่ใช่ UTF-8) ใช้ Windows-874
+ * (TIS-620 เป็นชุดย่อยของ Windows-874 — WHATWG ใช้ตัวถอดรหัสเดียวกัน) ตัด BOM ออกเสมอ
+ */
+export function decodeStatementBytes(
+  bytes: Uint8Array,
+  encoding: StatementEncoding = 'auto'
+): { text: string; encoding: Exclude<StatementEncoding, 'auto'> } {
+  const decode = (label: Exclude<StatementEncoding, 'auto'>) => new TextDecoder(label).decode(bytes).replace(/^\uFEFF/, '');
+  if (encoding !== 'auto') return { text: decode(encoding), encoding };
+  const utf8 = decode('utf-8');
+  if (!utf8.includes('\uFFFD')) return { text: utf8, encoding: 'utf-8' };
+  return { text: decode('windows-874'), encoding: 'windows-874' };
+}
+
+/**
+ * ยอดคงเหลือปลายงวดตาม statement: ยอดคงเหลือของรายการวันที่ล่าสุดที่มีช่องคงเหลือ — ไม่มีช่องคงเหลือ = null
+ * วันเดียวกันหลายรายการ: ไฟล์เรียงเก่า→ใหม่ใช้แถวท้ายสุด, ไฟล์เรียงใหม่→เก่า (ธนาคารบางแห่ง) ใช้แถวแรก
+ */
+export function statementEndingBalance(rows: StatementRow[]): { date: ISODate; balance: number } | null {
+  const withBalance = rows.filter((r): r is StatementRow & { balance: number } => r.balance !== undefined);
+  if (!withBalance.length) return null;
+  const newestFirst = withBalance[0].date > withBalance[withBalance.length - 1].date;
+  const ordered = newestFirst ? withBalance.slice().reverse() : withBalance;
+  const best = ordered.reduce((a, r) => (r.date >= a.date ? r : a));
+  return { date: best.date, balance: best.balance };
+}

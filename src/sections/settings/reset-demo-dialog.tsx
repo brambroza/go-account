@@ -31,7 +31,8 @@ export function ResetDemoDialog({ open, onClose, mode = 'demo' }: Props) {
   const { data, resetDemo, resetEmpty } = useAccounting();
   const empty = mode === 'empty';
   const [accepted, setAccepted] = useState(false);
-  const counts = backupCounts(data).filter((c) => c.count > 0);
+  // ล้างเพื่อยกยอด: ผู้ติดต่อคงไว้ — ไม่นับเป็นสิ่งที่ถูกลบ (ข้อความต้องตรงกับที่ระบบทำจริง)
+  const counts = backupCounts(data).filter((c) => c.count > 0 && !(empty && c.key === 'contacts'));
 
   useEffect(() => {
     if (open) setAccepted(false);
@@ -64,18 +65,18 @@ export function ResetDemoDialog({ open, onClose, mode = 'demo' }: Props) {
       content={
         <Stack spacing={2}>
           <Alert severity="error">
-            ข้อมูลทุกอย่างในเบราว์เซอร์นี้จะถูกลบ ได้แก่{' '}
-            {counts.length ? counts.map((c) => `${c.label} ${c.count.toLocaleString('th-TH')}`).join(' · ') : 'ไม่มีรายการ'} ·
+            {empty ? 'เอกสารและรายการบัญชีในเบราว์เซอร์นี้จะถูกลบ ได้แก่ ' : 'ข้อมูลทุกอย่างในเบราว์เซอร์นี้จะถูกลบ ได้แก่ '}
+            {counts.length ? counts.map((c) => `${c.label} ${c.count.toLocaleString('th-TH')}`).join(' · ') : 'ไม่มีรายการ'}
             {empty
-              ? 'และการปิดงวด (คงข้อมูลบริษัท ผังบัญชี และผู้ติดต่อไว้) ย้อนกลับไม่ได้'
-              : 'ข้อมูลบริษัทและการปิดงวด แล้วแทนด้วยข้อมูลตัวอย่าง ย้อนกลับไม่ได้'}
+              ? ' · ยอดยกมาและการปิดงวด — คงข้อมูลบริษัท ผังบัญชี ทะเบียนบัญชีธนาคาร และลูกค้า/ผู้ขายไว้ ย้อนกลับไม่ได้'
+              : ' · ข้อมูลบริษัทและการปิดงวด แล้วแทนด้วยข้อมูลตัวอย่าง ย้อนกลับไม่ได้'}
           </Alert>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             ก่อนล้าง ระบบจะดาวน์โหลดไฟล์สำรอง (.json) ให้อัตโนมัติ — กู้คืนได้ที่หน้าตั้งค่า &gt; กู้คืนจากไฟล์สำรอง
           </Typography>
           <FormControlLabel
             control={<Checkbox checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />}
-            label="เข้าใจแล้วว่าข้อมูลจริงทั้งหมดจะถูกลบ"
+            label={empty ? 'เข้าใจแล้วว่าเอกสารและรายการบัญชีทั้งหมดจะถูกลบ' : 'เข้าใจแล้วว่าข้อมูลจริงทั้งหมดจะถูกลบ'}
           />
         </Stack>
       }

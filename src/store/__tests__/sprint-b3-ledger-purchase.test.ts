@@ -165,6 +165,10 @@ describe('B5 opening balances (migrating from Express)', () => {
   it('entry totals and the blocked reason drive the wizard summary', () => {
     expect(openingEntryTotals(OPENING)).toEqual({ debit: 675720, credit: 675720, difference: 0 });
     expect(openingEntryTotals({ ...OPENING, vatCredit: 0 }).difference).toBe(-1500);
+    // ภาษีขายยังไม่ถึงกำหนดของใบแจ้งหนี้งานบริการยกมา = เครดิต 2151 (หน้าจอแสดงสมดุลตรงกับที่ระบบลงบัญชี)
+    expect(
+      openingEntryTotals({ lines: [{ debit: 0, credit: 10000 }], vatCredit: 0, whtReceivable: 0, receivables: [{ amount: 10700, serviceVat: 700 }], payables: [] })
+    ).toEqual({ debit: 10700, credit: 10700, difference: 0 });
     expect(openingBlockedReason(blank())).toBeNull();
     expect(openingBlockedReason(r.state)).toBeNull();
     expect(openingBlockedReason(demo())).toMatch(/ก่อนมีรายการอื่น/);

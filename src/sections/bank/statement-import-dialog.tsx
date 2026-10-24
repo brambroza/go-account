@@ -1,4 +1,4 @@
-import type { StatementMapping } from 'src/domain';
+import type { ISODate, StatementMapping, StatementEncoding } from 'src/domain';
 
 import { useMemo, useState } from 'react';
 
@@ -23,7 +23,14 @@ import DialogContent from '@mui/material/DialogContent';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { useAccounting, addBankStatementLines } from 'src/store';
-import { formatThaiDate, mapStatementRows, readStatementCsv } from 'src/domain';
+import {
+  formatThaiDate,
+  mapStatementRows,
+  readStatementCsv,
+  decodeStatementBytes,
+  statementEndingBalance,
+  STATEMENT_ENCODING_LABEL,
+} from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -33,7 +40,13 @@ import { Money } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
-type Props = { open: boolean; onClose: () => void; accountCode: string };
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  accountCode: string;
+  /** นำเข้าสำเร็จ — ยอดคงเหลือปลายงวดจากช่องคงเหลือ (ถ้ามี) ให้หน้ากระทบยอดเติมให้ */
+  onImported?: (ending: { date: ISODate; balance: number } | null) => void;
+};
 
 type ColumnKey = 'date' | 'description' | 'amount' | 'withdrawal' | 'deposit' | 'balance';
 
@@ -50,9 +63,12 @@ const COLUMN_LABEL: Record<ColumnKey, string> = {
  * นำเข้า statement จาก CSV ที่ธนาคารส่งออก — ระบบเดาคอลัมน์จากหัวตาราง ผู้ใช้เลือกใหม่ได้ ดูตัวอย่างก่อนนำเข้า
  * วันที่ พ.ศ./ค.ศ. และจำนวนเงินมีคอมม่าอ่านได้ (`mapStatementRows`) — นำเข้าไฟล์เดิมซ้ำ รายการที่มีแล้วถูกข้าม
  */
-export function StatementImportDialog({ open, onClose, accountCode }: Props) {
+export function StatementImportDialog({ open, onClose, accountCode, onImported }: Props) {
   const { run } = useAccounting();
   const [fileName, setFileName] = useState('');
+  const [bytes, setBytes] = useState<Uint8Array | null>(null);
+  const [encoding, setEncoding] = useState<StatementEncoding>('auto');
+  const [detected, setDetected] = useState<Exclude<StatementEncoding, 'auto'> | null>(null);
   const [table, setTable] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<StatementMapping | null>(null);
   const [split, setSplit] = useState(false);
@@ -64,19 +80,35 @@ export function StatementImportDialog({ open, onClose, accountCode }: Props) {
 
   const close = () => {
     setFileName('');
+    setBytes(null);
+    setEncoding('auto');
+    setDetected(null);
     setTable([]);
     setMapping(null);
     onClose();
   };
 
-  const onFile = async (file: File | undefined) => {
-    if (!file) return;
-    const text = await file.text();
-    const read = readStatementCsv(text);
-    setFileName(file.name);
+  // U7: อ่านเป็นไบต์แล้วถอดรหัสเอง — ไฟล์ Windows-874/TIS-620 อ่านด้วย UTF-8 แล้วภาษาไทยเพี้ยน
+  const load = (raw: Uint8Array, choice: StatementEncoding) => {
+    const decoded = decodeStatementBytes(raw, choice);
+    const read = readStatementCsv(decoded.text);
+    setDetected(decoded.encoding);
     setTable(read.table);
     setMapping(read.mapping);
     setSplit(read.mapping.withdrawal !== undefined || read.mapping.deposit !== undefined);
+  };
+
+  const onFile = async (file: File | undefined) => {
+    if (!file) return;
+    const raw = new Uint8Array(await file.arrayBuffer());
+    setFileName(file.name);
+    setBytes(raw);
+    load(raw, encoding);
+  };
+
+  const changeEncoding = (next: StatementEncoding) => {
+    setEncoding(next);
+    if (bytes) load(bytes, next);
   };
 
   const setColumn = (key: ColumnKey, value: string) => {
@@ -100,6 +132,7 @@ export function StatementImportDialog({ open, onClose, accountCode }: Props) {
     try {
       const r = run((s) => addBankStatementLines(s, { accountCode, lines: result.rows, imported: true }));
       toast.success(`นำเข้า ${r.added} รายการ${r.skipped ? ` (ข้าม ${r.skipped} รายการที่มีอยู่แล้ว)` : ''}`);
+      onImported?.(statementEndingBalance(result.rows));
       close();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'นำเข้าไม่สำเร็จ');
@@ -134,9 +167,31 @@ export function StatementImportDialog({ open, onClose, accountCode }: Props) {
               เลือกไฟล์ .csv
               <input hidden type="file" accept=".csv,text/csv" onChange={(e) => onFile(e.target.files?.[0])} />
             </Button>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
-              {fileName || 'ส่งออกจาก internet banking เป็น CSV (Excel ให้ Save As เป็น CSV UTF-8)'}
+            <Typography variant="body2" sx={{ color: 'text.secondary', minWidth: 0 }} noWrap>
+              {fileName || 'ส่งออกจาก internet banking เป็น CSV (UTF-8 หรือ Windows-874 ก็ได้)'}
             </Typography>
+          </Stack>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
+            <TextField
+              select
+              size="small"
+              label="การเข้ารหัสไฟล์"
+              value={encoding}
+              onChange={(e) => changeEncoding(e.target.value as StatementEncoding)}
+              sx={{ minWidth: 260 }}
+            >
+              {(Object.keys(STATEMENT_ENCODING_LABEL) as StatementEncoding[]).map((k) => (
+                <MenuItem key={k} value={k}>
+                  {STATEMENT_ENCODING_LABEL[k]}
+                </MenuItem>
+              ))}
+            </TextField>
+            {detected && (
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                อ่านเป็น {STATEMENT_ENCODING_LABEL[detected]}
+                {encoding === 'auto' ? ' (ตรวจอัตโนมัติ)' : ''} — ภาษาไทยเพี้ยนให้เลือกการเข้ารหัสอื่น
+              </Typography>
+            )}
           </Stack>
 
           {mapping && (

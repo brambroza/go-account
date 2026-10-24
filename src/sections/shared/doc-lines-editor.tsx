@@ -84,6 +84,12 @@ function LineWhtFields({ index }: { index: number }) {
   );
 }
 
+/**
+ * ความกว้างคอลัมน์ (px) ของตารางรายการ — ตัวเลข ~120px ให้เห็นยอดหลักล้านพร้อมทศนิยม
+ * ฟอร์มใช้ตารางเต็มความกว้างจนถึงจอ xl (ช่องสรุปยอดอยู่ใต้รายการ) — จอ 1440px เห็นครบทุกคอลัมน์ (รวมหัก ณ ที่จ่ายของฝั่งซื้อ)
+ */
+const COL = { no: 32, description: 180, account: 150, qty: 84, money: 116, whtType: 150, whtRate: 64, remove: 40 };
+
 function LineAmount({ index }: { index: number }) {
   const line = useWatch({ name: `lines.${index}` }) as DocLine | undefined;
   return <Money value={line ? lineAmount(line) : 0} sx={{ fontWeight: 'fontWeightMedium' }} />;
@@ -98,6 +104,17 @@ export function DocLinesEditor({ accounts, defaultAccountCode, accountLabel, hid
   const { fields, append, remove } = useFieldArray({ control, name: 'lines', keyName: 'key' });
   const container = useRef<HTMLDivElement>(null);
   const focusRow = useRef<number | null>(null);
+
+  // คอลัมน์กว้างคงที่ (table-layout: fixed) — คำอธิบายได้พื้นที่ที่เหลือแต่ไม่ต่ำกว่า COL.description
+  // จอแคบกว่านี้ให้เลื่อนแนวนอนในกรอบตาราง (UAT U6: เดิมช่องรายการเหลือ ~3 ตัวอักษรที่ 1440px)
+  const tableMinWidth =
+    COL.no +
+    COL.description +
+    (hideAccount ? 0 : COL.account) +
+    COL.qty +
+    COL.money * 3 +
+    (withWht ? COL.whtType + COL.whtRate : 0) +
+    COL.remove;
 
   const addLine = () => append(withWht ? newPurchaseLine(defaultAccountCode) : newLine(defaultAccountCode));
 
@@ -122,27 +139,27 @@ export function DocLinesEditor({ accounts, defaultAccountCode, accountLabel, hid
   return (
     <Box ref={container}>
       <Scrollbar>
-        <Table size="small" sx={{ minWidth: (hideAccount ? 640 : 860) + (withWht ? 300 : 0) }}>
+        <Table size="small" sx={{ tableLayout: 'fixed', minWidth: tableMinWidth, '& td, & th': { px: 1 } }}>
           <TableHead>
             <TableRow>
-              <TableCell sx={{ width: 40 }}>#</TableCell>
-              <TableCell>รายการ</TableCell>
-              {!hideAccount && <TableCell sx={{ width: 200 }}>{accountLabel}</TableCell>}
-              <TableCell align="right" sx={{ width: 100 }}>
+              <TableCell sx={{ width: COL.no }}>#</TableCell>
+              <TableCell sx={{ minWidth: COL.description }}>รายการ</TableCell>
+              {!hideAccount && <TableCell sx={{ width: COL.account }}>{accountLabel}</TableCell>}
+              <TableCell align="right" sx={{ width: COL.qty }}>
                 จำนวน
               </TableCell>
-              <TableCell align="right" sx={{ width: 130 }}>
+              <TableCell align="right" sx={{ width: COL.money }}>
                 ราคา/หน่วย
               </TableCell>
-              <TableCell align="right" sx={{ width: 110 }}>
+              <TableCell align="right" sx={{ width: COL.money }}>
                 ส่วนลด
               </TableCell>
-              <TableCell align="right" sx={{ width: 130 }}>
+              <TableCell align="right" sx={{ width: COL.money }}>
                 จำนวนเงิน
               </TableCell>
-              {withWht && <TableCell sx={{ width: 190 }}>หัก ณ ที่จ่าย</TableCell>}
-              {withWht && <TableCell sx={{ width: 96 }}>อัตรา</TableCell>}
-              <TableCell sx={{ width: 48 }} />
+              {withWht && <TableCell sx={{ width: COL.whtType }}>หัก ณ ที่จ่าย</TableCell>}
+              {withWht && <TableCell sx={{ width: COL.whtRate }}>อัตรา</TableCell>}
+              <TableCell sx={{ width: COL.remove }} />
             </TableRow>
           </TableHead>
           <TableBody>

@@ -149,7 +149,8 @@ export function openingEntryTotals(input: {
   lines: { debit: number; credit: number }[];
   vatCredit: number;
   whtReceivable: number;
-  receivables: { amount: number }[];
+  /** `serviceVat` = ภาษีขายยังไม่ถึงกำหนดของใบแจ้งหนี้งานบริการ — ระบบลง Cr 2151 ให้ (บัญชีคุม กรอกในบรรทัดไม่ได้) */
+  receivables: { amount: number; serviceVat?: number }[];
   payables: { amount: number }[];
 }): { debit: number; credit: number; difference: number } {
   const debit = sumBaht([
@@ -158,7 +159,11 @@ export function openingEntryTotals(input: {
     input.vatCredit || 0,
     input.whtReceivable || 0,
   ]);
-  const credit = sumBaht([...input.lines.map((l) => l.credit || 0), ...input.payables.map((p) => p.amount || 0)]);
+  const credit = sumBaht([
+    ...input.lines.map((l) => l.credit || 0),
+    ...input.payables.map((p) => p.amount || 0),
+    ...input.receivables.map((r) => r.serviceVat || 0),
+  ]);
   return { debit, credit, difference: subBaht(debit, credit) };
 }
 

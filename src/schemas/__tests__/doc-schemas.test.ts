@@ -16,6 +16,7 @@ import {
   makePayPurchaseSchema,
   BankAccountFormSchema,
   PettyCashExpenseSchema,
+  makeSupplierRefundSchema,
   SupplierCreditNoteSchema,
   OpeningBalanceFormSchema,
 } from '../accounting/doc-schemas';
@@ -30,6 +31,17 @@ describe('form schemas', () => {
     expect(SalesInvoiceSchema.safeParse(base).success).toBe(true);
     expect(SalesInvoiceSchema.safeParse({ ...base, dueDate: '2026-10-01' }).success).toBe(false);
     expect(SalesInvoiceSchema.safeParse({ ...base, lines: [{ ...line, qty: 0 }] }).success).toBe(false);
+    // D1: รับเงินคืนจากผู้ขายไม่เกินยอดคงค้าง
+    const sr = makeSupplierRefundSchema(500);
+    expect(sr.safeParse({ date: '2026-10-24', amount: 500, accountCode: ACC.bank }).success).toBe(true);
+    expect(sr.safeParse({ date: '2026-10-24', amount: 500.01, accountCode: ACC.bank }).success).toBe(false);
+    expect(sr.safeParse({ date: '2026-10-24', amount: 0, accountCode: ACC.bank }).success).toBe(false);
+    // U13: วันที่ไม่มีในปฏิทิน ฟ้องที่ช่องวันที่เอง ไม่ใช่ช่องวันครบกำหนด
+    ['2026-09-31T00:00:00.000', 'Invalid Date'].forEach((date) => {
+      const r = SalesInvoiceSchema.safeParse({ ...base, date });
+      expect(r.success).toBe(false);
+      if (!r.success) expect(r.error.issues.map((i) => i.path.join('.'))).toEqual(['date']);
+    });
   });
 
   it('requires income type per line, supplier invoice number / date and claim period when needed', () => {

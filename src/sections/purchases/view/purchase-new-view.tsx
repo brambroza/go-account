@@ -193,11 +193,11 @@ export function PurchaseNewView() {
 
       <Form methods={methods} onSubmit={onSubmit}>
         <Grid container spacing={3} onKeyDown={formKeyHandler(onSubmit)}>
-          <Grid item xs={12} lg={8}>
+          <Grid item xs={12} xl={8}>
             <Card>
               <CardHeader title="ผู้ขายและใบกำกับภาษี" />
               <Box sx={{ p: 3, display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)' } }}>
-                <ContactAutocomplete name="contactId" label="ผู้ขาย / ผู้รับเงิน" side="vendor" sx={{ gridColumn: { sm: 'span 2' } }} />
+                <ContactAutocomplete name="contactId" label="ผู้ขาย / ผู้รับเงิน" side="vendor" autoFocus sx={{ gridColumn: { sm: 'span 2' } }} />
                 <Field.DatePicker
                   name="date"
                   label="วันที่บันทึก"
@@ -287,8 +287,8 @@ export function PurchaseNewView() {
             </Card>
           </Grid>
 
-          <Grid item xs={12} lg={4}>
-            <Card sx={{ p: 3, position: { lg: 'sticky' }, top: { lg: 96 } }}>
+          <Grid item xs={12} xl={4}>
+            <Card sx={{ p: 3, position: { xl: 'sticky' }, top: { xl: 96 } }}>
               <Typography variant="h6" sx={{ mb: 2 }}>
                 สรุปยอด
               </Typography>

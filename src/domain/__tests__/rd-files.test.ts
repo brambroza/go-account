@@ -1,9 +1,9 @@
 import { ACC } from '../chart-of-accounts';
 import { whtPayeesForPeriod } from '../wht';
 import { calcDocument } from '../document-calc';
-import { importContactsCsv } from '../csv-import';
 import { planPurchasePayment } from '../purchase';
 import { buildETaxXml, eTaxReadiness } from '../etax-xml';
+import { importContactsCsv, defaultContactTitle } from '../csv-import';
 import { whtDetailRows, buildRdWhtFile, sanitizeRdText } from '../rd-wht-file';
 
 import type { Company, Contact, Payment, SalesDoc, PurchaseDoc } from '../types';
@@ -240,5 +240,15 @@ describe('CSV import', () => {
     expect(result.contacts[1].legalForm).toBe('individual');
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].row).toBe(3);
+    // ชื่อมีคำนำหน้าอยู่แล้ว ไม่เติม "บริษัท" ซ้ำ
+    expect(result.contacts[0].title).toBe('');
+  });
+
+  it('defaultContactTitle adds "บริษัท" only to juristic names without a prefix', () => {
+    expect(defaultContactTitle('เอบีซี จำกัด', 'juristic')).toBe('บริษัท');
+    ['ร้านสมใจ', 'หจก. รุ่งเรือง', 'ห้างหุ้นส่วนจำกัด ทองดี', 'บริษัท เอ จำกัด', 'บจก.ซี', 'นายสมชาย', 'มูลนิธิ ก'].forEach((n) =>
+      expect(defaultContactTitle(n, 'juristic')).toBe('')
+    );
+    expect(defaultContactTitle('สมชาย', 'individual')).toBe('');
   });
 });
