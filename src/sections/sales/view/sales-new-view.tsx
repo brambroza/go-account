@@ -72,6 +72,7 @@ export function SalesNewView() {
     resolver: zodResolver(SalesInvoiceSchema),
     defaultValues: {
       contactId: '',
+      saleType: 'goods',
       date: today,
       dueDate: addDays(today, 30),
       vatMode: vatRegistered ? 'exclusive' : 'none',
@@ -87,7 +88,13 @@ export function SalesNewView() {
     formState: { isSubmitting },
   } = methods;
 
-  const [contactId, date, vatMode, lines] = useWatch({ control, name: ['contactId', 'date', 'vatMode', 'lines'] });
+  const [contactId, date, vatMode, lines, saleType] = useWatch({
+    control,
+    name: ['contactId', 'date', 'vatMode', 'lines', 'saleType'],
+  });
+  const isService = saleType === 'service';
+  // งานบริการของบริษัทจด VAT: ใบแจ้งหนี้ (ไม่ใช่ใบกำกับภาษี) — ภาษีขายเกิดเมื่อรับชำระ
+  const isTaxInvoice = vatRegistered && !isService;
   const customer = contacts.get(contactId);
 
   // วันครบกำหนดตามเครดิตเทอมของลูกค้า — คำนวณเฉพาะเมื่อวันที่ครบและถูกต้อง
@@ -101,11 +108,19 @@ export function SalesNewView() {
     () => calcDocument({ lines: lines ?? [], vatMode: vatMode ?? 'none', vatRate }),
     [lines, vatMode, vatRate]
   );
-  const docTitle = salesDocTitle({ kind: 'tax-invoice', isTaxInvoice: vatRegistered, vatMode: vatMode ?? 'none' });
-  const docShortTitle = vatRegistered ? 'ใบกำกับภาษี' : 'ใบแจ้งหนี้';
+  const docTitle = salesDocTitle({
+    kind: 'tax-invoice',
+    isTaxInvoice,
+    vatMode: vatMode ?? 'none',
+    saleType: isService ? 'service' : undefined,
+    vatRate,
+  });
+  const docShortTitle = isTaxInvoice ? 'ใบกำกับภาษี' : 'ใบแจ้งหนี้';
+  const showVat = vatRegistered && vatMode !== 'none';
 
   const readiness = customer && vatRegistered ? eTaxReadiness(data.company, customer) : [];
   // ม.86/4: ใบกำกับเต็มรูปให้ลูกค้าที่ไม่มีเลขผู้เสียภาษี — เตือนอย่างเดียว (ลูกค้าบุคคลทั่วไปออกได้)
+  // งานบริการ: ใบเสร็จรับเงิน/ใบกำกับภาษีออกตอนรับเงิน จึงเตือนตั้งแต่ตอนนี้ด้วย
   const buyerWarning = buyerTaxIdWarning(vatRegistered, customer);
   const pendingBuyerWarning = pending ? buyerTaxIdWarning(vatRegistered, contacts.get(pending.contactId)) : null;
 
@@ -121,6 +136,7 @@ export function SalesNewView() {
     try {
       const result = run((s) =>
         issueTaxInvoice(s, {
+          saleType: values.saleType,
           contactId: values.contactId,
           date: values.date.slice(0, 10),
           dueDate: values.dueDate.slice(0, 10),
@@ -163,6 +179,24 @@ export function SalesNewView() {
                   gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)' },
                 }}
               >
+                <Box sx={{ gridColumn: { sm: 'span 2' } }}>
+                  <Field.RadioGroup
+                    row
+                    name="saleType"
+                    label="ประเภทการขาย"
+                    options={[
+                      { value: 'goods', label: vatRegistered ? 'ขายสินค้า (ออกใบกำกับภาษีทันที)' : 'ขายสินค้า' },
+                      { value: 'service', label: vatRegistered ? 'งานบริการ (ใบแจ้งหนี้ก่อน ใบกำกับภาษีตอนรับเงิน)' : 'งานบริการ' },
+                    ]}
+                  />
+                </Box>
+                {isService && vatRegistered && (
+                  <Alert severity="info" variant="outlined" sx={{ gridColumn: { sm: 'span 2' } }}>
+                    งานบริการ (ม.78/1): ภาษีขายเกิดเมื่อได้รับชำระ — ระบบออก “ใบแจ้งหนี้” ตอนนี้ (ยังไม่เข้ารายงานภาษีขาย)
+                    และออก “ใบเสร็จรับเงิน/ใบกำกับภาษี” ทุกครั้งที่รับเงินตามยอดที่รับ ภาษีเข้าเดือนที่รับเงิน
+                  </Alert>
+                )}
+
                 <Field.Select name="contactId" label="ลูกค้า" size="small" sx={{ gridColumn: { sm: 'span 2' } }}>
                   {customers.map((c) => (
                     <MenuItem key={c.id} value={c.id}>
@@ -213,7 +247,7 @@ export function SalesNewView() {
               <Box sx={{ p: 3 }}>
                 <DocLinesEditor
                   accounts={accounts.forLines('sales')}
-                  defaultAccountCode={ACC.sales}
+                  defaultAccountCode={isService ? ACC.service : ACC.sales}
                   accountLabel="บัญชีรายได้"
                 />
               </Box>
@@ -225,7 +259,7 @@ export function SalesNewView() {
               <Typography variant="h6" sx={{ mb: 2 }}>
                 สรุปยอด
               </Typography>
-              <TotalsSummary totals={totals} vatRate={vatRate} showVat={vatRegistered && vatMode !== 'none'} />
+              <TotalsSummary totals={totals} vatRate={vatRate} showVat={showVat} />
 
               <Stack spacing={1} sx={{ mt: 3 }}>
                 <LoadingButton type="submit" variant="contained" size="large" loading={isSubmitting}>
@@ -253,12 +287,14 @@ export function SalesNewView() {
                 { label: 'วันที่เอกสาร', value: formatThaiDate(pending.date.slice(0, 10)) },
                 { label: 'ครบกำหนด', value: formatThaiDate(pending.dueDate.slice(0, 10)) },
                 { label: 'มูลค่าก่อนภาษี', value: totals.net },
-                { label: `ภาษีขาย ${vatRate}%`, value: totals.vat, hidden: !vatRegistered || vatMode === 'none' },
+                { label: `ภาษีขาย ${vatRate}%`, value: totals.vat, hidden: !showVat },
                 { label: 'รวมทั้งสิ้น', value: totals.total, strong: true },
                 {
                   label: 'งวดภาษี',
-                  value: `ภาษีขายเดือน${periodLabel(periodOf(pending.date.slice(0, 10)))}`,
-                  hidden: !vatRegistered || vatMode === 'none',
+                  value: isService
+                    ? 'ภาษีขายเข้าเดือนที่รับเงิน (ออกใบเสร็จรับเงิน/ใบกำกับภาษีตอนรับชำระ)'
+                    : `ภาษีขายเดือน${periodLabel(periodOf(pending.date.slice(0, 10)))}`,
+                  hidden: !showVat,
                 },
               ]}
               note={

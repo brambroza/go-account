@@ -1,4 +1,3 @@
-import type { SalesDoc } from 'src/domain';
 import type { ETaxUploadSchemaType } from 'src/schemas/accounting/doc-schemas';
 
 import { useEffect } from 'react';
@@ -23,8 +22,8 @@ import { preventEnterSubmit } from 'src/sections/shared';
 type Props = {
   open: boolean;
   onClose: () => void;
-  /** เอกสารที่ลงนามแล้ว (`etax === 'signed'`) ที่จะบันทึกว่านำส่งแล้ว */
-  docs: SalesDoc[];
+  /** เอกสารที่ลงนามแล้ว (`etax === 'signed'`) ที่จะบันทึกว่านำส่งแล้ว — เอกสารขายหรือใบเสร็จรับเงิน/ใบกำกับภาษี */
+  docs: { id: string; docNo: string }[];
 };
 
 /**

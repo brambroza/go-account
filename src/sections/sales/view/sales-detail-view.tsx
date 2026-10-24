@@ -25,11 +25,14 @@ import {
   calcDocument,
   buildETaxXml,
   creditableOf,
+  receiptTitle,
+  deferredVatOf,
   eTaxReadiness,
   isTaxDocument,
   salesDocTitle,
   formatThaiDate,
   customerCreditOf,
+  isServiceInvoice,
 } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
@@ -59,6 +62,7 @@ export function SalesDetailView() {
   const doc = data.sales.find((s) => s.id === id);
   const buyer = doc ? contacts.get(doc.contactId) : undefined;
   const referenced = doc?.refDocId ? data.sales.find((s) => s.id === doc.refDocId) : undefined;
+  const referencedReceipt = doc?.refReceiptId ? data.receipts.find((r) => r.id === doc.refReceiptId) : undefined;
 
   const related = useMemo(() => {
     if (!doc) return { receipts: [], credits: [], journal: [] };
@@ -93,10 +97,15 @@ export function SalesDetailView() {
   const overdue = isInvoice && outstanding > 0 && doc.dueDate < todayISO();
   const etaxProblems = eTaxReadiness(data.company, buyer);
   const showETax = isTax && doc.etax !== 'not-required';
+  const service = isServiceInvoice(doc);
+  const deferredVat = service ? deferredVatOf(data, doc) : 0;
+  // ใบเพิ่มหนี้ไม่รองรับงานบริการ (ออกใบแจ้งหนี้ใหม่) และยอดยกมา (ปรับในระบบเดิม)
+  const canDebit = isInvoice && doc.status !== 'cancelled' && !doc.opening && !(doc.saleType === 'service' && !isTax);
+  const canCredit = isInvoice && toSatang(creditable) > 0 && !doc.opening;
 
   const downloadXml = () => {
     try {
-      const xml = buildETaxXml({ doc, company: data.company, buyer, referenced });
+      const xml = buildETaxXml({ doc, company: data.company, buyer, referenced, referencedReceipt });
       downloadText(`${doc.docNo}.xml`, xml, 'application/xml;charset=utf-8');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'สร้าง XML ไม่สำเร็จ');
@@ -117,7 +126,7 @@ export function SalesDetailView() {
             <Button variant="outlined" startIcon={<Iconify icon="solar:printer-minimalistic-bold" />} onClick={() => window.print()}>
               พิมพ์
             </Button>
-            {isInvoice && toSatang(creditable) > 0 && (
+            {canCredit && (
               <Button
                 component={RouterLink}
                 href={paths.sales.creditNote(doc.id)}
@@ -128,7 +137,7 @@ export function SalesDetailView() {
                 ออกใบลดหนี้
               </Button>
             )}
-            {isInvoice && doc.status !== 'cancelled' && (
+            {canDebit && (
               <Button
                 component={RouterLink}
                 href={paths.sales.debitNote(doc.id)}
@@ -155,7 +164,13 @@ export function SalesDetailView() {
 
       <Grid container spacing={3}>
         <Grid item xs={12} lg={8}>
-          <DocumentPreview doc={doc} company={data.company} contact={buyer} referenced={referenced} />
+          <DocumentPreview
+            doc={doc}
+            company={data.company}
+            contact={buyer}
+            referenced={referenced}
+            referencedReceipt={referencedReceipt}
+          />
         </Grid>
 
         <Grid item xs={12} lg={4}>
@@ -185,6 +200,19 @@ export function SalesDetailView() {
                     </Typography>
                     <Money value={creditable} />
                   </Stack>
+                )}
+                {service && (
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      ภาษีขายยังไม่ถึงกำหนด (ออกใบกำกับตอนรับเงิน)
+                    </Typography>
+                    <Money value={deferredVat} />
+                  </Stack>
+                )}
+                {doc.opening && (
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    ยอดยกมาจากระบบเดิม — ภาษีขายยื่นในระบบเดิมแล้ว รับชำระได้ตามปกติ ลดหนี้/เพิ่มหนี้ให้ทำในระบบเดิม
+                  </Typography>
                 )}
                 {toSatang(customerCredit) > 0 && (
                   <Stack direction="row" justifyContent="space-between">
@@ -246,9 +274,12 @@ export function SalesDetailView() {
                   {related.receipts.map((r) => (
                     <Stack key={r.id} direction="row" justifyContent="space-between">
                       <div>
-                        <Typography variant="subtitle2">{r.docNo}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {formatThaiDate(r.date)}
+                        <Typography variant="subtitle2" component={RouterLink} href={paths.sales.receipt(r.id)} sx={{ color: 'inherit' }}>
+                          {r.docNo}
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                          {receiptTitle(r)} · {formatThaiDate(r.date)}
+                          {r.isTaxInvoice ? ` · VAT ${(r.vat ?? 0).toFixed(2)}` : ''}
                           {r.whtAmount ? ` · ถูกหัก ณ ที่จ่าย ${r.whtAmount.toFixed(2)}` : ''}
                         </Typography>
                       </div>

@@ -134,7 +134,14 @@ export function PurchaseListView() {
               {rowInPage(rows, table.page, table.rowsPerPage).map(({ p, t, vendor, outstanding, pvs, wht }) => (
                 <TableRow key={p.id} hover>
                   <TableCell>
-                    <Typography variant="subtitle2">{p.docNo}</Typography>
+                    <Typography variant="subtitle2" component={RouterLink} href={paths.purchases.view(p.id)} sx={{ color: 'inherit' }}>
+                      {p.docNo}
+                    </Typography>
+                    {p.opening && (
+                      <Label variant="soft" sx={{ display: 'flex', width: 'fit-content', mt: 0.5 }}>
+                        ยอดยกมา
+                      </Label>
+                    )}
                   </TableCell>
                   <TableCell>
                     {formatThaiDate(p.date)}

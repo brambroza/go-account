@@ -124,6 +124,12 @@ export type SalesDocKind = 'tax-invoice' | 'credit-note' | 'debit-note';
 
 export type SalesDocStatus = 'issued' | 'partial' | 'paid' | 'cancelled';
 
+/**
+ * ประเภทการขาย — ขายสินค้า: ภาษีขายเกิดเมื่อออกใบกำกับ (ม.78)
+ * งานบริการ (ม.78/1): ออกใบแจ้งหนี้ก่อน ภาษีขายเกิดเมื่อรับชำระ — ออกใบเสร็จรับเงิน/ใบกำกับภาษีทุกครั้งที่รับเงิน
+ */
+export type SaleType = 'goods' | 'service';
+
 export type SalesDoc = {
   id: string;
   kind: SalesDocKind;
@@ -133,6 +139,16 @@ export type SalesDoc = {
    * ไม่มีค่า = ข้อมูลเก่า ถือว่า true เมื่อ vatMode ≠ none
    */
   isTaxInvoice?: boolean;
+  /**
+   * ไม่มีค่า = ขายสินค้า (ข้อมูลเดิมทั้งหมด) — 'service' + บริษัทจด VAT = ใบแจ้งหนี้ (ไม่ใช่ใบกำกับภาษี)
+   * ภาษีขายพักไว้ที่ 2151 จนรับชำระ (ใบลดหนี้ของใบแจ้งหนี้งานบริการได้ค่าเดียวกัน)
+   */
+  saleType?: SaleType;
+  /**
+   * ยอดยกมาจากระบบเดิม (เช่น Express) — ใบแจ้งหนี้/ใบกำกับที่ยังค้างชำระ ณ วันยกยอด
+   * เลขที่เป็นเลขของระบบเดิม ภาษีขายยื่นในระบบเดิมแล้ว ไม่มีรายการบัญชีของตัวเอง (ผูกกับรายการยอดยกมา)
+   */
+  opening?: boolean;
   docNo: string;
   date: ISODate;
   dueDate: ISODate;
@@ -142,6 +158,13 @@ export type SalesDoc = {
   vatRate: number;
   /** ใบลดหนี้/ใบเพิ่มหนี้: อ้างถึงใบกำกับเดิม */
   refDocId?: string;
+  /** ใบลดหนี้ของงานบริการหลังรับเงินครบ: อ้างใบเสร็จรับเงิน/ใบกำกับภาษีใบล่าสุดของใบแจ้งหนี้ */
+  refReceiptId?: string;
+  /**
+   * ใบลดหนี้ของใบแจ้งหนี้งานบริการที่ปิดยอดค้างทั้งหมด: เศษปัดระหว่างภาษีขายรอตัดที่เหลือกับ VAT ของใบลดหนี้
+   * (บวก = ภาษีรอตัดเหลือมากกว่า) — ลงบัญชี Dr 2151 / Cr รายได้ เพื่อให้ 2151 ของใบนี้เป็นศูนย์
+   */
+  deferredVatRounding?: number;
   reason?: string;
   /**
    * ใบลดหนี้/ใบเพิ่มหนี้ (ม.86/9, ม.86/10): มูลค่าตามใบกำกับเดิม ณ วันออก (หลังลด/เพิ่มหนี้ครั้งก่อน ๆ) ก่อน VAT
@@ -177,6 +200,17 @@ export type Receipt = {
   /** ลูกค้าหักภาษี ณ ที่จ่ายไว้ */
   whtAmount: number;
   depositAccountCode: string;
+  /**
+   * true = ใบเสร็จรับเงิน/ใบกำกับภาษี (prefix RT) ของงานบริการ (ม.78/1) — ภาษีขายเกิดในเดือนที่รับเงิน
+   * ไม่มีค่า/false = ใบเสร็จรับเงินธรรมดา (RE)
+   */
+  isTaxInvoice?: boolean;
+  /** ภาษีขายของเงินที่รับครั้งนี้ (ย้ายจาก 2151 เข้า 2150) — มูลค่าก่อนภาษี = amount − vat */
+  vat?: number;
+  /** สถานะ e-Tax ของใบเสร็จรับเงิน/ใบกำกับภาษี (ไม่มีค่า = ไม่ต้องออก) */
+  etax?: ETaxStatus;
+  etaxUploadedAt?: string;
+  etaxReference?: string;
   seller?: CompanySnapshot;
   buyer?: PartySnapshot;
   journalId: string;
@@ -194,8 +228,10 @@ export type PurchaseLine = DocLine & {
 
 export type PurchaseDoc = {
   id: string;
-  /** เลขที่ภายในของเรา */
+  /** เลขที่ภายในของเรา (ยอดยกมา = เลขที่ของระบบเดิม) */
   docNo: string;
+  /** ยอดยกมาจากระบบเดิม — เจ้าหนี้คงค้าง ณ วันยกยอด (ภาษีซื้อใช้สิทธิในระบบเดิมแล้ว) ผูกกับรายการยอดยกมา */
+  opening?: boolean;
   /** เลขที่ใบกำกับภาษีของผู้ขาย */
   supplierInvoiceNo: string;
   /** วันที่ในใบกำกับภาษีของผู้ขาย — บังคับเมื่อขอคืนภาษีซื้อ (เริ่มนับสิทธิ 6 เดือนตาม ม.82/3) */
@@ -253,6 +289,63 @@ export type Payment = {
   journalId: string;
 };
 
+/**
+ * ใบลดหนี้จากผู้ขาย (ม.82/12) — ลดเจ้าหนี้ของเอกสารซื้อเดิม และลดภาษีซื้อในเดือนที่ได้รับ (`vatClaimPeriod`)
+ * บันทึกได้ไม่เกินยอดค้างจ่ายของเอกสารเดิม (ส่วนที่จ่ายแล้วยังไม่รองรับ — ต้องบันทึกรับคืนเงินจากผู้ขายเอง)
+ */
+export type PurchaseCreditNote = {
+  id: string;
+  /** เลขที่ภายใน (prefix PC เรียงตามวันที่บันทึก) */
+  docNo: string;
+  /** เลขที่ใบลดหนี้ของผู้ขาย */
+  supplierCreditNoteNo: string;
+  /** วันที่ในใบลดหนี้ของผู้ขาย */
+  supplierCreditNoteDate: ISODate;
+  /** วันที่ได้รับ/บันทึก — ภาษีซื้อลดในเดือนนี้ */
+  date: ISODate;
+  purchaseId: string;
+  contactId: string;
+  lines: DocLine[];
+  vatMode: VatMode;
+  vatRate: number;
+  /** ตามเอกสารซื้อเดิม — ขอคืนภาษีซื้อไว้ = ต้องลดภาษีซื้อ */
+  claimVat: boolean;
+  /** เดือนภาษีที่ลดภาษีซื้อ `YYYY-MM` (= เดือนของ `date`) — มีเฉพาะเมื่อ claimVat */
+  vatClaimPeriod?: string;
+  reason: string;
+  supplier?: PartySnapshot;
+  journalId: string;
+  createdAt: string;
+};
+
+/** ปิดบัญชีสิ้นปี — โอนรายได้/ค่าใช้จ่ายสะสมถึงวันสิ้นปีเข้า 3200 กำไรสะสม (ปีละ 1 รายการ) */
+export type YearClose = {
+  id: string;
+  /** วันสิ้นรอบบัญชี (สิ้นเดือน) */
+  fiscalYearEnd: ISODate;
+  /** กำไร (ขาดทุน) สุทธิที่โอนเข้ากำไรสะสม */
+  netProfit: number;
+  /** ไม่มีค่า = ไม่มียอดรายได้/ค่าใช้จ่าย ไม่ต้องลงบัญชี */
+  journalId?: string;
+};
+
+/**
+ * ยอดยกมาจากระบบเดิม (ย้ายจาก Express) — บันทึกได้ครั้งเดียวก่อนมีรายการอื่น
+ * รายการบัญชี: `lines` (บัญชีที่ไม่ใช่บัญชีคุม) + Dr ลูกหนี้ (รวมใบค้างรับ) + Cr เจ้าหนี้ (รวมใบค้างจ่าย)
+ * + Dr ภาษีชำระเกินยกมา + Dr ภาษีถูกหัก ณ ที่จ่าย — ใบค้างรับ/ค้างจ่ายอยู่ใน sales/purchases (`opening: true`)
+ */
+export type OpeningBalance = {
+  /** ยอดยกมา ณ สิ้นวันนี้ — รายการใหม่ต้องลงวันที่หลังวันนี้ */
+  date: ISODate;
+  journalId: string;
+  /** ยอดคงเหลือบัญชีแยกประเภทอื่น (เงินสด ธนาคาร สินทรัพย์ ทุน กำไรสะสม รายได้/ค่าใช้จ่ายสะสมของปี ฯลฯ) */
+  lines: JournalLine[];
+  /** ภาษีชำระเกินยกมาจาก ภ.พ.30 เดือนสุดท้ายในระบบเดิม (1180) */
+  vatCredit: number;
+  /** ภาษีถูกหัก ณ ที่จ่ายที่ยังไม่ได้ใช้เครดิต (1160) */
+  whtReceivable: number;
+};
+
 /** คืนเงินลูกค้าจากยอดเงินรอคืน (เกิดจากใบลดหนี้หลังรับเงินแล้ว) */
 export type CustomerRefund = {
   id: string;
@@ -275,6 +368,9 @@ export type JournalSource =
   | 'payment'
   | 'refund'
   | 'vat-close'
+  | 'purchase-credit-note'
+  | 'year-close'
+  | 'opening'
   | 'manual';
 
 export type JournalLine = {
@@ -318,7 +414,7 @@ export type VatClose = {
 };
 
 /** เวอร์ชันโครงข้อมูลปัจจุบัน — เปลี่ยนเมื่อไรต้องเพิ่ม migration ใน `store/migrations.ts` */
-export const DATA_VERSION = 4;
+export const DATA_VERSION = 5;
 
 export type AccountingData = {
   version: typeof DATA_VERSION;
@@ -331,6 +427,12 @@ export type AccountingData = {
   payments: Payment[];
   refunds: CustomerRefund[];
   vatCloses: VatClose[];
+  /** ใบลดหนี้จากผู้ขาย */
+  purchaseCredits: PurchaseCreditNote[];
+  /** ปิดบัญชีสิ้นปี (เรียงตามวันสิ้นปี) */
+  yearCloses: YearClose[];
+  /** ยอดยกมาจากระบบเดิม (มีได้ครั้งเดียว) */
+  openingBalance?: OpeningBalance;
   journal: JournalEntry[];
   /** เลขที่ล่าสุดต่อ prefix+งวด เช่น { 'IV6910': 43 } */
   sequences: Record<string, number>;

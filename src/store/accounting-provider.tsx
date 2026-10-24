@@ -24,6 +24,8 @@ export type AccountingContextValue = {
   /** แทนที่ทั้งก้อน (กู้คืน backup) — throw ถ้าไม่ผ่าน `validateAccountingData` เว้นแต่ส่ง `force` */
   replace: (next: AccountingData, options?: { force?: boolean }) => void;
   resetDemo: () => void;
+  /** ล้างเอกสารทั้งหมด คงข้อมูลบริษัท/ผังบัญชี/ผู้ติดต่อ เพื่อยกยอดจากระบบเดิม */
+  resetEmpty: () => void;
   /** อ่าน + migrate + ตรวจไฟล์ backup ก่อนกู้คืน (ไม่เปลี่ยนข้อมูล) */
   readBackup: (text: string) => LoadResult;
   /** ปัญหาที่พบตอนโหลดข้อมูล */
@@ -61,6 +63,7 @@ export function AccountingProvider({ children }: Props) {
       run: store.run,
       replace: store.replace,
       resetDemo: store.resetDemo,
+      resetEmpty: store.resetEmpty,
       readBackup: readAccountingJson,
       problems: snap.problems,
       externalChangeAt: snap.externalChangeAt,

@@ -1,18 +1,14 @@
 import { calcDocument } from './document-calc';
 import { subBaht, sumBaht, toSatang } from './money';
+import { taxedPartsOf, deferredVatOf } from './service-vat';
 import { parseDocNo, DATE_ORDERED_PREFIXES } from './numbering';
 import { normalizeTaxId, normalizeBranch5 } from './thai-tax-id';
 import { salesVatReport, purchaseVatReport } from './vat-report';
 import { ACC, isControlAccount, lineAccountProblem } from './chart-of-accounts';
+import { isTaxDocument, isServiceInvoice, isDeferredVatDoc } from './sales-doc';
+import { sortedYearCloses, yearCloseBalances, openingItemTotals } from './year-end';
 import { vatCloseDraft, latestVatCredit, vatCloseFigures, vatActivityMonths } from './vat-close';
 import { endOfMonth, monthKeyOf, docPeriodCode, shiftMonthKey, formatThaiDate, isValidISODate } from './thai-date';
-import {
-  paymentsOf,
-  vatClaimProblem,
-  purchaseVatMonth,
-  purchaseWhtGroups,
-  purchaseOutstanding,
-} from './purchase';
 import {
   outstandingOf,
   debitedTotalOf,
@@ -22,15 +18,28 @@ import {
   customerCreditOf,
 } from './receivables';
 import {
+  paymentsOf,
+  vatClaimProblem,
+  purchaseVatMonth,
+  purchaseCreditsOf,
+  purchaseOutstanding,
+  purchaseCreditedParts,
+  purchaseAdjustedTotal,
+  purchaseAdjustedWhtGroups,
+} from './purchase';
+import {
   isBalanced,
   postReceipt,
   postPurchase,
   postVatClose,
+  postYearClose,
   postDebitNote,
   postCreditNote,
   postSalesInvoice,
   postCustomerRefund,
+  postOpeningBalance,
   postPurchasePayment,
+  postPurchaseCreditNote,
 } from './posting';
 
 import type { LineSide } from './chart-of-accounts';
@@ -49,16 +58,25 @@ const SALES_PREFIXES: Record<SalesDoc['kind'], readonly string[]> = {
 
 export type NumberedDoc = { docNo: string; date: ISODate; prefixes: readonly string[]; label: string };
 
+/** เอกสารที่ใช้เลขที่ของระบบเรา (ยอดยกมาใช้เลขที่ของระบบเดิม จึงไม่นับ) */
 function collectNumberedDocs(data: AccountingData): NumberedDoc[] {
   return [
-    ...data.sales.map((s) => ({
-      docNo: s.docNo,
-      date: s.date,
-      prefixes: SALES_PREFIXES[s.kind],
-      label: 'เอกสารขาย',
+    ...data.sales
+      .filter((s) => !s.opening)
+      .map((s) => ({
+        docNo: s.docNo,
+        date: s.date,
+        prefixes: SALES_PREFIXES[s.kind],
+        label: 'เอกสารขาย',
+      })),
+    ...data.receipts.map((r) => ({
+      docNo: r.docNo,
+      date: r.date,
+      prefixes: r.isTaxInvoice ? ['RT'] : ['RE'],
+      label: r.isTaxInvoice ? 'ใบเสร็จรับเงิน/ใบกำกับภาษี' : 'ใบเสร็จ',
     })),
-    ...data.receipts.map((r) => ({ docNo: r.docNo, date: r.date, prefixes: ['RE'], label: 'ใบเสร็จ' })),
-    ...data.purchases.map((p) => ({ docNo: p.docNo, date: p.date, prefixes: ['PI'], label: 'เอกสารซื้อ' })),
+    ...data.purchases.filter((p) => !p.opening).map((p) => ({ docNo: p.docNo, date: p.date, prefixes: ['PI'], label: 'เอกสารซื้อ' })),
+    ...data.purchaseCredits.map((c) => ({ docNo: c.docNo, date: c.date, prefixes: ['PC'], label: 'ใบลดหนี้จากผู้ขาย' })),
     ...data.payments.map((p) => ({ docNo: p.docNo, date: p.date, prefixes: ['PV'], label: 'ใบสำคัญจ่าย' })),
     ...data.payments
       .filter((p) => p.whtCertNo)
@@ -133,6 +151,7 @@ function checkReferences(data: AccountingData, problems: string[]) {
     if (!contacts.has(id)) problems.push(`${docNo}: ไม่พบผู้ติดต่อที่อ้างถึง`);
   };
 
+  const receipts = new Map(data.receipts.map((r) => [r.id, r]));
   data.sales.forEach((s) => {
     needContact(s.docNo, s.contactId);
     needJournal(s.docNo, s.journalId);
@@ -140,16 +159,26 @@ function checkReferences(data: AccountingData, problems: string[]) {
       const ref = s.refDocId ? sales.get(s.refDocId) : undefined;
       if (!ref || ref.kind !== 'tax-invoice') problems.push(`${s.docNo}: ไม่พบใบกำกับที่อ้างถึง`);
       else if (s.date < ref.date) problems.push(`${s.docNo}: ลงวันที่ก่อนใบกำกับที่อ้างถึง ${ref.docNo}`);
+      else if (ref.opening) problems.push(`${s.docNo}: อ้างยอดยกมา ${ref.docNo} (ต้องปรับในระบบเดิม)`);
+    }
+    if (s.refReceiptId) {
+      const r = receipts.get(s.refReceiptId);
+      if (!r || r.invoiceId !== s.refDocId || !r.isTaxInvoice) problems.push(`${s.docNo}: ไม่พบใบเสร็จรับเงิน/ใบกำกับภาษีที่อ้างถึง`);
+      else if (s.date < r.date) problems.push(`${s.docNo}: ลงวันที่ก่อนใบเสร็จรับเงิน/ใบกำกับภาษี ${r.docNo}`);
     }
   });
   data.receipts.forEach((r) => {
     needJournal(r.docNo, r.journalId);
-    if (!sales.has(r.invoiceId)) problems.push(`${r.docNo}: ไม่พบใบกำกับที่รับชำระ`);
+    const inv = sales.get(r.invoiceId);
+    if (!inv) problems.push(`${r.docNo}: ไม่พบใบกำกับที่รับชำระ`);
+    else if (r.date < inv.date) problems.push(`${r.docNo}: วันที่รับชำระก่อนวันที่ ${inv.docNo}`);
   });
   data.purchases.forEach((p) => {
     needContact(p.docNo, p.contactId);
     needJournal(p.docNo, p.journalId);
-    if (p.paid && !paymentsOf(data, p.id).length) problems.push(`${p.docNo}: จ่ายแล้วแต่ไม่พบใบสำคัญจ่าย`);
+    if (p.paid && !paymentsOf(data, p.id).length && !purchaseCreditsOf(data, p.id).length) {
+      problems.push(`${p.docNo}: จ่ายแล้วแต่ไม่พบใบสำคัญจ่าย`);
+    }
   });
   data.payments.forEach((p) => {
     needJournal(p.docNo, p.journalId);
@@ -160,6 +189,18 @@ function checkReferences(data: AccountingData, problems: string[]) {
   data.refunds.forEach((r) => {
     needContact(r.docNo, r.contactId);
     needJournal(r.docNo, r.journalId);
+  });
+  data.purchaseCredits.forEach((c) => {
+    needContact(c.docNo, c.contactId);
+    needJournal(c.docNo, c.journalId);
+    const purchase = purchases.get(c.purchaseId);
+    if (!purchase) problems.push(`${c.docNo}: ไม่พบเอกสารซื้อที่อ้างถึง`);
+    else {
+      if (c.date < purchase.date) problems.push(`${c.docNo}: วันที่ก่อนวันที่บันทึก ${purchase.docNo}`);
+      if (c.contactId !== purchase.contactId) problems.push(`${c.docNo}: ผู้ขายไม่ตรงกับ ${purchase.docNo}`);
+      if (purchase.opening) problems.push(`${c.docNo}: อ้างยอดยกมา ${purchase.docNo}`);
+    }
+    if (c.supplierCreditNoteDate > c.date) problems.push(`${c.docNo}: วันที่ในใบลดหนี้ผู้ขายหลังวันที่ได้รับ`);
   });
 }
 
@@ -224,6 +265,7 @@ function checkLineAccounts(data: AccountingData, problems: string[]) {
     });
   };
   data.sales.forEach((s) => check(s.docNo, s.lines.map((l) => l.accountCode), 'sales'));
+  data.purchaseCredits.forEach((c) => check(c.docNo, c.lines.map((l) => l.accountCode), 'purchase'));
   data.purchases.forEach((p) => {
     check(p.docNo, p.lines.map((l) => l.accountCode), 'purchase');
     p.lines.forEach((l, i) => {
@@ -253,16 +295,44 @@ function checkDocumentPostings(data: AccountingData, problems: string[]) {
   const meta = (id: string) => ({ id, docNo: '' });
 
   const salesPosting = { 'tax-invoice': postSalesInvoice, 'credit-note': postCreditNote, 'debit-note': postDebitNote };
-  data.sales.forEach((s) =>
-    expected.set(s.journalId, { docNo: s.docNo, build: () => salesPosting[s.kind](s, meta(s.journalId), '') })
-  );
+  // ยอดยกมา: ใบค้างรับ/ค้างจ่ายไม่มีรายการบัญชีของตัวเอง (ผูกกับรายการยอดยกมาทั้งก้อน)
+  data.sales
+    .filter((s) => !s.opening)
+    .forEach((s) => expected.set(s.journalId, { docNo: s.docNo, build: () => salesPosting[s.kind](s, meta(s.journalId), '') }));
   data.receipts.forEach((r) =>
     expected.set(r.journalId, {
       docNo: r.docNo,
       build: () => postReceipt(r, meta(r.journalId), '', invoices.get(r.invoiceId)?.docNo ?? ''),
     })
   );
-  data.purchases.forEach((p) => expected.set(p.journalId, { docNo: p.docNo, build: () => postPurchase(p, meta(p.journalId), '') }));
+  data.purchases
+    .filter((p) => !p.opening)
+    .forEach((p) => expected.set(p.journalId, { docNo: p.docNo, build: () => postPurchase(p, meta(p.journalId), '') }));
+  data.purchaseCredits.forEach((c) =>
+    expected.set(c.journalId, {
+      docNo: c.docNo,
+      build: () => postPurchaseCreditNote(c, meta(c.journalId), '', purchases.get(c.purchaseId)?.docNo ?? ''),
+    })
+  );
+  data.yearCloses.forEach((c) => {
+    if (!c.journalId) return;
+    const { journalId } = c;
+    expected.set(journalId, {
+      docNo: `CLOSE-${c.fiscalYearEnd}`,
+      build: () => {
+        const entry = postYearClose(c, yearCloseBalances(data, c.fiscalYearEnd, journalId).balances, meta(journalId));
+        if (!entry) throw new Error('empty');
+        return entry;
+      },
+    });
+  });
+  const opening = data.openingBalance;
+  if (opening) {
+    expected.set(opening.journalId, {
+      docNo: 'OPENING',
+      build: () => postOpeningBalance(opening, openingItemTotals(data), meta(opening.journalId)),
+    });
+  }
   data.payments.forEach((pv) => {
     const purchase = purchases.get(pv.purchaseId);
     if (!purchase) return;
@@ -355,20 +425,42 @@ function checkPurchases(data: AccountingData, problems: string[]) {
     }
 
     const pvs = paymentsOf(data, p.id);
-    const total = toSatang(calcDocument(p).total);
+    const credits = purchaseCreditsOf(data, p.id);
+    // ใบลดหนี้ผู้ขายลดยอดเอกสาร — ยอดจ่าย + ลดหนี้ ต้องไม่เกินยอดเอกสาร และจ่ายครบ = ยอดค้างเป็นศูนย์
+    const total = toSatang(purchaseAdjustedTotal(data, p));
     const paid = pvs.reduce((a, pv) => a + toSatang(pv.amount), 0);
+    if (total < 0) problems.push(`${p.docNo}: ใบลดหนี้ผู้ขายรวมเกินยอดเอกสาร`);
     if (paid > total) problems.push(`${p.docNo}: ยอดจ่ายชำระรวมเกินยอดเอกสาร`);
     if (p.paid !== (paid === total)) problems.push(`${p.docNo}: สถานะจ่ายแล้วไม่ตรงกับใบสำคัญจ่าย`);
+    const original = calcDocument(p);
+    const credited = purchaseCreditedParts(data, p);
+    if (toSatang(credited.vat) > toSatang(original.vat)) problems.push(`${p.docNo}: VAT ที่ลดหนี้รวมเกิน VAT ของเอกสาร`);
+    if (toSatang(credited.net) > toSatang(original.net)) problems.push(`${p.docNo}: มูลค่าที่ลดหนี้รวมเกินมูลค่าของเอกสาร`);
+    credits.forEach((c) => {
+      if (c.claimVat !== p.claimVat) problems.push(`${c.docNo}: สิทธิภาษีซื้อไม่ตรงกับ ${p.docNo}`);
+      if (c.vatMode !== p.vatMode || c.vatRate !== p.vatRate) problems.push(`${c.docNo}: อัตรา/วิธีคิด VAT ไม่ตรงกับ ${p.docNo}`);
+      const wantPeriod = c.claimVat ? monthKeyOf(c.date) : undefined;
+      if (c.vatClaimPeriod !== wantPeriod) problems.push(`${c.docNo}: เดือนที่ลดภาษีซื้อต้องเป็นเดือนที่ได้รับใบลดหนี้`);
+      if (c.claimVat && wantPeriod && wantPeriod < purchaseVatMonth(p)) {
+        problems.push(`${c.docNo}: ลดภาษีซื้อก่อนเดือนที่ใช้สิทธิของ ${p.docNo}`);
+      }
+    });
     const items = pvs.flatMap((pv) => pv.whtItems);
-    purchaseWhtGroups(p).forEach((g) => {
+    // ลดหนี้ปิดยอดหลังแบ่งจ่าย: ฐานหัก ณ ที่จ่ายรวมต่างจากฐานหลังลดหนี้ได้ไม่เกินเศษปัด 1 สตางค์ต่อการจ่าย
+    const tolerance = credits.length ? pvs.length : 0;
+    const groups = purchaseAdjustedWhtGroups(data, p);
+    groups.forEach((g) => {
       const mine = items.filter((i) => i.incomeType === g.incomeType && i.rate === g.rate);
       const base = mine.reduce((a, i) => a + toSatang(i.base), 0);
       const tax = mine.reduce((a, i) => a + toSatang(i.tax), 0);
-      if (base > toSatang(g.base) || tax > toSatang(g.tax) || (p.paid && (base !== toSatang(g.base) || tax !== toSatang(g.tax)))) {
+      const over = base - toSatang(g.base) > tolerance || tax - toSatang(g.tax) > tolerance;
+      const settledMismatch =
+        p.paid && (Math.abs(base - toSatang(g.base)) > tolerance || Math.abs(tax - toSatang(g.tax)) > tolerance);
+      if (over || settledMismatch) {
         problems.push(`${p.docNo}: หัก ณ ที่จ่าย ${g.incomeType} ${g.rate}% ในใบสำคัญจ่ายรวมไม่ตรงกับเอกสาร`);
       }
     });
-    if (items.some((i) => !purchaseWhtGroups(p).some((g) => g.incomeType === i.incomeType && g.rate === i.rate))) {
+    if (items.some((i) => !groups.some((g) => g.incomeType === i.incomeType && g.rate === i.rate))) {
       problems.push(`${p.docNo}: ใบสำคัญจ่ายมีหัก ณ ที่จ่ายประเภทที่ไม่มีในเอกสาร`);
     }
   });
@@ -393,7 +485,7 @@ function checkVatCloses(data: AccountingData, problems: string[]) {
   const first = vatActivityMonths(data)[0];
   if (first && first < closes[0].period) problems.push(`ภาษีเดือน ${first} ยังไม่ได้ปิด แต่ปิดเดือน ${closes[0].period} แล้ว`);
   const lock = data.company.lockedThrough;
-  let carry = 0;
+  let carry = data.openingBalance?.vatCredit ?? 0;
   closes.forEach((c, i) => {
     const label = `ปิดภาษีเดือน ${c.period}`;
     if (i > 0 && c.period !== shiftMonthKey(closes[i - 1].period, 1)) problems.push(`${label}: ไม่ต่อเนื่องจากเดือนก่อน`);
@@ -443,7 +535,16 @@ function checkReconciliation(data: AccountingData, problems: string[]) {
     sum(Array.from(new Set([...data.sales, ...data.refunds].map((d) => d.contactId))).map((id) => customerCreditOf(data, id)))
   );
   check(`${ACC.payable} เจ้าหนี้การค้า`, -glNet(data, ACC.payable), sum(data.purchases.map((p) => purchaseOutstanding(data, p))));
-  check(`${ACC.whtReceivable} ภาษีถูกหัก ณ ที่จ่าย`, glNet(data, ACC.whtReceivable), sum(data.receipts.map((r) => r.whtAmount)));
+  check(
+    `${ACC.whtReceivable} ภาษีถูกหัก ณ ที่จ่าย`,
+    glNet(data, ACC.whtReceivable),
+    sum([data.openingBalance?.whtReceivable ?? 0, ...data.receipts.map((r) => r.whtAmount)])
+  );
+  check(
+    `${ACC.deferredOutputVat} ภาษีขายยังไม่ถึงกำหนด`,
+    -glNet(data, ACC.deferredOutputVat),
+    sum(data.sales.filter((s) => isServiceInvoice(s)).map((s) => deferredVatOf(data, s)))
+  );
   check(`${ACC.whtPayable} ภาษีหัก ณ ที่จ่ายค้างจ่าย`, -glNet(data, ACC.whtPayable), sum(data.payments.map((p) => p.whtAmount)));
 
   check(`${ACC.vatCredit} ภาษีชำระเกินยกไป`, glNet(data, ACC.vatCredit), toSatang(latestVatCredit(data)));
@@ -456,7 +557,7 @@ function checkReconciliation(data: AccountingData, problems: string[]) {
     return purchase ? purchaseVatMonth(purchase) : monthKeyOf(e.date);
   };
   const months = new Set<string>();
-  [...data.sales, ...data.journal].forEach((d) => {
+  [...data.sales, ...data.receipts, ...data.journal].forEach((d) => {
     if (isValidISODate(d.date)) months.add(monthKeyOf(d.date));
   });
   data.purchases.forEach((p) => months.add(purchaseVatMonth(p)));
@@ -468,14 +569,136 @@ function checkReconciliation(data: AccountingData, problems: string[]) {
       check(
         `${ACC.outputVat} ภาษีขาย ${m}`,
         -glNet(data, ACC.outputVat, inMonth),
-        sum(salesVatReport(data.sales, data.contacts, period).map((r) => r.vat))
+        sum(salesVatReport(data.sales, data.contacts, period, data.receipts).map((r) => r.vat))
       );
       check(
         `${ACC.inputVat} ภาษีซื้อ ${m}`,
         glNet(data, ACC.inputVat, inMonth),
-        sum(purchaseVatReport(data.purchases, data.contacts, period).map((r) => r.vat))
+        sum(purchaseVatReport(data.purchases, data.contacts, period, data.purchaseCredits).map((r) => r.vat))
       );
     });
+}
+
+/**
+ * งานบริการ (ม.78/1): ใบเสร็จของใบแจ้งหนี้งานบริการต้องเป็นใบเสร็จรับเงิน/ใบกำกับภาษี (และกลับกัน),
+ * ภาษีขายรอตัดไม่ติดลบและเป็นศูนย์เมื่อไม่มียอดค้าง, ใบลดหนี้ก่อนรับครบไม่ใช่เอกสารภาษี / หลังรับครบอ้างใบเสร็จ,
+ * ใบลดหนี้/ใบกำกับภาษีรวมไม่เกินที่ออกใบกำกับไปแล้ว, ไม่มีใบเพิ่มหนี้
+ */
+function checkServiceVat(data: AccountingData, problems: string[]) {
+  const sales = new Map(data.sales.map((s) => [s.id, s]));
+  data.receipts.forEach((r) => {
+    const inv = sales.get(r.invoiceId);
+    if (!inv) return;
+    const service = isServiceInvoice(inv);
+    if (service !== !!r.isTaxInvoice) {
+      problems.push(`${r.docNo}: ${service ? 'รับชำระงานบริการต้องออกใบเสร็จรับเงิน/ใบกำกับภาษี' : 'ไม่ใช่งานบริการแต่ออกเป็นใบกำกับภาษี'}`);
+    }
+    if (!service && toSatang(r.vat ?? 0) !== 0) problems.push(`${r.docNo}: มีภาษีขายแต่ไม่ใช่ใบเสร็จของงานบริการ`);
+    if (service && toSatang(r.vat ?? 0) < 0) problems.push(`${r.docNo}: ภาษีขายติดลบ`);
+    if (service && toSatang(r.vat ?? 0) >= toSatang(r.amount)) problems.push(`${r.docNo}: ภาษีขายไม่น้อยกว่ายอดรับ`);
+    if (!!r.isTaxInvoice !== (r.etax !== undefined && r.etax !== 'not-required')) {
+      problems.push(`${r.docNo}: สถานะ e-Tax ไม่ตรงกับชนิดเอกสาร`);
+    }
+  });
+  data.sales.forEach((s) => {
+    if (s.kind === 'tax-invoice') {
+      if (!isServiceInvoice(s)) return;
+      const deferred = toSatang(deferredVatOf(data, s));
+      if (deferred < 0) problems.push(`${s.docNo}: ภาษีขายรอตัดติดลบ`);
+      if (toSatang(outstandingOf(data, s)) === 0 && deferred !== 0) problems.push(`${s.docNo}: ไม่มียอดค้างแต่ยังมีภาษีขายรอตัด`);
+      const taxed = taxedPartsOf(data, s);
+      if (toSatang(taxed.vat) < 0 || toSatang(taxed.net) < 0) problems.push(`${s.docNo}: ลดหนี้เกินที่ออกใบเสร็จรับเงิน/ใบกำกับภาษีไปแล้ว`);
+      return;
+    }
+    const inv = s.refDocId ? sales.get(s.refDocId) : undefined;
+    if (!inv || !isServiceInvoice(inv)) {
+      if (s.saleType === 'service' && isDeferredVatDoc(s)) problems.push(`${s.docNo}: ลงภาษีขายรอตัดแต่ไม่ได้อ้างใบแจ้งหนี้งานบริการ`);
+      if (toSatang(s.deferredVatRounding ?? 0) !== 0) problems.push(`${s.docNo}: มีเศษปัดภาษีรอตัดแต่ไม่ใช่งานบริการ`);
+      return;
+    }
+    if (s.kind === 'debit-note') {
+      problems.push(`${s.docNo}: ใบเพิ่มหนี้ของใบแจ้งหนี้งานบริการ (ต้องออกใบแจ้งหนี้ใหม่)`);
+      return;
+    }
+    if (isTaxDocument(s) && !s.refReceiptId) problems.push(`${s.docNo}: ใบลดหนี้/ใบกำกับภาษีของงานบริการต้องอ้างใบเสร็จรับเงิน/ใบกำกับภาษี`);
+    if (!isTaxDocument(s) && !isDeferredVatDoc(s)) problems.push(`${s.docNo}: ใบลดหนี้ของงานบริการต้องเป็นเอกสารภาษีหรือกลับภาษีรอตัด`);
+    if (isTaxDocument(s) && toSatang(s.deferredVatRounding ?? 0) !== 0) problems.push(`${s.docNo}: ใบลดหนี้/ใบกำกับภาษีมีเศษปัดภาษีรอตัด`);
+  });
+}
+
+/**
+ * ปิดบัญชีสิ้นปี: วันสิ้นเดือน, ปิดงวดถึงแล้ว, ห่างกัน 12 เดือน, ไม่ซ้ำ, ยอดรายได้/ค่าใช้จ่ายถึงวันสิ้นปีเป็นศูนย์
+ * (มีรายการลงปีที่ปิดแล้วเพิ่ม = ไม่เป็นศูนย์), กำไรที่บันทึกตรงกับรายการบัญชี
+ */
+function checkYearCloses(data: AccountingData, problems: string[]) {
+  const closes = sortedYearCloses(data);
+  const lock = data.company.lockedThrough;
+  closes.forEach((c, i) => {
+    const label = `ปิดบัญชีสิ้นปี ${c.fiscalYearEnd}`;
+    if (!isValidISODate(c.fiscalYearEnd) || endOfMonth(monthKeyOf(c.fiscalYearEnd)) !== c.fiscalYearEnd) {
+      problems.push(`${label}: วันสิ้นปีต้องเป็นวันสิ้นเดือน`);
+      return;
+    }
+    if (i > 0) {
+      const prev = closes[i - 1].fiscalYearEnd;
+      if (prev === c.fiscalYearEnd) problems.push(`${label}: ปิดซ้ำ`);
+      else if (c.fiscalYearEnd !== endOfMonth(shiftMonthKey(monthKeyOf(prev), 12))) problems.push(`${label}: ไม่ต่อเนื่อง 12 เดือนจากปีก่อน`);
+    }
+    if (!lock || lock < c.fiscalYearEnd) problems.push(`${label}: ยังไม่ได้ปิดงวดถึงวันสิ้นปี`);
+    if (data.openingBalance && c.fiscalYearEnd <= data.openingBalance.date) problems.push(`${label}: ก่อนวันยอดยกมา`);
+    const after = yearCloseBalances(data, c.fiscalYearEnd).balances;
+    if (after.length) problems.push(`${label}: ยังมียอดรายได้/ค่าใช้จ่ายถึงวันสิ้นปี (มีรายการลงปีที่ปิดแล้ว)`);
+    const entry = c.journalId ? data.journal.find((e) => e.id === c.journalId) : undefined;
+    if (c.journalId && !entry) problems.push(`${label}: ไม่พบรายการบัญชีที่ผูกไว้`);
+    const want = yearCloseBalances(data, c.fiscalYearEnd, c.journalId).netProfit;
+    if (toSatang(want) !== toSatang(c.netProfit)) problems.push(`${label}: กำไรสุทธิที่บันทึกไม่ตรงกับยอดบัญชี`);
+    if (!c.journalId && yearCloseBalances(data, c.fiscalYearEnd).balances.length) problems.push(`${label}: ไม่พบรายการบัญชีที่ผูกไว้`);
+  });
+  data.journal
+    .filter((e) => e.source === 'year-close')
+    .forEach((e) => {
+      if (!closes.some((c) => c.journalId === e.id)) problems.push(`${e.docNo}: รายการปิดบัญชีไม่มีข้อมูลการปิดปี`);
+    });
+}
+
+/**
+ * ยอดยกมา: มีรายการบัญชีที่ผูกไว้ (source opening) ใบเดียว, ใบค้างรับ/ค้างจ่ายผูกกับรายการนั้นและลงวันที่ไม่หลังวันยอดยกมา,
+ * ไม่คิด VAT, เลขที่ไม่ซ้ำต่อผู้ติดต่อ, บรรทัดไม่ใช้บัญชีคุม, ทุกรายการอื่นลงวันที่หลังวันยอดยกมา
+ */
+const OPENING_FIELD_CODES: readonly string[] = [ACC.receivable, ACC.payable, ACC.vatCredit, ACC.whtReceivable];
+
+function checkOpening(data: AccountingData, problems: string[]) {
+  const opening = data.openingBalance;
+  const openingEntries = data.journal.filter((e) => e.source === 'opening');
+  const openingDocs = [...data.sales.filter((s) => s.opening), ...data.purchases.filter((p) => p.opening)];
+  if (!opening) {
+    if (openingEntries.length) problems.push('มีรายการบัญชียอดยกมาแต่ไม่มีข้อมูลยอดยกมา');
+    if (openingDocs.length) problems.push('มีเอกสารยอดยกมาแต่ไม่มีข้อมูลยอดยกมา');
+    return;
+  }
+  if (openingEntries.length !== 1 || openingEntries[0].id !== opening.journalId) problems.push('ยอดยกมา: รายการบัญชีต้องมี 1 รายการที่ผูกไว้');
+  const entry = openingEntries[0];
+  if (entry && entry.date !== opening.date) problems.push('ยอดยกมา: วันที่รายการบัญชีไม่ตรงกับวันยอดยกมา');
+  const seen = new Set<string>();
+  openingDocs.forEach((d) => {
+    if (d.journalId !== opening.journalId) problems.push(`${d.docNo}: เอกสารยอดยกมาไม่ได้ผูกกับรายการยอดยกมา`);
+    if (d.date > opening.date) problems.push(`${d.docNo}: เอกสารยอดยกมาลงวันที่หลังวันยอดยกมา`);
+    if (d.vatMode !== 'none') problems.push(`${d.docNo}: เอกสารยอดยกมาต้องไม่คิด VAT`);
+    const key = `${'kind' in d ? 'ar' : 'ap'}|${d.contactId}|${d.docNo.toUpperCase()}`;
+    if (seen.has(key)) problems.push(`${d.docNo}: เลขที่ยอดยกมาซ้ำ`);
+    seen.add(key);
+  });
+  if (data.sales.some((s) => s.opening && (s.isTaxInvoice || s.etax !== 'not-required'))) problems.push('ยอดยกมา: ใบค้างรับต้องไม่ใช่ใบกำกับภาษีของระบบนี้');
+  if (data.purchases.some((p) => p.opening && p.claimVat)) problems.push('ยอดยกมา: ใบค้างจ่ายต้องไม่ขอคืนภาษีซื้อซ้ำ');
+  opening.lines.forEach((l) => {
+    if (OPENING_FIELD_CODES.includes(l.accountCode) || isControlAccount(l.accountCode)) {
+      problems.push(`ยอดยกมา: บรรทัดใช้บัญชีคุม ${l.accountCode}`);
+    }
+  });
+  if (toSatang(opening.vatCredit) < 0 || toSatang(opening.whtReceivable) < 0) problems.push('ยอดยกมา: ยอดภาษียกมาติดลบ');
+  data.journal
+    .filter((e) => e.id !== opening.journalId && e.date <= opening.date)
+    .forEach((e) => problems.push(`${e.docNo}: ลงวันที่ไม่หลังวันยอดยกมา ${opening.date}`));
 }
 
 /**
@@ -496,6 +719,9 @@ export function validateAccountingData(data: AccountingData): string[] {
   checkCreditParts(data, problems);
   checkPurchases(data, problems);
   checkVatCloses(data, problems);
+  checkServiceVat(data, problems);
+  checkYearCloses(data, problems);
+  checkOpening(data, problems);
   checkLineAccounts(data, problems);
   checkDocumentPostings(data, problems);
   checkReconciliation(data, problems);

@@ -21,7 +21,7 @@ import { useBoolean } from 'src/hooks/use-boolean';
 import { downloadText } from 'src/utils/download';
 
 import { useAccounting, useContactLookup } from 'src/store';
-import { inPeriod, buildETaxXml, calcDocument, isTaxDocument, formatThaiDate } from 'src/domain';
+import { eTaxDocs, inPeriod, buildETaxXml, formatThaiDate, buildReceiptETaxXml } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -34,15 +34,18 @@ import { MarkUploadedDialog } from './mark-uploaded-dialog';
 
 // ----------------------------------------------------------------------
 
-/** e-Tax ของงวด: ดาวน์โหลด XML ที่รอนำส่ง และบันทึกว่านำส่งแล้ว (ยืนยันก่อน) — เฉพาะเอกสารภาษี */
+/**
+ * e-Tax ของงวด: ดาวน์โหลด XML ที่รอนำส่ง และบันทึกว่านำส่งแล้ว (ยืนยันก่อน) — เฉพาะเอกสารภาษี
+ * รวมใบเสร็จรับเงิน/ใบกำกับภาษีของงานบริการ (ตามวันที่รับเงิน)
+ */
 export function ETaxTab({ period }: { period: Period }) {
   const { data } = useAccounting();
   const contacts = useContactLookup();
   const markDialog = useBoolean();
 
   const docs = useMemo(
-    () => data.sales.filter((s) => s.etax !== 'not-required' && isTaxDocument(s) && inPeriod(s.date, period)).sort((a, b) => a.docNo.localeCompare(b.docNo)),
-    [data.sales, period]
+    () => eTaxDocs(data).filter((d) => inPeriod(d.date, period)).sort((a, b) => a.docNo.localeCompare(b.docNo)),
+    [data, period]
   );
   const waiting = docs.filter((d) => d.etax === 'signed' || d.etax === 'pending-sign');
   const signed = waiting.filter((d) => d.etax === 'signed');
@@ -50,13 +53,25 @@ export function ETaxTab({ period }: { period: Period }) {
   const downloadAll = () => {
     const files: { name: string; xml: string }[] = [];
     const failed: string[] = [];
-    waiting.forEach((doc) => {
-      const referenced = doc.refDocId ? data.sales.find((s) => s.id === doc.refDocId) : undefined;
+    waiting.forEach((row) => {
+      const buyer = contacts.get(row.contactId);
       try {
-        const xml = buildETaxXml({ doc, company: data.company, buyer: contacts.get(doc.contactId), referenced });
-        files.push({ name: `${doc.docNo}.xml`, xml });
+        let xml: string;
+        if (row.source === 'receipt') {
+          const receipt = data.receipts.find((r) => r.id === row.id);
+          const invoice = receipt && data.sales.find((s) => s.id === receipt.invoiceId);
+          if (!receipt || !invoice) throw new Error(`${row.docNo} ไม่พบใบแจ้งหนี้ที่อ้างถึง`);
+          xml = buildReceiptETaxXml({ receipt, invoice, company: data.company, buyer });
+        } else {
+          const doc = data.sales.find((s) => s.id === row.id);
+          if (!doc) throw new Error(`${row.docNo} ไม่พบเอกสาร`);
+          const referenced = doc.refDocId ? data.sales.find((s) => s.id === doc.refDocId) : undefined;
+          const referencedReceipt = doc.refReceiptId ? data.receipts.find((r) => r.id === doc.refReceiptId) : undefined;
+          xml = buildETaxXml({ doc, company: data.company, buyer, referenced, referencedReceipt });
+        }
+        files.push({ name: `${row.docNo}.xml`, xml });
       } catch (error) {
-        failed.push(error instanceof Error ? error.message : doc.docNo);
+        failed.push(error instanceof Error ? error.message : row.docNo);
       }
     });
     // เว้นจังหวะเล็กน้อยให้ browser ยอมดาวน์โหลดหลายไฟล์
@@ -101,14 +116,19 @@ export function ETaxTab({ period }: { period: Period }) {
               {docs.map((d) => (
                 <TableRow key={d.id} hover>
                   <TableCell>
-                    <Typography variant="subtitle2" component={RouterLink} href={paths.sales.view(d.id)} sx={{ color: 'inherit' }}>
+                    <Typography
+                      variant="subtitle2"
+                      component={RouterLink}
+                      href={d.source === 'receipt' ? paths.sales.receipt(d.id) : paths.sales.view(d.id)}
+                      sx={{ color: 'inherit' }}
+                    >
                       {d.docNo}
                     </Typography>
                   </TableCell>
                   <TableCell>{formatThaiDate(d.date)}</TableCell>
                   <TableCell>{contacts.name(d.contactId)}</TableCell>
                   <TableCell align="right">
-                    <Money value={calcDocument(d).total} />
+                    <Money value={d.total} />
                   </TableCell>
                   <TableCell>
                     <ETaxLabel status={d.etax} />

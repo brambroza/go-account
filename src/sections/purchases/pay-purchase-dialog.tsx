@@ -25,13 +25,13 @@ import {
   todayISO,
   periodOf,
   periodLabel,
-  calcDocument,
   formatThaiDate,
   whtSummaryLabel,
-  purchaseWhtGroups,
   planPurchasePayment,
   purchaseOutstanding,
+  purchaseAdjustedTotal,
   whtSmallPaymentWarning,
+  purchaseAdjustedWhtGroups,
 } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
@@ -73,8 +73,9 @@ export function PayPurchaseDialog({ open, onClose, doc }: Props) {
   }, [data, doc, amount, outstanding]);
 
   if (!doc) return null;
-  const {total} = calcDocument(doc);
-  const groups = purchaseWhtGroups(doc);
+  // หลังใบลดหนี้ผู้ขาย: ยอดเอกสารและฐานหัก ณ ที่จ่ายลดตามสัดส่วน (domain)
+  const total = purchaseAdjustedTotal(data, doc);
+  const groups = purchaseAdjustedWhtGroups(data, doc);
   const hasWht = !!plan && toSatang(plan.whtAmount) > 0;
   const smallPayment = plan ? whtSmallPaymentWarning(plan) : null;
   const pndForm = contacts.get(doc.contactId)?.legalForm === 'individual' ? 'ภ.ง.ด.3' : 'ภ.ง.ด.53';

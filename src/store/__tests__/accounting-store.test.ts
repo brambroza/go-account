@@ -35,6 +35,20 @@ describe('accounting store', () => {
     expect(JSON.parse(storage.map.get(STORAGE_KEY) ?? '{}').version).toBe(DATA_VERSION);
   });
 
+  it('resetEmpty keeps company, chart of accounts and contacts but clears every document (before opening balances)', () => {
+    const storage = memoryStorage();
+    const store = newStore(storage);
+    const before = store.getSnapshot().data;
+    store.resetEmpty();
+    const after = store.getSnapshot().data;
+    expect(after.company).toEqual({ ...before.company, lockedThrough: undefined });
+    expect(after.contacts).toEqual(before.contacts);
+    expect(after.accounts).toEqual(before.accounts);
+    expect([after.sales, after.receipts, after.purchases, after.journal, after.purchaseCredits, after.yearCloses]).toEqual([[], [], [], [], [], []]);
+    expect(after.sequences).toEqual({});
+    expect(JSON.parse(storage.map.get(STORAGE_KEY) ?? '{}').sales).toEqual([]);
+  });
+
   it('runs consecutive mutations on the latest state, not a stale closure', () => {
     const storage = memoryStorage();
     const store = newStore(storage);

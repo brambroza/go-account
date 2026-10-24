@@ -17,6 +17,8 @@ export const ACC = {
   /** เงินรอคืนลูกค้า — ใบลดหนี้หลังลูกค้าจ่ายเงินแล้ว (หนี้สิน) */
   customerCredit: '2120',
   outputVat: '2150',
+  /** ภาษีขายของงานบริการที่ยังไม่ได้รับชำระ (ม.78/1) — ย้ายเข้า 2150 เมื่อออกใบเสร็จรับเงิน/ใบกำกับภาษี */
+  deferredOutputVat: '2151',
   whtPayable: '2160',
   vatPayable: '2170',
   capital: '3100',
@@ -67,6 +69,13 @@ export const DEFAULT_ACCOUNTS: Account[] = [
   },
   { code: ACC.outputVat, name: 'ภาษีขาย', nameEn: 'Output VAT', type: 'liability', system: true },
   {
+    code: ACC.deferredOutputVat,
+    name: 'ภาษีขายยังไม่ถึงกำหนดชำระ (งานบริการ)',
+    nameEn: 'Deferred output VAT (services)',
+    type: 'liability',
+    system: true,
+  },
+  {
     code: ACC.whtPayable,
     name: 'ภาษีหัก ณ ที่จ่ายค้างจ่าย',
     nameEn: 'Withholding tax payable',
@@ -103,6 +112,7 @@ export const CONTROL_ACCOUNTS: readonly string[] = [
   ACC.payable,
   ACC.customerCredit,
   ACC.outputVat,
+  ACC.deferredOutputVat,
   ACC.whtPayable,
 ];
 

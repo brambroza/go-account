@@ -23,6 +23,7 @@ import { useAccounting, useAccountLookup } from 'src/store';
 import {
   todayISO,
   entryTotals,
+  balanceSheet,
   trialBalance,
   profitAndLoss,
   formatThaiDate,
@@ -39,11 +40,13 @@ import { useTable, rowInPage, TablePaginationCustom } from 'src/components/table
 
 import { Money } from 'src/sections/shared';
 
+import { CloseYearDialog } from './close-year-dialog';
 import { ManualEntryDialog } from './manual-entry-dialog';
+import { BalanceSheetReport } from './balance-sheet-report';
 
 // ----------------------------------------------------------------------
 
-type TabValue = 'journal' | 'tb' | 'pl' | 'accounts';
+type TabValue = 'journal' | 'tb' | 'pl' | 'bs' | 'accounts';
 
 const SOURCE_LABEL: Record<JournalSource, string> = {
   sales: 'ขาย',
@@ -54,6 +57,9 @@ const SOURCE_LABEL: Record<JournalSource, string> = {
   payment: 'จ่ายชำระ',
   refund: 'คืนเงินลูกค้า',
   'vat-close': 'ปิดภาษีเดือน',
+  'purchase-credit-note': 'ลดหนี้จากผู้ขาย',
+  'year-close': 'ปิดบัญชีสิ้นปี',
+  opening: 'ยอดยกมา',
   manual: 'ปรับปรุง',
 };
 
@@ -61,6 +67,7 @@ export function LedgerView() {
   const { data } = useAccounting();
   const accounts = useAccountLookup();
   const manual = useBoolean();
+  const closeYearDialog = useBoolean();
   const [tab, setTab] = useState<TabValue>('journal');
   const today = todayISO();
   const [from, setFrom] = useState(`${today.slice(0, 4)}-01-01`);
@@ -74,6 +81,7 @@ export function LedgerView() {
   const tb = useMemo(() => trialBalance(data.accounts, data.journal, to), [data.accounts, data.journal, to]);
   const tbTotals = useMemo(() => trialBalanceTotals(tb), [tb]);
   const pl = useMemo(() => profitAndLoss(data.accounts, data.journal, from, to), [data.accounts, data.journal, from, to]);
+  const bs = useMemo(() => balanceSheet(data.accounts, data.journal, to), [data.accounts, data.journal, to]);
 
   const dateRange = (
     <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
@@ -90,9 +98,14 @@ export function LedgerView() {
         heading="สมุดบัญชี / งบ"
         links={[{ name: 'หน้าแรก', href: paths.dashboard }, { name: 'สมุดบัญชี' }]}
         action={
-          <Button variant="contained" startIcon={<Iconify icon="mingcute:add-line" />} onClick={manual.onTrue}>
-            รายการปรับปรุง
-          </Button>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Button variant="outlined" color="warning" startIcon={<Iconify icon="solar:lock-keyhole-bold" />} onClick={closeYearDialog.onTrue}>
+              ปิดบัญชีสิ้นปี
+            </Button>
+            <Button variant="contained" startIcon={<Iconify icon="mingcute:add-line" />} onClick={manual.onTrue}>
+              รายการปรับปรุง
+            </Button>
+          </Stack>
         }
         sx={{ mb: { xs: 3, md: 4 } }}
       />
@@ -102,6 +115,7 @@ export function LedgerView() {
           <Tab value="journal" label="สมุดรายวัน" />
           <Tab value="tb" label="งบทดลอง" />
           <Tab value="pl" label="กำไรขาดทุน" />
+          <Tab value="bs" label="งบแสดงฐานะการเงิน" />
           <Tab value="accounts" label="ผังบัญชี" />
         </CustomTabs>
 
@@ -250,6 +264,19 @@ export function LedgerView() {
             </>
           )}
 
+          {tab === 'bs' && (
+            <>
+              <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+                <TextField type="date" size="small" label="ณ วันที่" value={to} onChange={(e) => setTo(e.target.value)} InputLabelProps={{ shrink: true }} />
+                <Box sx={{ flexGrow: 1 }} />
+                <Button variant="outlined" startIcon={<Iconify icon="solar:printer-minimalistic-bold" />} onClick={() => window.print()}>
+                  พิมพ์
+                </Button>
+              </Stack>
+              <BalanceSheetReport report={bs} companyName={data.company.name} />
+            </>
+          )}
+
           {tab === 'accounts' && (
             <Scrollbar>
               <Table size="small" sx={{ minWidth: 560 }}>
@@ -283,6 +310,7 @@ export function LedgerView() {
       </Card>
 
       <ManualEntryDialog open={manual.value} onClose={manual.onFalse} />
+      <CloseYearDialog open={closeYearDialog.value} onClose={closeYearDialog.onFalse} />
     </>
   );
 }

@@ -15,6 +15,7 @@ import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 
 import { paths } from 'src/routes/paths';
+import { RouterLink } from 'src/routes/components';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
@@ -39,6 +40,7 @@ import { ResetDemoDialog } from './reset-demo-dialog';
 export function SettingsView() {
   const { data, run, readBackup } = useAccounting();
   const confirmReset = useBoolean();
+  const confirmEmpty = useBoolean();
   const [restoreFile, setRestoreFile] = useState<{ name: string; result: LoadResult } | null>(null);
   const c = data.company;
 
@@ -197,11 +199,29 @@ export function SettingsView() {
               </Button>
             </Stack>
           </Card>
+
+          <Card sx={{ mt: 3 }}>
+            <CardHeader title="ย้ายจากระบบเดิม (Express)" subheader="ยอดยกมา: บัญชีแยกประเภท ลูกหนี้/เจ้าหนี้คงค้างรายใบ ภาษีชำระเกิน" />
+            <Stack spacing={1.5} sx={{ p: 3 }}>
+              <Button
+                variant="outlined"
+                component={RouterLink}
+                href={paths.opening}
+                startIcon={<Iconify icon="solar:import-bold" />}
+              >
+                {data.openingBalance ? 'ดู / แก้ยอดยกมา' : 'บันทึกยอดยกมา'}
+              </Button>
+              <Button color="error" onClick={confirmEmpty.onTrue}>
+                ล้างเอกสารทั้งหมดเพื่อเริ่มยกยอด
+              </Button>
+            </Stack>
+          </Card>
         </Grid>
       </Grid>
 
       <RestoreDialog file={restoreFile} onClose={() => setRestoreFile(null)} />
       <ResetDemoDialog open={confirmReset.value} onClose={confirmReset.onFalse} />
+      <ResetDemoDialog open={confirmEmpty.value} onClose={confirmEmpty.onFalse} mode="empty" />
     </>
   );
 }

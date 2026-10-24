@@ -1,6 +1,6 @@
 import { isValidThaiTaxId } from './thai-tax-id';
 
-import type { Contact, SalesDoc } from './types';
+import type { Contact, Receipt, SalesDoc } from './types';
 
 // ----------------------------------------------------------------------
 // ชนิด/ชื่อเอกสารขาย — บริษัทไม่จด VAT ห้ามออก "ใบกำกับภาษี" (ม.86/13, โทษ ม.90/4)
@@ -11,12 +11,38 @@ export function isTaxDocument(doc: Pick<SalesDoc, 'isTaxInvoice' | 'vatMode'>): 
   return doc.isTaxInvoice ?? doc.vatMode !== 'none';
 }
 
+/** เอกสารคิด VAT หรือไม่ (มีบรรทัดภาษีบนเอกสาร) — ใบแจ้งหนี้งานบริการคิด VAT แต่ยังไม่ใช่ใบกำกับภาษี */
+export function chargesVat(doc: Pick<SalesDoc, 'vatMode' | 'vatRate'>): boolean {
+  return doc.vatMode !== 'none' && doc.vatRate > 0;
+}
+
+/**
+ * เอกสารที่ภาษีขายยังไม่ถึงกำหนด (ม.78/1): ใบแจ้งหนี้งานบริการของบริษัทจด VAT และใบลดหนี้ของใบนั้นก่อนรับเงินครบ
+ * VAT ลงบัญชี 2151 ภาษีขายยังไม่ถึงกำหนด ไม่เข้ารายงานภาษีขาย
+ */
+export function isDeferredVatDoc(doc: Pick<SalesDoc, 'saleType' | 'isTaxInvoice' | 'vatMode' | 'vatRate'>): boolean {
+  return doc.saleType === 'service' && !isTaxDocument(doc) && chargesVat(doc);
+}
+
+/** ใบแจ้งหนี้งานบริการที่ภาษีขายเกิดเมื่อรับชำระ (รับเงินแล้วออกใบเสร็จรับเงิน/ใบกำกับภาษี RT) */
+export function isServiceInvoice(doc: Pick<SalesDoc, 'kind' | 'saleType' | 'isTaxInvoice' | 'vatMode' | 'vatRate'>): boolean {
+  return doc.kind === 'tax-invoice' && isDeferredVatDoc(doc);
+}
+
 /** ชื่อเอกสารที่ต้องพิมพ์บนหัวกระดาษ */
-export function salesDocTitle(doc: Pick<SalesDoc, 'kind' | 'isTaxInvoice' | 'vatMode'>): string {
+export function salesDocTitle(doc: Pick<SalesDoc, 'kind' | 'isTaxInvoice' | 'vatMode'> & Partial<Pick<SalesDoc, 'saleType' | 'vatRate'>>): string {
   const tax = isTaxDocument(doc);
   if (doc.kind === 'credit-note') return tax ? 'ใบลดหนี้/ใบกำกับภาษี' : 'ใบลดหนี้';
   if (doc.kind === 'debit-note') return tax ? 'ใบเพิ่มหนี้/ใบกำกับภาษี' : 'ใบเพิ่มหนี้';
-  return tax ? 'ใบกำกับภาษี/ใบแจ้งหนี้' : 'ใบแจ้งหนี้/ใบเสร็จรับเงิน';
+  if (tax) return 'ใบกำกับภาษี/ใบแจ้งหนี้';
+  // งานบริการของบริษัทจด VAT: ใบแจ้งหนี้อย่างเดียว — ใบเสร็จรับเงิน/ใบกำกับภาษีออกตอนรับเงิน
+  if (doc.saleType === 'service' && doc.vatMode !== 'none' && (doc.vatRate ?? 0) > 0) return 'ใบแจ้งหนี้';
+  return 'ใบแจ้งหนี้/ใบเสร็จรับเงิน';
+}
+
+/** ชื่อใบรับเงิน: ใบเสร็จรับเงิน/ใบกำกับภาษี (งานบริการ) หรือใบเสร็จรับเงิน */
+export function receiptTitle(receipt: Pick<Receipt, 'isTaxInvoice'>): string {
+  return receipt.isTaxInvoice ? 'ใบเสร็จรับเงิน/ใบกำกับภาษี' : 'ใบเสร็จรับเงิน';
 }
 
 /** ใบลดหนี้หรือใบเพิ่มหนี้ (เอกสารปรับปรุงที่อ้างใบกำกับเดิม) */

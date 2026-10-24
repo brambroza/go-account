@@ -35,16 +35,25 @@ function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K
   return copy;
 }
 
+/** แปลงข้อมูลปัจจุบัน (v5) กลับเป็นโครง v4 — ไม่มีใบลดหนี้ผู้ขาย / ปิดปี / ยอดยกมา / บัญชี 2151 */
+export function toV4(data: AccountingData): Record<string, unknown> {
+  return {
+    ...omit(data, ['purchaseCredits', 'yearCloses', 'openingBalance']),
+    version: 4,
+    accounts: data.accounts.filter((a) => a.code !== ACC.deferredOutputVat),
+  };
+}
+
 /**
- * แปลงข้อมูลปัจจุบัน (v4) กลับเป็นโครง v3 — หัก ณ ที่จ่ายระดับเอกสาร + ข้อมูลการจ่ายครั้งเดียวในเอกสารซื้อ
+ * แปลงข้อมูลปัจจุบัน (v5) กลับเป็นโครง v3 — หัก ณ ที่จ่ายระดับเอกสาร + ข้อมูลการจ่ายครั้งเดียวในเอกสารซื้อ
  * (ใช้ได้กับข้อมูลที่ทุกเอกสารซื้อมีหัก ณ ที่จ่ายประเภทเดียวและจ่ายครั้งเดียว เช่นข้อมูลตัวอย่าง)
  */
 export function toV3(data: AccountingData): Record<string, unknown> {
   const pvByPurchase = new Map(data.payments.map((p) => [p.purchaseId, p]));
   return {
-    ...omit(data, ['vatCloses']),
+    ...omit(data, ['vatCloses', 'purchaseCredits', 'yearCloses', 'openingBalance']),
     version: 3,
-    accounts: data.accounts.filter((a) => a.code !== ACC.vatCredit),
+    accounts: data.accounts.filter((a) => a.code !== ACC.vatCredit && a.code !== ACC.deferredOutputVat),
     sales: data.sales.map((s) => omit(s, ['originalNet', 'correctNet'])),
     purchases: data.purchases.map((p) => {
       const pv = pvByPurchase.get(p.id);
@@ -79,7 +88,9 @@ export function toV1(data: AccountingData): Record<string, unknown> {
   return {
     version: 1,
     company: { ...data.company },
-    accounts: data.accounts.filter((a) => a.code !== ACC.customerCredit && a.code !== ACC.vatCredit),
+    accounts: data.accounts.filter(
+      (a) => a.code !== ACC.customerCredit && a.code !== ACC.vatCredit && a.code !== ACC.deferredOutputVat
+    ),
     contacts: data.contacts,
     sales: data.sales.map((s) => omit(s, ['seller', 'buyer', 'isTaxInvoice', 'creditToCustomer', 'originalNet', 'correctNet'])),
     receipts: data.receipts.map((r) => omit(r, ['seller', 'buyer'])),

@@ -63,10 +63,14 @@ const DocLineSchema = zod.object({
 
 const vatMode = zod.enum(['exclusive', 'inclusive', 'none']);
 
+const etaxStatus = zod.enum(['not-required', 'pending-sign', 'signed', 'uploaded']);
+
 const SalesDocSchema = zod.object({
   id: zod.string(),
   kind: zod.enum(['tax-invoice', 'credit-note', 'debit-note']),
   isTaxInvoice: zod.boolean().optional(),
+  saleType: zod.enum(['goods', 'service']).optional(),
+  opening: zod.boolean().optional(),
   docNo: zod.string(),
   date: isoDate,
   dueDate: isoDate,
@@ -75,6 +79,8 @@ const SalesDocSchema = zod.object({
   vatMode,
   vatRate: zod.number().finite(),
   refDocId: zod.string().optional(),
+  refReceiptId: zod.string().optional(),
+  deferredVatRounding: money.optional(),
   reason: zod.string().optional(),
   originalNet: money.optional(),
   correctNet: money.optional(),
@@ -82,7 +88,7 @@ const SalesDocSchema = zod.object({
   note: zod.string().optional(),
   status: zod.enum(['issued', 'partial', 'paid', 'cancelled']),
   paidAmount: money,
-  etax: zod.enum(['not-required', 'pending-sign', 'signed', 'uploaded']),
+  etax: etaxStatus,
   etaxUploadedAt: zod.string().optional(),
   etaxReference: zod.string().optional(),
   seller: CompanySnapshotSchema.optional(),
@@ -100,6 +106,11 @@ const ReceiptSchema = zod.object({
   amount: money,
   whtAmount: money,
   depositAccountCode: zod.string(),
+  isTaxInvoice: zod.boolean().optional(),
+  vat: money.optional(),
+  etax: etaxStatus.optional(),
+  etaxUploadedAt: zod.string().optional(),
+  etaxReference: zod.string().optional(),
   seller: CompanySnapshotSchema.optional(),
   buyer: PartySnapshotSchema.optional(),
   journalId: zod.string(),
@@ -120,6 +131,7 @@ const WhtLineItemSchema = zod.object({
 const PurchaseDocSchema = zod.object({
   id: zod.string(),
   docNo: zod.string(),
+  opening: zod.boolean().optional(),
   supplierInvoiceNo: zod.string(),
   supplierInvoiceDate: isoDate.optional(),
   date: isoDate,
@@ -166,6 +178,47 @@ const VatCloseSchema = zod.object({
   journalId: zod.string().optional(),
 });
 
+const PurchaseCreditNoteSchema = zod.object({
+  id: zod.string(),
+  docNo: zod.string(),
+  supplierCreditNoteNo: zod.string(),
+  supplierCreditNoteDate: isoDate,
+  date: isoDate,
+  purchaseId: zod.string(),
+  contactId: zod.string(),
+  lines: zod.array(DocLineSchema),
+  vatMode,
+  vatRate: zod.number().finite(),
+  claimVat: zod.boolean(),
+  vatClaimPeriod: monthKey.optional(),
+  reason: zod.string(),
+  supplier: PartySnapshotSchema.optional(),
+  journalId: zod.string(),
+  createdAt: zod.string(),
+});
+
+const YearCloseSchema = zod.object({
+  id: zod.string(),
+  fiscalYearEnd: isoDate,
+  netProfit: money,
+  journalId: zod.string().optional(),
+});
+
+const JournalLineSchema = zod.object({
+  accountCode: zod.string(),
+  description: zod.string().optional(),
+  debit: money,
+  credit: money,
+});
+
+const OpeningBalanceSchema = zod.object({
+  date: isoDate,
+  journalId: zod.string(),
+  lines: zod.array(JournalLineSchema),
+  vatCredit: money,
+  whtReceivable: money,
+});
+
 const CustomerRefundSchema = zod.object({
   id: zod.string(),
   docNo: zod.string(),
@@ -183,17 +236,23 @@ const JournalEntrySchema = zod.object({
   docNo: zod.string(),
   date: isoDate,
   description: zod.string(),
-  source: zod.enum(['sales', 'credit-note', 'debit-note', 'receipt', 'purchase', 'payment', 'refund', 'vat-close', 'manual']),
+  source: zod.enum([
+    'sales',
+    'credit-note',
+    'debit-note',
+    'receipt',
+    'purchase',
+    'payment',
+    'refund',
+    'vat-close',
+    'purchase-credit-note',
+    'year-close',
+    'opening',
+    'manual',
+  ]),
   sourceId: zod.string().optional(),
   sourceDocNo: zod.string().optional(),
-  lines: zod.array(
-    zod.object({
-      accountCode: zod.string(),
-      description: zod.string().optional(),
-      debit: money,
-      credit: money,
-    })
-  ),
+  lines: zod.array(JournalLineSchema),
 });
 
 export const AccountingDataSchema: zod.ZodType<AccountingData, zod.ZodTypeDef, unknown> = zod.object({
@@ -241,6 +300,9 @@ export const AccountingDataSchema: zod.ZodType<AccountingData, zod.ZodTypeDef, u
   payments: zod.array(PaymentSchema),
   refunds: zod.array(CustomerRefundSchema),
   vatCloses: zod.array(VatCloseSchema),
+  purchaseCredits: zod.array(PurchaseCreditNoteSchema),
+  yearCloses: zod.array(YearCloseSchema),
+  openingBalance: OpeningBalanceSchema.optional(),
   journal: zod.array(JournalEntrySchema),
   sequences: zod.record(zod.number().int().nonnegative()),
   legacyOrderThrough: isoDate.optional(),

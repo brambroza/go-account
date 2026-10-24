@@ -1,10 +1,10 @@
-import { formatPlain } from './money';
 import { isTaxDocument } from './sales-doc';
+import { subBaht, formatPlain } from './money';
 import { lineAmount, calcDocument } from './document-calc';
 import { resolveParty, partyDisplayName } from './snapshot';
 import { normalizeTaxId, normalizeBranch5 } from './thai-tax-id';
 
-import type { Address, Company, Contact, SalesDoc } from './types';
+import type { Address, Company, Contact, Receipt, SalesDoc, PartySnapshot, CompanySnapshot } from './types';
 
 // ----------------------------------------------------------------------
 // สร้าง XML ใบกำกับภาษีอิเล็กทรอนิกส์ตามโครงสร้าง ETDA ขมธอ. 3-2560
@@ -34,6 +34,18 @@ const ETAX_TYPE_NAME = {
   'credit-note': 'ใบลดหนี้',
   'debit-note': 'ใบเพิ่มหนี้',
 } as const;
+
+/**
+ * ใบเสร็จรับเงิน/ใบกำกับภาษี (งานบริการ ม.78/1) = T03 ตามตารางรหัสประเภทเอกสาร ETDA
+ * ⚠️ ยืนยันรหัส T03 และโครงสร้างที่ต้องมี (เช่น การอ้างใบแจ้งหนี้) กับ ขมธอ.3-2560 ฉบับล่าสุดก่อนใช้งานจริง
+ */
+export const ETAX_RECEIPT_TYPE_CODE = 'T03';
+
+/**
+ * รหัสอ้างอิงใบแจ้งหนี้ใน AdditionalReferencedDocument ของใบเสร็จรับเงิน/ใบกำกับภาษี (UN/CEFACT 1001: 380 = Commercial invoice)
+ * ⚠️ ยังไม่ได้ยืนยันกับ ETDA ว่าใช้ 380 หรือรหัสอื่นสำหรับใบแจ้งหนี้ที่ไม่ใช่ใบกำกับภาษี
+ */
+export const ETAX_INVOICE_REF_CODE = '380';
 
 /**
  * รหัสเหตุผลการออกใบลด/เพิ่มหนี้ — ใช้ "เหตุอื่น" ของสินค้า (CDNG99 / DBNG99) พร้อมข้อความเหตุผลจริงใน Purpose
@@ -101,6 +113,8 @@ export type ETaxXmlInput = {
   buyer?: Contact;
   /** ใบลดหนี้/ใบเพิ่มหนี้: ใบกำกับเดิม */
   referenced?: SalesDoc;
+  /** ใบลดหนี้ของงานบริการ (หลังรับเงินครบ): ใบเสร็จรับเงิน/ใบกำกับภาษีที่อ้างถึง (แทนใบแจ้งหนี้) */
+  referencedReceipt?: Receipt;
   /** เวลาสร้างไฟล์ (ISO) */
   createdAt?: string;
 };
@@ -109,7 +123,7 @@ export type ETaxXmlInput = {
  * สร้าง XML ของเอกสาร — ผู้ขาย/ผู้ซื้ออ่านจาก snapshot ณ วันออกเอกสาร
  * throw ถ้าไม่ใช่เอกสารภาษี (บริษัทไม่จด VAT) หรือไม่มีข้อมูลผู้ซื้อ
  */
-export function buildETaxXml({ doc, company, buyer, referenced, createdAt }: ETaxXmlInput): string {
+export function buildETaxXml({ doc, company, buyer, referenced, referencedReceipt, createdAt }: ETaxXmlInput): string {
   if (!isTaxDocument(doc)) throw new Error(`${doc.docNo} ไม่ใช่ใบกำกับภาษี — ไม่ต้องออก e-Tax`);
   const party = resolveParty(doc.buyer, buyer);
   if (!party) throw new Error(`${doc.docNo} ไม่มีข้อมูลผู้ซื้อ`);
@@ -142,16 +156,10 @@ export function buildETaxXml({ doc, company, buyer, referenced, createdAt }: ETa
     .join('');
 
   const adjustment = doc.kind === 'credit-note' || doc.kind === 'debit-note' ? doc.kind : null;
-  const referencedXml =
-    adjustment && referenced
-      ? [
-          '<ram:AdditionalReferencedDocument>',
-          el('IssuerAssignedID', referenced.docNo),
-          el('IssueDateTime', `${referenced.date}T00:00:00`),
-          el('ReferenceTypeCode', ETAX_TYPE_CODE[referenced.kind]),
-          '</ram:AdditionalReferencedDocument>',
-        ].join('')
-      : '';
+  const ref = referencedReceipt
+    ? { docNo: referencedReceipt.docNo, date: referencedReceipt.date, code: ETAX_RECEIPT_TYPE_CODE }
+    : referenced && { docNo: referenced.docNo, date: referenced.date, code: ETAX_TYPE_CODE[referenced.kind] };
+  const referencedXml = adjustment && ref ? referencedDocXml(ref) : '';
 
   const purposeXml = adjustment
     ? `${el('Purpose', doc.reason || ETAX_TYPE_NAME[adjustment])}${el('PurposeCode', ETAX_PURPOSE_CODE[adjustment])}`
@@ -212,6 +220,96 @@ export function buildETaxXml({ doc, company, buyer, referenced, createdAt }: ETa
     '</ram:SpecifiedTradeSettlementHeaderMonetarySummation>',
     '</ram:ApplicableHeaderTradeSettlement>',
     lineItems,
+    '</rsm:SupplyChainTradeTransaction>',
+    '</rsm:TaxInvoice_CrossIndustryInvoice>',
+  ].join('\n');
+}
+
+function referencedDocXml(ref: { docNo: string; date: string; code: string }): string {
+  return [
+    '<ram:AdditionalReferencedDocument>',
+    el('IssuerAssignedID', ref.docNo),
+    el('IssueDateTime', `${ref.date}T00:00:00`),
+    el('ReferenceTypeCode', ref.code),
+    '</ram:AdditionalReferencedDocument>',
+  ].join('');
+}
+
+export type ReceiptETaxXmlInput = {
+  receipt: Receipt;
+  /** ใบแจ้งหนี้งานบริการที่รับชำระ */
+  invoice: SalesDoc;
+  company: Company;
+  buyer?: Contact;
+  createdAt?: string;
+};
+
+/**
+ * XML ใบเสร็จรับเงิน/ใบกำกับภาษี (T03) ของการรับเงินงานบริการ 1 ครั้ง — มูลค่า = ส่วนที่รับครั้งนี้
+ * (ก่อน VAT = ยอดรับ − VAT ของการรับครั้งนี้) 1 บรรทัดอ้างใบแจ้งหนี้ และอ้างใบแจ้งหนี้ใน AdditionalReferencedDocument
+ * ⚠️ ไฟล์ยังไม่ลงลายมือชื่อ และต้องตรวจกับ XSD ของ ETDA ก่อนใช้งานจริง (ดู `ETAX_RECEIPT_TYPE_CODE`)
+ */
+export function buildReceiptETaxXml({ receipt, invoice, company, buyer, createdAt }: ReceiptETaxXmlInput): string {
+  if (!receipt.isTaxInvoice) throw new Error(`${receipt.docNo} ไม่ใช่ใบเสร็จรับเงิน/ใบกำกับภาษี — ไม่ต้องออก e-Tax`);
+  const party: PartySnapshot | undefined = resolveParty(receipt.buyer, buyer);
+  if (!party) throw new Error(`${receipt.docNo} ไม่มีข้อมูลผู้ซื้อ`);
+  const seller: CompanySnapshot | Company = receipt.seller ?? company;
+  const vat = receipt.vat ?? 0;
+  const net = subBaht(receipt.amount, vat);
+  const rate = invoice.vatRate;
+  const line = [
+    '<ram:IncludedSupplyChainTradeLineItem>',
+    `<ram:AssociatedDocumentLineDocument>${el('LineID', 1)}</ram:AssociatedDocumentLineDocument>`,
+    `<ram:SpecifiedTradeProduct>${el('Name', `รับชำระค่าบริการตามใบแจ้งหนี้ ${invoice.docNo}`)}</ram:SpecifiedTradeProduct>`,
+    '<ram:SpecifiedLineTradeAgreement>',
+    `<ram:GrossPriceProductTradePrice>${el('ChargeAmount', formatPlain(net))}</ram:GrossPriceProductTradePrice>`,
+    '</ram:SpecifiedLineTradeAgreement>',
+    `<ram:SpecifiedLineTradeDelivery>${el('BilledQuantity', 1, 'unitCode="C62"')}</ram:SpecifiedLineTradeDelivery>`,
+    '<ram:SpecifiedLineTradeSettlement>',
+    `<ram:ApplicableTradeTax>${el('TypeCode', 'VAT')}${el('CalculatedRate', formatPlain(rate))}</ram:ApplicableTradeTax>`,
+    `<ram:SpecifiedTradeSettlementLineMonetarySummation>${el('NetLineTotalAmount', formatPlain(net))}</ram:SpecifiedTradeSettlementLineMonetarySummation>`,
+    '</ram:SpecifiedLineTradeSettlement>',
+    '</ram:IncludedSupplyChainTradeLineItem>',
+  ].join('');
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    `<rsm:TaxInvoice_CrossIndustryInvoice xmlns:rsm="${NS_RSM}" xmlns:ram="${NS_RAM}">`,
+    '<rsm:ExchangedDocumentContext>',
+    '<ram:GuidelineSpecifiedDocumentContextParameter>',
+    el('ID', 'ER3-2560', 'schemeAgencyID="ETDA" schemeVersionID="v2.0"'),
+    '</ram:GuidelineSpecifiedDocumentContextParameter>',
+    '</rsm:ExchangedDocumentContext>',
+    '<rsm:ExchangedDocument>',
+    el('ID', receipt.docNo),
+    el('Name', 'ใบเสร็จรับเงิน/ใบกำกับภาษี'),
+    el('TypeCode', ETAX_RECEIPT_TYPE_CODE),
+    el('IssueDateTime', `${receipt.date}T00:00:00`),
+    el('CreationDateTime', createdAt ?? new Date().toISOString().slice(0, 19)),
+    '</rsm:ExchangedDocument>',
+    '<rsm:SupplyChainTradeTransaction>',
+    '<ram:ApplicableHeaderTradeAgreement>',
+    partyXml('SellerTradeParty', seller.name, seller.taxId, seller.branchNo, seller.address, seller.email),
+    partyXml('BuyerTradeParty', partyDisplayName(party), party.taxId, party.branchNo, party.address, party.email),
+    referencedDocXml({ docNo: invoice.docNo, date: invoice.date, code: ETAX_INVOICE_REF_CODE }),
+    '</ram:ApplicableHeaderTradeAgreement>',
+    '<ram:ApplicableHeaderTradeDelivery/>',
+    '<ram:ApplicableHeaderTradeSettlement>',
+    el('InvoiceCurrencyCode', 'THB', 'listID="ISO 4217 3A"'),
+    '<ram:ApplicableTradeTax>',
+    el('TypeCode', 'VAT'),
+    el('CalculatedRate', formatPlain(rate)),
+    el('BasisAmount', formatPlain(net)),
+    el('CalculatedAmount', formatPlain(vat)),
+    '</ram:ApplicableTradeTax>',
+    '<ram:SpecifiedTradeSettlementHeaderMonetarySummation>',
+    el('LineTotalAmount', formatPlain(net)),
+    el('TaxBasisTotalAmount', formatPlain(net)),
+    el('TaxTotalAmount', formatPlain(vat)),
+    el('GrandTotalAmount', formatPlain(receipt.amount)),
+    '</ram:SpecifiedTradeSettlementHeaderMonetarySummation>',
+    '</ram:ApplicableHeaderTradeSettlement>',
+    line,
     '</rsm:SupplyChainTradeTransaction>',
     '</rsm:TaxInvoice_CrossIndustryInvoice>',
   ].join('\n');

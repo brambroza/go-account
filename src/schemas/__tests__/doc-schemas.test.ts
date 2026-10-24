@@ -5,11 +5,14 @@ import {
   CompanySchema,
   ContactSchema,
   PurchaseSchema,
+  CloseYearSchema,
   makeRefundSchema,
   makeReceiptSchema,
   SalesInvoiceSchema,
   makeLockPeriodSchema,
   makePayPurchaseSchema,
+  SupplierCreditNoteSchema,
+  OpeningBalanceFormSchema,
 } from '../accounting/doc-schemas';
 
 // ----------------------------------------------------------------------
@@ -101,5 +104,49 @@ describe('dialog schemas', () => {
     // T8: เดือนที่ยังไม่สิ้นสุด (หรืออนาคต) ปิดไม่ได้
     expect(makeLockPeriodSchema(undefined, '2026-10-24').safeParse({ month: '2026-10-01' }).success).toBe(false);
     expect(makeLockPeriodSchema(undefined, '2026-10-24').safeParse({ month: '2099-12-01' }).success).toBe(false);
+  });
+
+  it('sales invoice: sale type defaults to goods, service accepted (B2)', () => {
+    const base = { contactId: 'c', date: '2026-10-24', dueDate: '2026-11-23', vatMode: 'exclusive', lines: [line] };
+    const parsed = SalesInvoiceSchema.safeParse(base);
+    expect(parsed.success && parsed.data.saleType).toBe('goods');
+    const service = SalesInvoiceSchema.safeParse({ ...base, saleType: 'service' });
+    expect(service.success && service.data.saleType).toBe('service');
+    expect(SalesInvoiceSchema.safeParse({ ...base, saleType: 'rent' }).success).toBe(false);
+  });
+
+  it('supplier credit note: dates and reason (B8)', () => {
+    const base = { supplierCreditNoteNo: 'CN-1', supplierCreditNoteDate: '2026-11-03', date: '2026-11-05', reason: 'คืนสินค้า', lines: [line] };
+    expect(SupplierCreditNoteSchema.safeParse(base).success).toBe(true);
+    expect(SupplierCreditNoteSchema.safeParse({ ...base, supplierCreditNoteDate: '2026-11-06' }).success).toBe(false);
+    expect(SupplierCreditNoteSchema.safeParse({ ...base, reason: ' ' }).success).toBe(false);
+    expect(SupplierCreditNoteSchema.safeParse({ ...base, lines: [] }).success).toBe(false);
+  });
+
+  it('close year: fiscal year end must be a month end (B5)', () => {
+    expect(CloseYearSchema.safeParse({ fiscalYearEnd: '2026-12-31' }).success).toBe(true);
+    expect(CloseYearSchema.safeParse({ fiscalYearEnd: '2026-12-30' }).success).toBe(false);
+    expect(CloseYearSchema.safeParse({ fiscalYearEnd: '' }).success).toBe(false);
+  });
+
+  it('opening balance form: item rules (B5)', () => {
+    const base = {
+      date: '2026-09-30',
+      vatCredit: 0,
+      whtReceivable: 0,
+      receivableControl: 100,
+      payableControl: 50,
+      lines: [{ accountCode: ACC.bank, debit: 50, credit: 0 }],
+      receivables: [{ contactId: 'c', docNo: 'IV-1', date: '2026-09-01', dueDate: '2026-09-30', amount: 100 }],
+      payables: [{ contactId: 'v', docNo: 'P-1', date: '2026-09-01', amount: 50, vatAmount: 0, whtIncomeType: '', whtRate: 0 }],
+    };
+    expect(OpeningBalanceFormSchema.safeParse(base).success).toBe(true);
+    const badDue = { ...base, receivables: [{ ...base.receivables[0], dueDate: '2026-08-01' }] };
+    expect(OpeningBalanceFormSchema.safeParse(badDue).success).toBe(false);
+    const badVat = { ...base, payables: [{ ...base.payables[0], vatAmount: 50 }] };
+    expect(OpeningBalanceFormSchema.safeParse(badVat).success).toBe(false);
+    const noType = { ...base, payables: [{ ...base.payables[0], whtRate: 3 }] };
+    expect(OpeningBalanceFormSchema.safeParse(noType).success).toBe(false);
+    expect(OpeningBalanceFormSchema.safeParse({ ...base, lines: [{ accountCode: ACC.bank, debit: -1, credit: 0 }] }).success).toBe(false);
   });
 });

@@ -23,6 +23,7 @@ import {
   periodOf,
   todayISO,
   periodLabel,
+  eTaxWaiting,
   periodFromKey,
   formatThaiDate,
   endOfPreviousMonth,
@@ -72,7 +73,7 @@ export function LockPeriodDialog({ open, onClose }: Props) {
 
   const notEnded = !!preview && preview > endOfPreviousMonth(todayISO());
   const etaxWaiting = preview
-    ? data.sales.filter((s) => s.date <= preview && (s.etax === 'pending-sign' || s.etax === 'signed')).length
+    ? eTaxWaiting(data).filter((d) => d.date <= preview).length
     : 0;
 
   // รายการปิดภาษีเดือนที่จะเกิดขึ้น — จำลองด้วย action เดียวกัน (pure) เพื่อแสดงก่อนยืนยัน

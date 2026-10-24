@@ -24,6 +24,8 @@ const isoDate = (label: string) =>
 export const SalesInvoiceSchema = zod
   .object({
     contactId: zod.string().min(1, { message: 'เลือกลูกค้า' }),
+    /** ขายสินค้า = ใบกำกับภาษีทันที, งานบริการ = ใบแจ้งหนี้ก่อน (ใบกำกับออกตอนรับเงิน ม.78/1) */
+    saleType: zod.enum(['goods', 'service']).default('goods'),
     date: isoDate('วันที่เอกสาร'),
     dueDate: isoDate('วันครบกำหนด'),
     vatMode: zod.enum(['exclusive', 'inclusive', 'none']),
@@ -41,6 +43,22 @@ export const CreditNoteSchema = zod.object({
 });
 
 export type CreditNoteSchemaType = zod.input<typeof CreditNoteSchema>;
+
+/** ใบลดหนี้จากผู้ขาย — เลขที่ผู้ขาย (บังคับเมื่อเอกสารเดิมขอคืนภาษีซื้อ ตรวจที่ action) วันที่ในใบ ≤ วันที่ได้รับ */
+export const SupplierCreditNoteSchema = zod
+  .object({
+    supplierCreditNoteNo: zod.string(),
+    supplierCreditNoteDate: isoDate('วันที่ในใบลดหนี้ของผู้ขาย'),
+    date: isoDate('วันที่ได้รับ'),
+    reason: zod.string().trim().min(1, { message: 'ระบุเหตุผลการลดหนี้' }),
+    lines: zod.array(DocLineSchema).min(1, { message: 'ต้องมีอย่างน้อย 1 รายการ' }),
+  })
+  .refine((v) => v.supplierCreditNoteDate <= v.date, {
+    message: 'วันที่ในใบลดหนี้ต้องไม่หลังวันที่ได้รับ',
+    path: ['supplierCreditNoteDate'],
+  });
+
+export type SupplierCreditNoteSchemaType = zod.input<typeof SupplierCreditNoteSchema>;
 
 /** บรรทัดเอกสารซื้อ — หัก ณ ที่จ่ายระดับบรรทัด (ไม่หัก = อัตรา 0, สินค้า) */
 export const PurchaseLineSchema = DocLineSchema.extend({
@@ -237,6 +255,58 @@ export function makeLockPeriodSchema(lockedThrough: string | undefined, today: s
 }
 
 export type LockPeriodSchemaType = zod.input<ReturnType<typeof makeLockPeriodSchema>>;
+
+const amount = (label: string) => zod.number({ invalid_type_error: `กรอก${label}` }).min(0, { message: `${label}ติดลบไม่ได้` });
+
+/** ยอดยกมาจากระบบเดิม — กติกาสมดุล/กระทบยอด/บัญชีคุม ตรวจซ้ำที่ `setOpeningBalances` */
+export const OpeningBalanceFormSchema = zod.object({
+  date: isoDate('วันที่ยอดยกมา'),
+  vatCredit: amount('ภาษีชำระเกินยกมา'),
+  whtReceivable: amount('ภาษีถูกหัก ณ ที่จ่าย'),
+  receivableControl: amount('ยอดลูกหนี้ตามงบทดลอง'),
+  payableControl: amount('ยอดเจ้าหนี้ตามงบทดลอง'),
+  lines: zod.array(
+    zod.object({
+      accountCode: zod.string().min(1, { message: 'เลือกบัญชี' }),
+      debit: amount('เดบิต'),
+      credit: amount('เครดิต'),
+    })
+  ),
+  receivables: zod.array(
+    zod
+      .object({
+        contactId: zod.string().min(1, { message: 'เลือกลูกค้า' }),
+        docNo: zod.string().trim().min(1, { message: 'กรอกเลขที่' }),
+        date: isoDate('วันที่เอกสาร'),
+        dueDate: isoDate('วันครบกำหนด'),
+        amount: amount('ยอดค้าง').refine((v) => toSatang(v) > 0, { message: 'ยอดค้างต้องมากกว่า 0' }),
+      })
+      .refine((v) => v.dueDate >= v.date, { message: 'ครบกำหนดก่อนวันที่เอกสาร', path: ['dueDate'] })
+  ),
+  payables: zod.array(
+    zod
+      .object({
+        contactId: zod.string().min(1, { message: 'เลือกผู้ขาย' }),
+        docNo: zod.string().trim().min(1, { message: 'กรอกเลขที่' }),
+        date: isoDate('วันที่เอกสาร'),
+        amount: amount('ยอดค้าง').refine((v) => toSatang(v) > 0, { message: 'ยอดค้างต้องมากกว่า 0' }),
+        vatAmount: amount('VAT'),
+        whtIncomeType: zod.string(),
+        whtRate: zod.number().min(0).max(15, { message: 'ไม่เกิน 15%' }),
+      })
+      .refine((v) => toSatang(v.vatAmount) < toSatang(v.amount), { message: 'VAT ต้องน้อยกว่ายอดค้าง', path: ['vatAmount'] })
+      .refine((v) => !(v.whtRate > 0) || v.whtIncomeType.trim().length > 0, { message: 'เลือกประเภทเงินได้', path: ['whtIncomeType'] })
+  ),
+});
+
+export type OpeningBalanceFormSchemaType = zod.input<typeof OpeningBalanceFormSchema>;
+
+/** ปิดบัญชีสิ้นปี — วันสิ้นรอบบัญชี (กฎละเอียดตรวจที่ `yearCloseProblem` / `closeYear`) */
+export const CloseYearSchema = zod.object({
+  fiscalYearEnd: isoDate('วันสิ้นรอบบัญชี').refine((v) => monthEndOf(v) === v, { message: 'วันสิ้นรอบบัญชีต้องเป็นวันสิ้นเดือน' }),
+});
+
+export type CloseYearSchemaType = zod.input<typeof CloseYearSchema>;
 
 /** บันทึกว่านำส่ง e-Tax แล้ว — เลขอ้างอิงจากระบบสรรพากร (ไม่บังคับ) */
 export const ETaxUploadSchema = zod.object({

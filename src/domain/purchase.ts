@@ -3,7 +3,16 @@ import { normalizeTaxId, isValidThaiTaxId } from './thai-tax-id';
 import { round2, sumBaht, subBaht, toSatang, percentOf, prorateBaht } from './money';
 import { isMonthKey, endOfMonth, monthKeyOf, shiftMonthKey, isValidISODate } from './thai-date';
 
-import type { ISODate, Payment, DocTotals, PurchaseDoc, WhtLineItem, PartySnapshot, AccountingData } from './types';
+import type {
+  ISODate,
+  Payment,
+  DocTotals,
+  PurchaseDoc,
+  WhtLineItem,
+  PartySnapshot,
+  AccountingData,
+  PurchaseCreditNote,
+} from './types';
 
 // ----------------------------------------------------------------------
 // เอกสารซื้อ: สิทธิภาษีซื้อ (ม.82/3, ม.82/5), หัก ณ ที่จ่ายระดับบรรทัด และการแบ่งจ่ายหลายครั้ง
@@ -117,22 +126,65 @@ export function whtSummaryLabel(items: Pick<WhtLineItem, 'incomeType' | 'rate'>[
   return items.map((g) => `${g.incomeType} ${g.rate}%`).join(', ');
 }
 
-// ---------------- การจ่ายชำระ (แบ่งจ่ายได้) ----------------
+// ---------------- การจ่ายชำระ (แบ่งจ่ายได้) และใบลดหนี้จากผู้ขาย ----------------
 
-type PaymentState = Pick<AccountingData, 'payments'>;
+/** ข้อมูลที่ใช้คิดยอดค้างจ่าย — `purchaseCredits` ไม่มี = ไม่มีใบลดหนี้ผู้ขาย (test/ข้อมูลบางส่วน) */
+type PaymentState = Pick<AccountingData, 'payments'> & Partial<Pick<AccountingData, 'purchaseCredits'>>;
 
-export function paymentsOf(state: PaymentState, purchaseId: string): Payment[] {
+export function paymentsOf(state: Pick<AccountingData, 'payments'>, purchaseId: string): Payment[] {
   return state.payments.filter((p) => p.purchaseId === purchaseId);
 }
 
+/** ใบลดหนี้จากผู้ขายที่อ้างเอกสารซื้อนี้ */
+export function purchaseCreditsOf(state: Partial<Pick<AccountingData, 'purchaseCredits'>>, purchaseId: string): PurchaseCreditNote[] {
+  return (state.purchaseCredits ?? []).filter((c) => c.purchaseId === purchaseId);
+}
+
+/** ยอดลดหนี้จากผู้ขายรวม (รวม VAT) ของเอกสารซื้อนี้ */
+export function purchaseCreditedTotal(state: Partial<Pick<AccountingData, 'purchaseCredits'>>, doc: Pick<PurchaseDoc, 'id'>): number {
+  return sumBaht(purchaseCreditsOf(state, doc.id).map((c) => calcDocument(c).total));
+}
+
+/** มูลค่าก่อน VAT และ VAT ของใบลดหนี้ผู้ขายทั้งหมดของเอกสารนี้ */
+export function purchaseCreditedParts(
+  state: Partial<Pick<AccountingData, 'purchaseCredits'>>,
+  doc: Pick<PurchaseDoc, 'id'>
+): { net: number; vat: number } {
+  const t = purchaseCreditsOf(state, doc.id).map((c) => calcDocument(c));
+  return { net: sumBaht(t.map((x) => x.net)), vat: sumBaht(t.map((x) => x.vat)) };
+}
+
+/** ยอดเอกสารหลังหักใบลดหนี้ผู้ขาย (รวม VAT) */
+type CalcPurchase = Pick<PurchaseDoc, 'id' | 'lines' | 'vatMode' | 'vatRate'>;
+
+export function purchaseAdjustedTotal(state: PaymentState, doc: CalcPurchase): number {
+  return subBaht(calcDocument(doc).total, purchaseCreditedTotal(state, doc));
+}
+
 /** ยอดที่จ่ายแล้ว (ตัดเจ้าหนี้ รวม VAT) */
-export function purchasePaidAmount(state: PaymentState, doc: Pick<PurchaseDoc, 'id'>): number {
+export function purchasePaidAmount(state: Pick<AccountingData, 'payments'>, doc: Pick<PurchaseDoc, 'id'>): number {
   return sumBaht(paymentsOf(state, doc.id).map((p) => p.amount));
 }
 
-/** ยอดค้างจ่าย = ยอดเอกสาร − ใบสำคัญจ่ายทั้งหมด */
-export function purchaseOutstanding(state: PaymentState, doc: PurchaseDoc): number {
-  return subBaht(calcDocument(doc).total, purchasePaidAmount(state, doc));
+/** ยอดค้างจ่าย = ยอดเอกสาร − ใบลดหนี้ผู้ขาย − ใบสำคัญจ่ายทั้งหมด */
+export function purchaseOutstanding(state: PaymentState, doc: CalcPurchase): number {
+  return subBaht(purchaseAdjustedTotal(state, doc), purchasePaidAmount(state, doc));
+}
+
+/**
+ * หัก ณ ที่จ่ายของทั้งเอกสารหลังใบลดหนี้ผู้ขาย — ฐานแต่ละประเภทลดตามสัดส่วนยอดเอกสารที่เหลือ
+ * (ไม่มีใบลดหนี้ = `purchaseWhtGroups` เดิม)
+ */
+export function purchaseAdjustedWhtGroups(state: PaymentState, doc: CalcPurchase): WhtLineItem[] {
+  const groups = purchaseWhtGroups(doc);
+  const credited = purchaseCreditedTotal(state, doc);
+  if (!(toSatang(credited) > 0)) return groups;
+  const { total } = calcDocument(doc);
+  const adjusted = subBaht(total, credited);
+  return groups.map((g) => {
+    const base = prorateBaht(g.base, adjusted, total);
+    return { ...g, base, tax: percentOf(base, g.rate) };
+  });
 }
 
 /** วันที่จ่ายครั้งล่าสุด (ไม่มีคืน undefined) */
@@ -162,18 +214,15 @@ const sameGroup = (a: Pick<WhtLineItem, 'incomeType' | 'rate'>, b: Pick<WhtLineI
  * - ครั้งที่จ่ายครบ รับส่วนที่เหลือทั้งหมด → ผลรวมทุกครั้งเท่ากับหัก ณ ที่จ่ายของทั้งเอกสารพอดี
  * - ไม่ให้ยอดสะสมเกินของทั้งเอกสาร (กันเศษปัดสะสมจากการจ่ายหลายครั้ง)
  */
-export function planPurchasePayment(
-  state: PaymentState,
-  doc: Pick<PurchaseDoc, 'id' | 'lines' | 'vatMode' | 'vatRate'>,
-  amount: number
-): PaymentPlan {
-  const {total} = calcDocument(doc);
+export function planPurchasePayment(state: PaymentState, doc: CalcPurchase, amount: number): PaymentPlan {
+  // ใบลดหนี้ผู้ขายลดยอดเอกสารและฐานหัก ณ ที่จ่ายตามสัดส่วน
+  const total = purchaseAdjustedTotal(state, doc);
   const prior = paymentsOf(state, doc.id);
   const paidBefore = sumBaht(prior.map((p) => p.amount));
   const final = toSatang(sumBaht([paidBefore, amount])) >= toSatang(total);
   const priorItems = prior.flatMap((p) => p.whtItems);
 
-  const whtItems = purchaseWhtGroups(doc)
+  const whtItems = purchaseAdjustedWhtGroups(state, doc)
     .map((g) => {
       const before = priorItems.filter((i) => sameGroup(i, g));
       const restBase = subBaht(g.base, sumBaht(before.map((i) => i.base)));

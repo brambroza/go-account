@@ -2,6 +2,7 @@ import type { AccountingData } from 'src/domain';
 
 import { restoreRegressions, validateAccountingData } from 'src/domain';
 
+import { blankCompanyData } from './seed';
 import { BusinessRuleError } from './actions';
 import { readAccountingJson } from './migrations';
 
@@ -55,6 +56,8 @@ export type AccountingStore = {
    */
   replace: (next: AccountingData, options?: { force?: boolean }) => void;
   resetDemo: () => void;
+  /** ล้างเอกสาร/รายการบัญชีทั้งหมด คงข้อมูลบริษัท ผังบัญชี ผู้ติดต่อ — เริ่มยกยอดจากระบบเดิม */
+  resetEmpty: () => void;
   /** เรียกจาก event `storage` ของ window */
   handleStorageEvent: (key: string | null, newValue: string | null) => void;
 };
@@ -215,6 +218,10 @@ export function createAccountingStore({ storage, fallback, key = STORAGE_KEY, no
     resetDemo: () => {
       assertWritable();
       commit(fallback(), { problems: [], externalChangeAt: null, readOnly: false });
+    },
+    resetEmpty: () => {
+      assertWritable();
+      commit(blankCompanyData(snapshot.data), { problems: [], externalChangeAt: null, readOnly: false });
     },
     handleStorageEvent: (eventKey, newValue) => {
       if (eventKey !== key || newValue === null || newValue === lastRaw) return;

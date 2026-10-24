@@ -17,14 +17,30 @@ import type { ISODate, VatClose, AccountingData } from './types';
 // ระบบเลือก "ยกไป" ภาษีชำระเกินเสมอ (ไม่รองรับขอคืนเป็นเงินสด)
 // ----------------------------------------------------------------------
 
-type VatState = Pick<AccountingData, 'sales' | 'purchases' | 'contacts' | 'vatCloses'>;
+/** ข้อมูลที่ใช้คิดภาษีเดือน — receipts/purchaseCredits/openingBalance ไม่มี = ไม่มีรายการประเภทนั้น */
+type VatState = Pick<AccountingData, 'sales' | 'purchases' | 'contacts' | 'vatCloses'> &
+  Partial<Pick<AccountingData, 'receipts' | 'purchaseCredits' | 'openingBalance'>>;
 
-/** เดือนที่มีรายการภาษี (เอกสารภาษีขายตามวันที่ / ภาษีซื้อตามเดือนใช้สิทธิ) เรียงจากเก่าไปใหม่ */
-export function vatActivityMonths(state: Pick<AccountingData, 'sales' | 'purchases'>): string[] {
+/**
+ * เดือนที่มีรายการภาษี (เอกสารภาษีขายตามวันที่ / ใบเสร็จรับเงิน/ใบกำกับภาษีตามวันที่รับเงิน /
+ * ภาษีซื้อตามเดือนใช้สิทธิ / ใบลดหนี้ผู้ขายตามเดือนที่ได้รับ) เรียงจากเก่าไปใหม่
+ */
+export function vatActivityMonths(
+  state: Pick<AccountingData, 'sales' | 'purchases'> & Partial<Pick<AccountingData, 'receipts' | 'purchaseCredits'>>
+): string[] {
   const months = new Set<string>();
   state.sales.filter((s) => s.vatMode !== 'none' && isTaxDocument(s)).forEach((s) => months.add(monthKeyOf(s.date)));
+  (state.receipts ?? []).filter((r) => r.isTaxInvoice).forEach((r) => months.add(monthKeyOf(r.date)));
   state.purchases.filter((p) => p.claimVat && p.vatMode !== 'none').forEach((p) => months.add(purchaseVatMonth(p)));
+  (state.purchaseCredits ?? [])
+    .filter((c) => c.claimVat && c.vatMode !== 'none' && c.vatClaimPeriod)
+    .forEach((c) => months.add(c.vatClaimPeriod as string));
   return Array.from(months).sort();
+}
+
+/** ภาษีชำระเกินยกมาจากระบบเดิม (ยอดยกมา) — จุดเริ่มของยอดยกมา/ยกไปก่อนการปิดภาษีเดือนครั้งแรก */
+export function openingVatCredit(state: Partial<Pick<AccountingData, 'openingBalance'>>): number {
+  return state.openingBalance?.vatCredit ?? 0;
 }
 
 export type PP30Full = PP30Summary & {
@@ -51,8 +67,8 @@ function sortedCloses(state: Pick<AccountingData, 'vatCloses'>): VatClose[] {
 function summaryOf(state: VatState, month: string): PP30Summary {
   const period = periodFromKey(month);
   return pp30Summary(
-    salesVatReport(state.sales, state.contacts, period),
-    purchaseVatReport(state.purchases, state.contacts, period)
+    salesVatReport(state.sales, state.contacts, period, state.receipts ?? []),
+    purchaseVatReport(state.purchases, state.contacts, period, state.purchaseCredits ?? [])
   );
 }
 
@@ -66,8 +82,8 @@ export function vatBroughtForward(state: VatState, month: string): number {
   if (closed) return closed.broughtForward;
   const last = closes.filter((c) => c.period < month).pop();
   let cursor = last ? shiftMonthKey(last.period, 1) : vatActivityMonths(state)[0];
-  let carry = last?.carriedForward ?? 0;
-  if (!cursor) return 0;
+  let carry = last?.carriedForward ?? openingVatCredit(state);
+  if (!cursor) return carry;
   while (cursor < month) {
     carry = vatCloseFigures(summaryOf(state, cursor), carry).carriedForward;
     cursor = shiftMonthKey(cursor, 1);
@@ -115,8 +131,8 @@ export function monthsToVatClose(state: VatState, through: ISODate): string[] {
   return months;
 }
 
-/** ยอดยกไปล่าสุด (บัญชี 1180 ต้องเท่ากับค่านี้) */
-export function latestVatCredit(state: Pick<AccountingData, 'vatCloses'>): number {
+/** ยอดยกไปล่าสุด (บัญชี 1180 ต้องเท่ากับค่านี้) — ยังไม่เคยปิด = ยอดยกมาจากระบบเดิม */
+export function latestVatCredit(state: Pick<AccountingData, 'vatCloses'> & Partial<Pick<AccountingData, 'openingBalance'>>): number {
   const closes = sortedCloses(state);
-  return closes.length ? closes[closes.length - 1].carriedForward : 0;
+  return closes.length ? closes[closes.length - 1].carriedForward : openingVatCredit(state);
 }

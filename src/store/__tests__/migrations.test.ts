@@ -2,7 +2,7 @@ import type { AccountingData } from 'src/domain';
 
 import { ACC, DATA_VERSION, validateAccountingData } from 'src/domain';
 
-import { demo, toV1, toV3 } from './fixtures';
+import { demo, toV1, toV3, toV4 } from './fixtures';
 import { readAccountingJson, readAccountingData } from '../migrations';
 
 // ----------------------------------------------------------------------
@@ -168,5 +168,43 @@ describe('migration v3 → v4 (Sprint B batch 2)', () => {
     expect(readAccountingData({ version: 3, company: {} }).problems[0]).toMatch(/เวอร์ชัน 3 ไม่ครบ/);
     const broken = { ...v3, payments: [{ purchaseId: 'x' }], purchases: [{ id: 'x', lines: null, whtRate: 1 }] };
     expect(readAccountingData(broken).problems[0]).toMatch(/ย้ายข้อมูลเวอร์ชัน 3 ไม่สำเร็จ/);
+  });
+});
+
+// ----------------------------------------------------------------------
+
+describe('migration v4 → v5 (Sprint B batch 3)', () => {
+  const original = demo();
+  const v4 = toV4(original);
+
+  it('adds the deferred output VAT account and empty supplier-credit / year-close lists, numbers unchanged', () => {
+    const result = readAccountingData(JSON.parse(JSON.stringify(v4)));
+    expect(result.migratedFrom).toBe(4);
+    expect(result.problems).toEqual([]);
+    const { data } = result;
+    if (!data) throw new Error('migrate failed');
+    expect(data.version).toBe(5);
+    expect(DATA_VERSION).toBe(5);
+    expect(data.accounts.find((a) => a.code === ACC.deferredOutputVat)).toMatchObject({ type: 'liability', system: true });
+    expect(data.purchaseCredits).toEqual([]);
+    expect(data.yearCloses).toEqual([]);
+    expect(data.openingBalance).toBeUndefined();
+    expect(data.sales).toEqual(original.sales);
+    expect(data.receipts).toEqual(original.receipts);
+    expect(data.journal).toEqual(original.journal);
+    expect(data.sequences).toEqual(original.sequences);
+  });
+
+  it('migrates v1 and v3 files all the way to v5', () => {
+    [toV1(original), toV3(original)].forEach((old) => {
+      const result = readAccountingData(JSON.parse(JSON.stringify(old)));
+      expect(result.problems).toEqual([]);
+      expect(result.data?.version).toBe(DATA_VERSION);
+      expect(result.data?.purchaseCredits).toEqual([]);
+    });
+  });
+
+  it('rejects incomplete v4 data', () => {
+    expect(readAccountingData({ ...v4, vatCloses: undefined }).problems[0]).toMatch(/เวอร์ชัน 4 ไม่ครบ/);
   });
 });

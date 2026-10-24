@@ -17,9 +17,11 @@ import { useBoolean } from 'src/hooks/use-boolean';
 
 import { useAccounting } from 'src/store';
 import {
+  inPeriod,
   periodOf,
   todayISO,
   whtTotals,
+  eTaxWaiting,
   periodLabel,
   shiftPeriod,
   pp30ForPeriod,
@@ -56,13 +58,11 @@ export function TaxView() {
   const [tab, setTab] = useState<TabValue>('pp30');
 
   const report = useMemo(() => {
-    const sales = salesVatReport(data.sales, data.contacts, period);
-    const purchases = purchaseVatReport(data.purchases, data.contacts, period);
+    const sales = salesVatReport(data.sales, data.contacts, period, data.receipts);
+    const purchases = purchaseVatReport(data.purchases, data.contacts, period, data.purchaseCredits);
     const pnd3 = whtTotals(whtPayeesForPeriod(data, period, 'PND3'));
     const pnd53 = whtTotals(whtPayeesForPeriod(data, period, 'PND53'));
-    const etaxWaiting = data.sales.filter(
-      (s) => (s.etax === 'pending-sign' || s.etax === 'signed') && periodOf(s.date).year === period.year && periodOf(s.date).month === period.month
-    ).length;
+    const etaxWaiting = eTaxWaiting(data).filter((d) => inPeriod(d.date, period)).length;
     return { sales, purchases, pp30: pp30ForPeriod(data, period), pnd3, pnd53, etaxWaiting };
   }, [data, period]);
 

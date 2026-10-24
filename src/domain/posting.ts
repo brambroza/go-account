@@ -1,5 +1,6 @@
 import { ACC } from './chart-of-accounts';
 import { calcDocument } from './document-calc';
+import { isDeferredVatDoc } from './sales-doc';
 import { round2, sumBaht, subBaht, toSatang } from './money';
 
 import type {
@@ -7,10 +8,14 @@ import type {
   Receipt,
   SalesDoc,
   VatClose,
+  YearClose,
   PurchaseDoc,
   JournalLine,
+  AccountType,
   JournalEntry,
   CustomerRefund,
+  OpeningBalance,
+  PurchaseCreditNote,
 } from './types';
 
 // ----------------------------------------------------------------------
@@ -58,13 +63,18 @@ type EntryMeta = Pick<JournalEntry, 'id' | 'docNo'>;
 
 // ----------------------------------------------------------------------
 
-/** ใบกำกับภาษี: Dr ลูกหนี้ / Cr รายได้ (ตามบัญชีในแต่ละบรรทัด) + Cr ภาษีขาย */
+/** บัญชีภาษีขายของเอกสาร: ใบแจ้งหนี้งานบริการ (และใบลดหนี้ก่อนรับเงินครบ) = 2151 ภาษีขายยังไม่ถึงกำหนด */
+export function salesVatAccountOf(doc: Pick<SalesDoc, 'saleType' | 'isTaxInvoice' | 'vatMode' | 'vatRate'>): string {
+  return isDeferredVatDoc(doc) ? ACC.deferredOutputVat : ACC.outputVat;
+}
+
+/** ใบกำกับภาษี: Dr ลูกหนี้ / Cr รายได้ (ตามบัญชีในแต่ละบรรทัด) + Cr ภาษีขาย (งานบริการ: Cr ภาษีขายยังไม่ถึงกำหนด) */
 export function postSalesInvoice(doc: SalesDoc, meta: EntryMeta, contactName: string): JournalEntry {
   const t = calcDocument(doc);
   const lines = finalize([
     dr(ACC.receivable, t.total, contactName),
     ...Object.entries(t.netByAccount).map(([code, amount]) => cr(code, amount)),
-    cr(ACC.outputVat, t.vat),
+    cr(salesVatAccountOf(doc), t.vat),
   ]);
   return {
     ...meta,
@@ -84,9 +94,17 @@ export function postSalesInvoice(doc: SalesDoc, meta: EntryMeta, contactName: st
 export function postCreditNote(doc: SalesDoc, meta: EntryMeta, contactName: string): JournalEntry {
   const t = calcDocument(doc);
   const toCustomer = doc.creditToCustomer ?? 0;
+  const revenue = Object.entries(t.netByAccount).map(([code, amount]) => dr(code, amount));
+  // ใบลดหนี้ที่ปิดยอดใบแจ้งหนี้งานบริการ: เศษปัด VAT รอตัด → ปรับกับรายได้บรรทัดแรก ให้ 2151 ของใบนั้นเป็นศูนย์
+  const rounding = doc.deferredVatRounding ?? 0;
+  const roundingLines =
+    toSatang(rounding) !== 0 && revenue.length
+      ? [signed('debit', ACC.deferredOutputVat, rounding, 'เศษปัดภาษีขายรอตัด'), signed('credit', revenue[0].accountCode, rounding)]
+      : [];
   const lines = finalize([
-    ...Object.entries(t.netByAccount).map(([code, amount]) => dr(code, amount)),
-    dr(ACC.outputVat, t.vat),
+    ...revenue,
+    dr(salesVatAccountOf(doc), t.vat),
+    ...roundingLines,
     cr(ACC.receivable, subBaht(t.total, toCustomer), contactName),
     cr(ACC.customerCredit, toCustomer, contactName),
   ]);
@@ -123,17 +141,23 @@ export function postDebitNote(doc: SalesDoc, meta: EntryMeta, contactName: strin
   };
 }
 
-/** รับชำระ: Dr ธนาคาร (สุทธิ) + Dr ภาษีถูกหัก ณ ที่จ่าย / Cr ลูกหนี้ */
+/**
+ * รับชำระ: Dr ธนาคาร (สุทธิ) + Dr ภาษีถูกหัก ณ ที่จ่าย / Cr ลูกหนี้
+ * งานบริการ (ใบเสร็จรับเงิน/ใบกำกับภาษี): + Dr ภาษีขายยังไม่ถึงกำหนด / Cr ภาษีขาย ของส่วนที่รับ (ม.78/1)
+ */
 export function postReceipt(
   receipt: Receipt,
   meta: EntryMeta,
   contactName: string,
   invoiceNo: string
 ): JournalEntry {
+  const vat = receipt.vat ?? 0;
   const lines = finalize([
     dr(receipt.depositAccountCode, subBaht(receipt.amount, receipt.whtAmount)),
     dr(ACC.whtReceivable, receipt.whtAmount),
     cr(ACC.receivable, receipt.amount, contactName),
+    dr(ACC.deferredOutputVat, vat, 'ภาษีขายถึงกำหนดเมื่อรับชำระ'),
+    cr(ACC.outputVat, vat, 'ภาษีขายตามใบเสร็จรับเงิน/ใบกำกับภาษี'),
   ]);
   return {
     ...meta,
@@ -225,6 +249,92 @@ export function postVatClose(
     source: 'vat-close',
     sourceId: close.id,
     sourceDocNo: `VAT-${close.period}`,
+    lines,
+  };
+}
+
+/**
+ * ใบลดหนี้จากผู้ขาย: Dr เจ้าหนี้ / Cr ค่าใช้จ่าย/สินทรัพย์ (ตามบัญชีในบรรทัด) + Cr ภาษีซื้อ (ถ้าเอกสารเดิมขอคืน)
+ * ภาษีซื้อที่ขอคืนไม่ได้ลดรวมกับบรรทัดแรก (กลับรายการเหมือนตอนบันทึกซื้อ)
+ */
+export function postPurchaseCreditNote(
+  doc: PurchaseCreditNote,
+  meta: EntryMeta,
+  contactName: string,
+  purchaseDocNo: string
+): JournalEntry {
+  const t = calcDocument(doc);
+  const expenseLines = Object.entries(t.netByAccount).map(([code, amount]) => cr(code, amount));
+  if (!doc.claimVat && t.vat !== 0 && expenseLines.length) {
+    expenseLines[0] = cr(expenseLines[0].accountCode, expenseLines[0].credit + t.vat);
+  }
+  const lines = finalize([
+    dr(ACC.payable, t.total, contactName),
+    ...expenseLines,
+    ...(doc.claimVat ? [cr(ACC.inputVat, t.vat)] : []),
+  ]);
+  return {
+    ...meta,
+    date: doc.date,
+    description: `ใบลดหนี้จากผู้ขาย ${contactName} (${doc.supplierCreditNoteNo || purchaseDocNo})${doc.reason ? ` — ${doc.reason}` : ''}`,
+    source: 'purchase-credit-note',
+    sourceId: doc.id,
+    sourceDocNo: doc.docNo,
+    lines,
+  };
+}
+
+/** ยอดคงเหลือของบัญชีกำไรขาดทุนที่ปิดบัญชี (เดบิต − เครดิต) */
+export type ProfitLossBalance = { accountCode: string; type: AccountType; debit: number };
+
+/**
+ * ปิดบัญชีสิ้นปี: ล้างยอดรายได้ (Dr) และค่าใช้จ่าย (Cr) สะสมถึงวันสิ้นปี เข้า 3200 กำไรสะสม
+ * กำไร = Cr กำไรสะสม, ขาดทุน = Dr — คืน null ถ้าไม่มียอด
+ */
+export function postYearClose(
+  close: Pick<YearClose, 'id' | 'fiscalYearEnd'>,
+  balances: ProfitLossBalance[],
+  meta: EntryMeta
+): JournalEntry | null {
+  const reversing = balances
+    .filter((b) => toSatang(b.debit) !== 0)
+    .map((b) => signed('credit', b.accountCode, b.debit, b.type === 'revenue' ? 'ปิดบัญชีรายได้' : 'ปิดบัญชีค่าใช้จ่าย'));
+  const profit = round2(-sumBaht(balances.map((b) => b.debit)));
+  const lines = finalize([...reversing, signed('credit', ACC.retained, profit, 'โอนกำไร (ขาดทุน) สุทธิเข้ากำไรสะสม')]);
+  if (!lines.length) return null;
+  return {
+    ...meta,
+    date: close.fiscalYearEnd,
+    description: `ปิดบัญชีสิ้นปี ${close.fiscalYearEnd}`,
+    source: 'year-close',
+    sourceId: close.id,
+    sourceDocNo: `CLOSE-${close.fiscalYearEnd}`,
+    lines,
+  };
+}
+
+/**
+ * ยอดยกมา: บรรทัดบัญชีแยกประเภทที่ผู้ใช้กรอก + Dr ลูกหนี้ (รวมใบค้างรับ) + Cr เจ้าหนี้ (รวมใบค้างจ่าย)
+ * + Dr ภาษีชำระเกินยกมา + Dr ภาษีถูกหัก ณ ที่จ่าย — throw UnbalancedEntryError ถ้าไม่สมดุล
+ */
+export function postOpeningBalance(
+  opening: Pick<OpeningBalance, 'date' | 'lines' | 'vatCredit' | 'whtReceivable'>,
+  totals: { receivable: number; payable: number },
+  meta: EntryMeta
+): JournalEntry {
+  const lines = finalize([
+    ...opening.lines.map((l) => ({ ...l, debit: round2(l.debit), credit: round2(l.credit) })),
+    dr(ACC.receivable, totals.receivable, 'ลูกหนี้คงค้างยกมา'),
+    dr(ACC.vatCredit, opening.vatCredit, 'ภาษีชำระเกินยกมา'),
+    dr(ACC.whtReceivable, opening.whtReceivable, 'ภาษีถูกหัก ณ ที่จ่ายยกมา'),
+    cr(ACC.payable, totals.payable, 'เจ้าหนี้คงค้างยกมา'),
+  ]);
+  return {
+    ...meta,
+    date: opening.date,
+    description: 'ยอดยกมาจากระบบเดิม',
+    source: 'opening',
+    sourceDocNo: 'OPENING',
     lines,
   };
 }

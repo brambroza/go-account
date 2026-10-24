@@ -155,8 +155,23 @@ export function emptyData(): AccountingData {
     payments: [],
     refunds: [],
     vatCloses: [],
+    purchaseCredits: [],
+    yearCloses: [],
     journal: [],
     sequences: {},
+  };
+}
+
+/**
+ * ข้อมูลว่างของบริษัทเดิม — คงข้อมูลบริษัท (ไม่รวมการปิดงวด) ผังบัญชี และผู้ติดต่อ ไว้ยกยอดมาจากระบบเดิม
+ * (ไม่มีเอกสาร/รายการบัญชี ตัวนับเลขที่เริ่มใหม่)
+ */
+export function blankCompanyData(from: AccountingData): AccountingData {
+  return {
+    ...emptyData(),
+    company: { ...from.company, lockedThrough: undefined },
+    accounts: from.accounts,
+    contacts: from.contacts,
   };
 }
 

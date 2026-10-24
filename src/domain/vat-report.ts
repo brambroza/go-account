@@ -7,7 +7,7 @@ import { salesSign, isTaxDocument } from './sales-doc';
 import { resolveParty, partyDisplayName } from './snapshot';
 
 import type { Period } from './thai-date';
-import type { Contact, SalesDoc, PurchaseDoc } from './types';
+import type { Contact, Receipt, SalesDoc, PurchaseDoc, PurchaseCreditNote } from './types';
 
 // ----------------------------------------------------------------------
 
@@ -25,7 +25,8 @@ export type VatReportRow = {
   branchNo: string;
   net: number;
   vat: number;
-  kind: 'tax-invoice' | 'credit-note' | 'debit-note' | 'purchase';
+  /** receipt = ใบเสร็จรับเงิน/ใบกำกับภาษีของงานบริการ, purchase-credit-note = ใบลดหนี้จากผู้ขาย (ลดภาษีซื้อ) */
+  kind: 'tax-invoice' | 'credit-note' | 'debit-note' | 'receipt' | 'purchase' | 'purchase-credit-note';
 };
 
 export function contactDisplayName(contact: Contact | undefined): string {
@@ -35,18 +36,19 @@ export function contactDisplayName(contact: Contact | undefined): string {
 
 /**
  * รายงานภาษีขาย: ใบกำกับ (+), ใบเพิ่มหนี้ (+) และใบลดหนี้ (−) ที่ออกในงวด (ม.86/9, 86/10 — เข้าเดือนที่ออกเอกสาร)
+ * และใบเสร็จรับเงิน/ใบกำกับภาษีของงานบริการตามวันที่รับเงิน (ม.78/1) — ใบแจ้งหนี้งานบริการไม่เข้ารายงาน
  * ชื่อ/เลขผู้เสียภาษี/สาขา อ่านจาก snapshot ในเอกสาร — `contacts` ใช้เฉพาะเอกสารที่ไม่มี snapshot
  */
 export function salesVatReport(
   sales: SalesDoc[],
   contacts: Contact[],
-  period: Period
+  period: Period,
+  receipts: Receipt[] = []
 ): VatReportRow[] {
   const byId = new Map(contacts.map((c) => [c.id, c]));
-  return sales
+  const docs = sales
     .filter((d) => d.vatMode !== 'none' && isTaxDocument(d) && inPeriod(d.date, period))
-    .sort((a, b) => (a.date + a.docNo).localeCompare(b.date + b.docNo))
-    .map((d) => {
+    .map((d): VatReportRow => {
       const t = calcDocument(d);
       const sign = salesSign(d);
       const party = resolveParty(d.buyer, byId.get(d.contactId));
@@ -62,20 +64,59 @@ export function salesVatReport(
         kind: d.kind,
       };
     });
+  const taxReceipts = receipts
+    .filter((r) => r.isTaxInvoice && inPeriod(r.date, period))
+    .map((r): VatReportRow => {
+      const party = resolveParty(r.buyer, byId.get(r.contactId));
+      const vat = round2(r.vat ?? 0);
+      return {
+        id: r.id,
+        date: r.date,
+        docNo: r.docNo,
+        contactName: partyDisplayName(party),
+        taxId: party?.taxId ?? '',
+        branchNo: normalizeBranch5(party?.branchNo),
+        net: round2(r.amount - vat),
+        vat,
+        kind: 'receipt',
+      };
+    });
+  return [...docs, ...taxReceipts].sort((a, b) => (a.date + a.docNo).localeCompare(b.date + b.docNo));
 }
 
 /**
  * รายงานภาษีซื้อ: เอกสารที่ขอคืนภาษีซื้อและเลือกใช้สิทธิในเดือนนี้ (`vatClaimPeriod` — ม.82/3)
- * แสดงวันที่และเลขที่ตามใบกำกับของผู้ขาย พร้อมเลขที่ภายใน (PI)
+ * และใบลดหนี้จากผู้ขาย (−) ในเดือนที่ได้รับ (ม.82/12)
+ * แสดงวันที่และเลขที่ตามใบกำกับ/ใบลดหนี้ของผู้ขาย พร้อมเลขที่ภายใน (PI/PC)
  */
 export function purchaseVatReport(
   purchases: PurchaseDoc[],
   contacts: Contact[],
-  period: Period
+  period: Period,
+  credits: PurchaseCreditNote[] = []
 ): VatReportRow[] {
   const byId = new Map(contacts.map((c) => [c.id, c]));
   const month = periodKey(period);
-  return purchases
+  const creditRows = credits
+    .filter((c) => c.claimVat && c.vatMode !== 'none' && c.vatClaimPeriod === month)
+    .map((c): VatReportRow => {
+      const t = calcDocument(c);
+      const party = resolveParty(c.supplier, byId.get(c.contactId));
+      return {
+        id: c.id,
+        date: c.supplierCreditNoteDate,
+        docNo: c.supplierCreditNoteNo || c.docNo,
+        refDocNo: c.docNo,
+        recordedDate: c.date,
+        contactName: partyDisplayName(party),
+        taxId: party?.taxId ?? '',
+        branchNo: normalizeBranch5(party?.branchNo),
+        net: round2(-t.net),
+        vat: round2(-t.vat),
+        kind: 'purchase-credit-note',
+      };
+    });
+  const rows = purchases
     .filter((d) => d.claimVat && d.vatMode !== 'none' && purchaseVatMonth(d) === month)
     .map((d) => ({ d, invoiceDate: d.supplierInvoiceDate ?? d.date }))
     .sort((a, b) => (a.invoiceDate + a.d.docNo).localeCompare(b.invoiceDate + b.d.docNo))
@@ -96,6 +137,7 @@ export function purchaseVatReport(
         kind: 'purchase' as const,
       };
     });
+  return [...rows, ...creditRows].sort((a, b) => (a.date + (a.refDocNo ?? '')).localeCompare(b.date + (b.refDocNo ?? '')));
 }
 
 export type PP30Summary = {

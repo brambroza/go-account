@@ -14,6 +14,8 @@ export * from './snapshot';
 
 export * from './purchase';
 
+export * from './year-end';
+
 export * from './numbering';
 
 export * from './thai-date';
@@ -31,6 +33,8 @@ export * from './duplicates';
 export * from './csv-import';
 
 export * from './vat-report';
+
+export * from './service-vat';
 
 export * from './rd-wht-file';
 

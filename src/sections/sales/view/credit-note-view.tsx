@@ -29,6 +29,7 @@ import {
   todayISO,
   toSatang,
   periodOf,
+  chargesVat,
   periodLabel,
   calcDocument,
   creditableOf,
@@ -36,6 +37,7 @@ import {
   isTaxDocument,
   salesDocTitle,
   formatThaiDate,
+  serviceCreditNotePlan,
 } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
@@ -101,16 +103,29 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
     () => (invoice ? calcDocument({ ...invoice, lines: lines ?? [] }) : calcDocument({ lines: [], vatMode: 'none', vatRate: 0 })),
     [invoice, lines]
   );
+  // งานบริการ (ม.78/1): แผนใบลดหนี้จาก domain — ก่อนรับครบ = ใบลดหนี้ธรรมดา, รับครบแล้ว = ใบลดหนี้/ใบกำกับภาษีอ้างใบเสร็จ
+  const plan = !isDebit && invoice ? serviceCreditNotePlan(data, invoice, totals) : null;
+  const planProblem = plan && toSatang(totals.total) > 0 ? plan.problem : null;
   const overLimit = !isDebit && toSatang(totals.total) > toSatang(creditable);
   // ส่วนที่เกินยอดค้างชำระ (ลูกค้าจ่ายแล้ว) ตั้งเป็นเงินรอคืนลูกค้า — ตรงกับ `issueCreditNote`
-  const toCustomerCredit = !isDebit && toSatang(totals.total) > toSatang(outstanding) ? subBaht(totals.total, outstanding) : 0;
+  const toCustomerCredit = plan
+    ? plan.creditToCustomer
+    : !isDebit && toSatang(totals.total) > toSatang(outstanding)
+      ? subBaht(totals.total, outstanding)
+      : 0;
   const toReceivable = subBaht(totals.total, toCustomerCredit);
   const originalNet = invoice ? currentNetOf(data, invoice) : 0;
   const correctNet = isDebit ? sumBaht([originalNet, totals.net]) : subBaht(originalNet, totals.net);
-  const unavailable = !invoice || (isDebit ? invoice.status === 'cancelled' : toSatang(creditable) <= 0);
+  const serviceInvoice = !!invoice && invoice.saleType === 'service' && !isTaxDocument(invoice);
+  const unavailable =
+    !invoice ||
+    !!invoice.opening ||
+    (isDebit ? invoice.status === 'cancelled' || serviceInvoice : toSatang(creditable) <= 0);
 
   if (!invoice || unavailable) {
-    const reason = isDebit ? `${invoice?.docNo} ถูกยกเลิกด้วยใบลดหนี้แล้ว` : `${invoice?.docNo} ลดหนี้เต็มจำนวนแล้ว`;
+    let reason = isDebit ? `${invoice?.docNo} ถูกยกเลิกด้วยใบลดหนี้แล้ว` : `${invoice?.docNo} ลดหนี้เต็มจำนวนแล้ว`;
+    if (invoice?.opening) reason = `${invoice.docNo} เป็นยอดยกมาจากระบบเดิม — ลดหนี้/เพิ่มหนี้ในระบบเดิม`;
+    else if (isDebit && serviceInvoice) reason = `${invoice?.docNo} เป็นใบแจ้งหนี้งานบริการ — ค่าบริการที่เพิ่มให้ออกใบแจ้งหนี้ใบใหม่`;
     return (
       <EmptyContent
         filled
@@ -125,11 +140,13 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
     );
   }
 
-  const isTax = isTaxDocument(invoice);
+  const isTax = plan ? plan.isTaxInvoice : isTaxDocument(invoice);
   const docTitle = salesDocTitle({ kind: isDebit ? 'debit-note' : 'credit-note', isTaxInvoice: isTax, vatMode: invoice.vatMode });
   const verb = isDebit ? 'เพิ่ม' : 'ลด';
   const change = isDebit ? 'เพิ่มขึ้น' : 'ลดลง';
-  const showVat = isTax && invoice.vatMode !== 'none';
+  const showVat = (isTax || !!plan) && chargesVat(invoice);
+  const refReceipt = plan?.refReceiptId ? data.receipts.find((r) => r.id === plan.refReceiptId) : undefined;
+  const blocked = overLimit || !!planProblem;
 
   const save = methods.handleSubmit((values) => {
     try {
@@ -224,6 +241,18 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
                 </Stack>
               </Stack>
               <TotalsSummary totals={totals} vatRate={invoice.vatRate} showVat={showVat} />
+              {plan && (
+                <Alert severity="info" variant="outlined" sx={{ mt: 2 }}>
+                  {plan.mode === 'deferred'
+                    ? `งานบริการที่ยังรับเงินไม่ครบ: ออกเป็นใบลดหนี้ (ไม่ใช่ใบกำกับภาษี) ลดได้ไม่เกินยอดค้างรับ ${plan.limit.toFixed(2)} บาท — กลับภาษีขายยังไม่ถึงกำหนด ไม่เข้ารายงานภาษีขาย`
+                    : `งานบริการรับเงินครบแล้ว: ออกเป็นใบลดหนี้/ใบกำกับภาษีอ้าง${refReceipt ? ` ${refReceipt.docNo}` : 'ใบเสร็จรับเงิน/ใบกำกับภาษี'} ลดภาษีขายเดือนที่ออก ยอดทั้งหมดเป็นเงินรอคืนลูกค้า`}
+                </Alert>
+              )}
+              {planProblem && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {planProblem}
+                </Alert>
+              )}
               {overLimit && (
                 <Alert severity="error" sx={{ mt: 2 }}>
                   ยอดลดหนี้เกินยอดที่ลดได้ ({creditable.toFixed(2)} บาท = ยอดใบกำกับหักใบลดหนี้ก่อนหน้า)
@@ -241,7 +270,7 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
                 variant="contained"
                 color={isDebit ? 'primary' : 'error'}
                 sx={{ mt: 3 }}
-                disabled={overLimit}
+                disabled={blocked}
                 onClick={async () => {
                   if (await methods.trigger()) confirm.onTrue();
                 }}
@@ -260,7 +289,7 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
         content={
           <ConfirmSummary
             rows={[
-              { label: 'ชนิดเอกสาร', value: `${docTitle} อ้างถึง ${invoice.docNo}` },
+              { label: 'ชนิดเอกสาร', value: `${docTitle} อ้างถึง ${refReceipt ? `${refReceipt.docNo} (${invoice.docNo})` : invoice.docNo}` },
               { label: 'ลูกค้า', value: contacts.name(invoice.contactId) },
               { label: `วันที่${docTitle}`, value: formatThaiDate((date ?? '').slice(0, 10)) },
               { label: 'เหตุผล', value: methods.getValues('reason') || '-' },
@@ -273,7 +302,10 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
               { label: 'ตั้งเป็นเงินรอคืนลูกค้า', value: toCustomerCredit, hidden: toSatang(toCustomerCredit) <= 0 },
               {
                 label: 'งวดภาษี',
-                value: `${verb}ภาษีขายเดือน${periodLabel(periodOf((date ?? todayISO()).slice(0, 10)))}`,
+                value:
+                  plan?.mode === 'deferred'
+                    ? 'ไม่เข้ารายงานภาษีขาย (กลับภาษีขายยังไม่ถึงกำหนด)'
+                    : `${verb}ภาษีขายเดือน${periodLabel(periodOf((date ?? todayISO()).slice(0, 10)))}`,
                 hidden: !showVat,
               },
             ]}

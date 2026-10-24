@@ -20,7 +20,21 @@ import { useBoolean } from 'src/hooks/use-boolean';
 
 import { makeReceiptSchema } from 'src/schemas/accounting/doc-schemas';
 import { outstandingOf, useAccounting, receivePayment, useAccountLookup, DEPOSIT_ACCOUNTS } from 'src/store';
-import { ACC, subBaht, todayISO, toSatang, calcDocument, formatThaiDate, receiptWhtAmount } from 'src/domain';
+import {
+  ACC,
+  subBaht,
+  todayISO,
+  toSatang,
+  periodOf,
+  periodLabel,
+  receiptTitle,
+  calcDocument,
+  receiptVatOf,
+  formatThaiDate,
+  isValidISODate,
+  isServiceInvoice,
+  receiptWhtAmount,
+} from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
@@ -78,6 +92,12 @@ export function ReceivePaymentDialog({ open, onClose, invoice }: Props) {
   }, [whtRate, amount, totals, setValue]);
 
   const netReceived = subBaht(amount ?? 0, whtAmount ?? 0);
+  // งานบริการ (ม.78/1): รับเงินแล้วออกใบเสร็จรับเงิน/ใบกำกับภาษี — ภาษีขายของส่วนที่รับ (domain คำนวณ)
+  const service = isServiceInvoice(invoice);
+  const vatPart = service && toSatang(amount ?? 0) > 0 ? receiptVatOf(data, invoice, Math.min(amount ?? 0, outstanding)) : 0;
+  const pendingVat = service && pending ? receiptVatOf(data, invoice, pending.amount) : 0;
+  const docLabel = receiptTitle({ isTaxInvoice: service });
+  const vatMonth = (d: string | undefined) => (d && isValidISODate(d.slice(0, 10)) ? periodLabel(periodOf(d.slice(0, 10))) : '-');
 
   const onReview = handleSubmit((values) => {
     setPending(values);
@@ -97,7 +117,7 @@ export function ReceivePaymentDialog({ open, onClose, invoice }: Props) {
         })
       );
       confirm.onFalse();
-      toast.success(`บันทึกรับชำระ ${r.receipt.docNo} แล้ว`);
+      toast.success(`ออก${receiptTitle(r.receipt)} ${r.receipt.docNo} แล้ว`);
       onClose();
     } catch (error) {
       confirm.onFalse();
@@ -142,6 +162,12 @@ export function ReceivePaymentDialog({ open, onClose, invoice }: Props) {
                 ))}
               </Field.Select>
 
+              {service && (
+                <Alert severity="warning" variant="outlined">
+                  งานบริการ: ระบบจะออก{docLabel}ของยอดที่รับครั้งนี้ — ภาษีขาย <Money value={vatPart} sx={{ fontWeight: 600 }} /> บาท
+                  เข้ารายงานภาษีขายเดือน{vatMonth(date)} (ย้ายจากภาษีขายยังไม่ถึงกำหนด)
+                </Alert>
+              )}
               <Alert severity="info" variant="outlined">
                 เงินเข้าบัญชีจริง <Money value={netReceived} sx={{ fontWeight: 600 }} /> บาท · ระบบจะลงบัญชี Dr{' '}
                 {accounts.name(account ?? '')}
@@ -178,8 +204,12 @@ export function ReceivePaymentDialog({ open, onClose, invoice }: Props) {
                   strong: true,
                 },
                 { label: 'ค้างชำระหลังรับ', value: subBaht(outstanding, pending.amount) },
+                { label: 'เอกสารที่ออก', value: docLabel },
+                { label: 'ภาษีขายตามใบกำกับนี้', value: pendingVat, hidden: !service },
+                { label: 'มูลค่าก่อนภาษี', value: subBaht(pending.amount, pendingVat), hidden: !service },
+                { label: 'งวดภาษี', value: `ภาษีขายเดือน${vatMonth(pending.date)}`, hidden: !service },
               ]}
-              note="บันทึกแล้วระบบจะออกเลขใบรับชำระและลงบัญชีทันที แก้ไขไม่ได้"
+              note={`บันทึกแล้วระบบจะออกเลขที่${docLabel}และลงบัญชีทันที แก้ไขไม่ได้`}
             />
           )
         }

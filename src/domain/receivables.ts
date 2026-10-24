@@ -1,5 +1,6 @@
 import { ACC } from './chart-of-accounts';
 import { pp30ForPeriod } from './vat-close';
+import { isTaxDocument } from './sales-doc';
 import { calcDocument } from './document-calc';
 import { purchaseOutstanding } from './purchase';
 import { periodOf, shiftPeriod } from './thai-date';
@@ -9,7 +10,7 @@ import { round2, sumBaht, subBaht, toSatang } from './money';
 
 import type { ArAgingRow } from './ledger';
 import type { PP30Full } from './vat-close';
-import type { ISODate, SalesDoc, PurchaseDoc, AccountingData } from './types';
+import type { ISODate, SalesDoc, ETaxStatus, PurchaseDoc, AccountingData } from './types';
 
 // ----------------------------------------------------------------------
 // ยอดลูกหนี้ / ยอดลดหนี้ / เงินรอคืนลูกค้า และตัวเลขสรุปหน้าแรก
@@ -108,6 +109,56 @@ export function customerCreditOf(
 
 // ----------------------------------------------------------------------
 
+/** เอกสารที่ต้องออก e-Tax — ใบกำกับ/ใบลด/เพิ่มหนี้ และใบเสร็จรับเงิน/ใบกำกับภาษีของงานบริการ */
+export type ETaxDocRow = {
+  id: string;
+  /** sales = เอกสารขาย (`state.sales`), receipt = ใบเสร็จรับเงิน/ใบกำกับภาษี (`state.receipts`) */
+  source: 'sales' | 'receipt';
+  docNo: string;
+  date: ISODate;
+  contactId: string;
+  total: number;
+  etax: ETaxStatus;
+  etaxUploadedAt?: string;
+  etaxReference?: string;
+};
+
+/** ทุกเอกสารที่ต้องออก e-Tax เรียงตามวันที่/เลขที่ */
+export function eTaxDocs(state: Pick<AccountingData, 'sales' | 'receipts'>): ETaxDocRow[] {
+  const sales: ETaxDocRow[] = state.sales
+    .filter((s) => s.etax !== 'not-required' && isTaxDocument(s))
+    .map((s) => ({
+      id: s.id,
+      source: 'sales',
+      docNo: s.docNo,
+      date: s.date,
+      contactId: s.contactId,
+      total: calcDocument(s).total,
+      etax: s.etax,
+      etaxUploadedAt: s.etaxUploadedAt,
+      etaxReference: s.etaxReference,
+    }));
+  const receipts: ETaxDocRow[] = state.receipts
+    .filter((r) => r.isTaxInvoice && r.etax && r.etax !== 'not-required')
+    .map((r) => ({
+      id: r.id,
+      source: 'receipt',
+      docNo: r.docNo,
+      date: r.date,
+      contactId: r.contactId,
+      total: r.amount,
+      etax: r.etax ?? 'pending-sign',
+      etaxUploadedAt: r.etaxUploadedAt,
+      etaxReference: r.etaxReference,
+    }));
+  return [...sales, ...receipts].sort((a, b) => (a.date + a.docNo).localeCompare(b.date + b.docNo));
+}
+
+/** เอกสาร e-Tax ที่ยังไม่ได้นำส่ง (รอลงนาม / ลงนามแล้ว) */
+export function eTaxWaiting(state: Pick<AccountingData, 'sales' | 'receipts'>): ETaxDocRow[] {
+  return eTaxDocs(state).filter((d) => d.etax === 'pending-sign' || d.etax === 'signed');
+}
+
 export type DashboardStats = {
   /** เงินสด + ธนาคาร ณ วันนี้ */
   cash: number;
@@ -119,7 +170,7 @@ export type DashboardStats = {
   pp30: PP30Full;
   /** ภาษีหัก ณ ที่จ่ายงวดก่อน (ภ.ง.ด.3 + 53) ที่ต้องนำส่ง */
   whtPrev: number;
-  etaxWaiting: SalesDoc[];
+  etaxWaiting: ETaxDocRow[];
   /** ลูกค้าที่ยังไม่มีเลขผู้เสียภาษี */
   badContacts: AccountingData['contacts'];
   aging: ArAgingRow[];
@@ -146,7 +197,7 @@ export function dashboardStats(data: AccountingData, today: ISODate): DashboardS
     unpaidPurchases,
     pp30: pp30ForPeriod(data, period),
     whtPrev,
-    etaxWaiting: data.sales.filter((s) => s.etax === 'pending-sign' || s.etax === 'signed'),
+    etaxWaiting: eTaxWaiting(data),
     badContacts: data.contacts.filter((c) => c.kind !== 'vendor' && !c.taxId),
     aging,
     customerCredits: balanceOf(tb, ACC.customerCredit),

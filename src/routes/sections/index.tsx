@@ -15,9 +15,13 @@ const SalesNewPage = lazy(() => import('src/pages/sales/new'));
 const SalesDetailPage = lazy(() => import('src/pages/sales/detail'));
 const CreditNotePage = lazy(() => import('src/pages/sales/credit-note'));
 const DebitNotePage = lazy(() => import('src/pages/sales/debit-note'));
+const ReceiptPage = lazy(() => import('src/pages/sales/receipt'));
 const PurchaseListPage = lazy(() => import('src/pages/purchases/list'));
 const PurchaseNewPage = lazy(() => import('src/pages/purchases/new'));
 const PaymentPage = lazy(() => import('src/pages/purchases/payment'));
+const PurchaseDetailPage = lazy(() => import('src/pages/purchases/detail'));
+const SupplierCreditNotePage = lazy(() => import('src/pages/purchases/credit-note'));
+const OpeningBalancePage = lazy(() => import('src/pages/settings/opening'));
 const ContactsPage = lazy(() => import('src/pages/contacts'));
 const TaxPage = lazy(() => import('src/pages/tax'));
 const LedgerPage = lazy(() => import('src/pages/ledger'));
@@ -50,6 +54,7 @@ export function Router() {
             { path: ':id', element: <SalesDetailPage /> },
             { path: ':id/credit-note', element: <CreditNotePage /> },
             { path: ':id/debit-note', element: <DebitNotePage /> },
+            { path: 'receipts/:id', element: <ReceiptPage /> },
           ],
         },
         {
@@ -58,12 +63,20 @@ export function Router() {
             { index: true, element: <PurchaseListPage /> },
             { path: 'new', element: <PurchaseNewPage /> },
             { path: 'payments/:id', element: <PaymentPage /> },
+            { path: ':id', element: <PurchaseDetailPage /> },
+            { path: ':id/credit-note', element: <SupplierCreditNotePage /> },
           ],
         },
         { path: 'contacts', element: <ContactsPage /> },
         { path: 'tax', element: <TaxPage /> },
         { path: 'ledger', element: <LedgerPage /> },
-        { path: 'settings', element: <SettingsPage /> },
+        {
+          path: 'settings',
+          children: [
+            { index: true, element: <SettingsPage /> },
+            { path: 'opening', element: <OpeningBalancePage /> },
+          ],
+        },
       ],
     },
     { path: '*', element: <Navigate to="/" replace /> },

@@ -8,6 +8,7 @@ import {
   creditableOf,
   trialBalance,
   calcDocument,
+  balanceSheet,
   shiftMonthKey,
   customerCreditOf,
   receiptWhtAmount,
@@ -18,8 +19,10 @@ import {
   validateAccountingData,
 } from 'src/domain';
 
+import { emptyData } from '../seed';
 import { ln, pln, demo, TODAY } from './fixtures';
 import {
+  closeYear,
   lockPeriod,
   payPurchase,
   outstandingOf,
@@ -31,7 +34,9 @@ import {
   issueTaxInvoice,
   addManualJournal,
   BusinessRuleError,
+  setOpeningBalances,
   refundCustomerCredit,
+  recordSupplierCreditNote,
 } from '../actions';
 
 // ----------------------------------------------------------------------
@@ -57,12 +62,39 @@ function expectNewEntriesBalanced(state: AccountingData, from: number) {
 const CUSTOMERS = ['c-abc', 'c-thairung', 'c-siammold', 'c-nakhon'];
 const VENDORS = ['v-resin', 'v-express', 'v-somchai', 'v-somsri'];
 
-function run(seed: number, steps: number) {
+/** บริษัทใหม่ที่ยกยอดมาจาก Express ณ 30 ก.ย. (ใบค้างรับ 2 ใบ ค้างจ่าย 2 ใบ หนึ่งใบหัก ณ ที่จ่าย) */
+export function openingStart(): AccountingData {
+  return setOpeningBalances(
+    { ...emptyData(), contacts: demo().contacts },
+    {
+      date: '2026-09-30',
+      lines: [
+        { accountCode: ACC.bank, debit: 400000, credit: 0 },
+        { accountCode: ACC.capital, debit: 0, credit: 400000 },
+        { accountCode: ACC.retained, debit: 0, credit: 2000 },
+      ],
+      vatCredit: 1200,
+      whtReceivable: 300,
+      receivableControl: 53500,
+      payableControl: 53000,
+      receivables: [
+        { contactId: 'c-abc', docNo: 'IV6809-0012', date: '2026-09-15', dueDate: '2026-10-15', amount: 32100 },
+        { contactId: 'c-nakhon', docNo: 'IV6809-0020', date: '2026-09-28', dueDate: '2026-11-12', amount: 21400 },
+      ],
+      payables: [
+        { contactId: 'v-resin', docNo: 'TP-0901', date: '2026-09-10', amount: 42800, vatAmount: 2800 },
+        { contactId: 'v-somchai', docNo: 'SC-77', date: '2026-09-25', amount: 10200, whtIncomeType: 'ค่าบริการ', whtRate: 3 },
+      ],
+    }
+  ).state;
+}
+
+function run(seed: number, steps: number, start: () => AccountingData = demo) {
   const rnd = prng(seed);
   const pick = <T,>(items: T[]): T => items[Math.floor(rnd() * items.length)];
   const money = (max: number) => Math.max(0.01, Math.floor(rnd() * max * 100) / 100);
 
-  let state: AccountingData = demo();
+  let state: AccountingData = start();
   let date = TODAY;
   let invoiceNo = 0;
   const outcome = { ok: 0, rejected: 0 };
@@ -77,6 +109,16 @@ function run(seed: number, steps: number) {
         contactId: pick(CUSTOMERS),
         vatMode: pick(['exclusive', 'inclusive', 'none'] as const),
         lines: [ln(Math.ceil(rnd() * 20), money(5000)), ...(rnd() < 0.3 ? [ln(1, money(20000), ACC.service)] : [])],
+      }).state,
+    // งานบริการ (ม.78/1): ใบแจ้งหนี้ก่อน ภาษีขายเกิดตอนรับชำระ
+    () =>
+      issueTaxInvoice(state, {
+        date,
+        dueDate: addDays(date, 30),
+        contactId: pick(CUSTOMERS),
+        vatMode: pick(['exclusive', 'inclusive', 'none'] as const),
+        saleType: 'service',
+        lines: [ln(1, money(30000), ACC.service), ...(rnd() < 0.3 ? [ln(Math.ceil(rnd() * 5), money(3000), ACC.service)] : [])],
       }).state,
     () => {
       const inv = pick(invoices());
@@ -149,6 +191,23 @@ function run(seed: number, steps: number) {
       return setETaxStatus(state, [pick(docs).id], pick(['signed', 'uploaded', 'pending-sign'] as const));
     },
     () => lockPeriod(state, endOfPreviousMonth(date), date),
+    () => {
+      // ใบลดหนี้จากผู้ขาย — บางครั้งเกินยอดค้าง / ลงก่อนการจ่ายล่าสุด (ต้องถูกปฏิเสธ)
+      const doc = pick(state.purchases.filter((p) => !p.paid));
+      const outstanding = purchaseOutstanding(state, doc);
+      const share = rnd() < 0.15 ? 1.3 : rnd();
+      const target = Math.floor(toSatang(outstanding) * share) / 100;
+      const unitPrice = doc.vatMode === 'exclusive' ? Math.floor(((target * 100) / 107) * 100) / 100 : target;
+      return recordSupplierCreditNote(state, {
+        purchaseId: doc.id,
+        supplierCreditNoteNo: `SCN-${Math.floor(rnd() * 1e6)}`,
+        supplierCreditNoteDate: date,
+        date,
+        reason: 'สุ่มลดหนี้ผู้ขาย',
+        lines: [ln(1, unitPrice, doc.lines[0]?.accountCode ?? ACC.misc)],
+      }).state;
+    },
+    () => closeYear(state, '2026-12-31').state,
   ];
 
   for (let i = 0; i < steps; i += 1) {
@@ -174,6 +233,15 @@ describe('random action sequences keep every invariant', () => {
     expect(validateAccountingData(state)).toEqual([]);
     expect(hasNegativeOutstanding(state)).toBe(false);
     expect(trialBalanceTotals(trialBalance(state.accounts, state.journal)).balanced).toBe(true);
+    // งบแสดงฐานะการเงินสมดุลทุกวันสิ้นเดือนที่ผ่านมา (ก่อน/หลังปิดบัญชีสิ้นปี)
+    ['2026-10-31', '2026-11-30', '2026-12-31', '2027-01-31', TODAY].forEach((asOf) =>
+      expect(balanceSheet(state.accounts, state.journal, asOf).balanced).toBe(true)
+    );
+    // ครอบคลุม action ใหม่ของ batch 3: ใบเสร็จรับเงิน/ใบกำกับภาษี, ใบลดหนี้ผู้ขาย, ปิดปี
+    expect(state.receipts.some((r) => r.isTaxInvoice)).toBe(true);
+    expect(state.purchaseCredits.length).toBeGreaterThan(0);
+    expect(state.yearCloses.length).toBeGreaterThan(0);
+    expect(state.sales.some((x) => x.kind === 'credit-note' && x.saleType === 'service')).toBe(true);
     state.contacts.forEach((c) => expect(toSatang(customerCreditOf(state, c.id))).toBeGreaterThanOrEqual(0));
     // มีทั้งรายการที่ผ่านและถูกปฏิเสธ — ทดสอบได้ทั้งสองทาง
     expect(outcome.ok).toBeGreaterThan(80);
@@ -187,5 +255,18 @@ describe('random action sequences keep every invariant', () => {
     expect(state.vatCloses.length).toBeGreaterThan(0);
     expect(state.purchases.some((p) => state.payments.filter((pv) => pv.purchaseId === p.id).length > 1)).toBe(true);
     expect(state.sales.some((s) => s.kind === 'debit-note')).toBe(true);
+  });
+});
+
+describe('random action sequences after opening balances from Express', () => {
+  it.each([3, 11])('seed %i', (seed) => {
+    const { state, outcome } = run(seed, 150, openingStart);
+    expect(validateAccountingData(state)).toEqual([]);
+    expect(hasNegativeOutstanding(state)).toBe(false);
+    expect(balanceSheet(state.accounts, state.journal, '2027-12-31').balanced).toBe(true);
+    expect(outcome.ok).toBeGreaterThan(50);
+    // ใบค้างยกมาถูกรับ/จ่ายในระหว่างทาง
+    const openingIds = new Set([...state.sales, ...state.purchases].filter((d) => d.opening).map((d) => d.id));
+    expect(state.receipts.some((r) => openingIds.has(r.invoiceId)) || state.payments.some((p) => openingIds.has(p.purchaseId))).toBe(true);
   });
 });

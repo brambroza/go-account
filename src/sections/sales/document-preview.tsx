@@ -1,4 +1,4 @@
-import type { Company, Contact, SalesDoc } from 'src/domain';
+import type { Company, Contact, Receipt, SalesDoc } from 'src/domain';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -12,6 +12,7 @@ import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
 
 import {
+  chargesVat,
   lineAmount,
   formatTaxId,
   branchLabel,
@@ -41,6 +42,8 @@ type Props = {
   contact: Contact | undefined;
   /** ใบลดหนี้/ใบเพิ่มหนี้: ใบกำกับเดิม */
   referenced?: SalesDoc;
+  /** ใบลดหนี้ของงานบริการหลังรับเงินครบ: ใบเสร็จรับเงิน/ใบกำกับภาษีที่อ้างถึง */
+  referencedReceipt?: Receipt;
 };
 
 /**
@@ -50,12 +53,14 @@ type Props = {
  * ผู้ขาย/ผู้ซื้ออ่านจาก snapshot ณ วันออกเอกสาร (แก้ข้อมูลบริษัท/ลูกค้าภายหลังแล้วเอกสารเดิมไม่เปลี่ยน)
  * บริษัทไม่จด VAT พิมพ์เป็น "ใบแจ้งหนี้/ใบเสร็จรับเงิน" ไม่มีบรรทัด VAT
  */
-export function DocumentPreview({ doc, company, contact, referenced }: Props) {
+export function DocumentPreview({ doc, company, contact, referenced, referencedReceipt }: Props) {
   const t = calcDocument(doc);
   const isCredit = doc.kind === 'credit-note';
   const isAdjustment = doc.kind !== 'tax-invoice';
   const title = salesDocTitle(doc);
-  const showVat = isTaxDocument(doc) && doc.vatMode !== 'none';
+  // ใบแจ้งหนี้งานบริการแสดง VAT ด้วย (ยังไม่ใช่ใบกำกับภาษี — ใบกำกับออกตอนรับเงิน)
+  const showVat = chargesVat(doc) && (isTaxDocument(doc) || doc.saleType === 'service');
+  const serviceInvoice = doc.kind === 'tax-invoice' && doc.saleType === 'service' && !isTaxDocument(doc) && chargesVat(doc);
   const seller = doc.seller ?? companySnapshot(company);
   const buyer = resolveParty(doc.buyer, contact);
 
@@ -101,10 +106,17 @@ export function DocumentPreview({ doc, company, contact, referenced }: Props) {
             <Typography variant="overline" sx={{ color: 'text.disabled' }}>
               อ้างถึง
             </Typography>
-            <Typography variant="body2">
-              {isTaxDocument(referenced) ? 'ใบกำกับภาษี' : 'ใบแจ้งหนี้'}เลขที่ {referenced.docNo} ลงวันที่{' '}
-              {formatThaiDate(referenced.date)}
-            </Typography>
+            {referencedReceipt ? (
+              <Typography variant="body2">
+                ใบเสร็จรับเงิน/ใบกำกับภาษีเลขที่ {referencedReceipt.docNo} ลงวันที่ {formatThaiDate(referencedReceipt.date)} (ตาม
+                ใบแจ้งหนี้ {referenced.docNo})
+              </Typography>
+            ) : (
+              <Typography variant="body2">
+                {isTaxDocument(referenced) ? 'ใบกำกับภาษี' : 'ใบแจ้งหนี้'}เลขที่ {referenced.docNo} ลงวันที่{' '}
+                {formatThaiDate(referenced.date)}
+              </Typography>
+            )}
             <Typography variant="body2">เหตุผล: {doc.reason}</Typography>
           </Box>
         )}
@@ -189,13 +201,25 @@ export function DocumentPreview({ doc, company, contact, referenced }: Props) {
         <AmountInWords value={t.total} />
       </Box>
 
+      {serviceInvoice && (
+        <Typography variant="body2" sx={{ mt: 3, color: 'text.secondary' }}>
+          เอกสารนี้ไม่ใช่ใบกำกับภาษี — ใบเสร็จรับเงิน/ใบกำกับภาษีจะออกให้เมื่อได้รับชำระ (ภาษีมูลค่าเพิ่มถึงกำหนดเมื่อรับชำระค่าบริการ)
+        </Typography>
+      )}
+
       {doc.note && (
         <Typography variant="body2" sx={{ mt: 3, color: 'text.secondary' }}>
           หมายเหตุ: {doc.note}
         </Typography>
       )}
 
-      <SignatureBlock roles={isAdjustment ? ['ผู้รับเอกสาร', 'ผู้มีอำนาจลงนาม'] : ['ผู้รับสินค้า/บริการ', 'ผู้ส่งสินค้า', 'ผู้มีอำนาจลงนาม']} />
+      <SignatureBlock
+        roles={
+          isAdjustment || serviceInvoice
+            ? ['ผู้รับเอกสาร', 'ผู้มีอำนาจลงนาม']
+            : ['ผู้รับสินค้า/บริการ', 'ผู้ส่งสินค้า', 'ผู้มีอำนาจลงนาม']
+        }
+      />
     </Card>
   );
 }

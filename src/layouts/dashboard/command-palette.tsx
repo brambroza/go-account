@@ -12,7 +12,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
-import { salesDocTitle } from 'src/domain';
+import { receiptTitle, salesDocTitle } from 'src/domain';
 import { useAccounting, useContactLookup } from 'src/store';
 
 import { Iconify } from 'src/components/iconify';
@@ -52,6 +52,39 @@ export function CommandPalette({ open, onClose }: Props) {
       path: paths.sales.view(s.id),
       haystack: `${s.docNo} ${contacts.name(s.contactId)}`.toLowerCase(),
     }));
+    const receipts = data.receipts.map((r) => ({
+      key: `r-${r.id}`,
+      title: `${r.docNo} · ${contacts.name(r.contactId)}`,
+      caption: receiptTitle(r),
+      icon: 'solar:hand-money-bold',
+      path: paths.sales.receipt(r.id),
+      haystack: `${r.docNo} ${contacts.name(r.contactId)}`.toLowerCase(),
+    }));
+    // ฝั่งซื้อ: ค้นได้ทั้งเลขที่ภายใน (PI) และเลขที่ใบกำกับของผู้ขาย
+    const purchases = data.purchases.map((p) => ({
+      key: `p-${p.id}`,
+      title: `${p.docNo} · ${contacts.name(p.contactId)}`,
+      caption: `${p.opening ? 'ยอดยกมา (ซื้อ)' : 'เอกสารซื้อ'}${p.supplierInvoiceNo ? ` · ใบกำกับผู้ขาย ${p.supplierInvoiceNo}` : ''}`,
+      icon: 'solar:cart-large-2-bold-duotone',
+      path: paths.purchases.view(p.id),
+      haystack: `${p.docNo} ${p.supplierInvoiceNo} ${contacts.name(p.contactId)}`.toLowerCase(),
+    }));
+    const payments = data.payments.map((pv) => ({
+      key: `pv-${pv.id}`,
+      title: `${pv.docNo} · ${contacts.name(pv.contactId)}`,
+      caption: `ใบสำคัญจ่าย${pv.whtCertNo ? ` · 50 ทวิ ${pv.whtCertNo}` : ''}`,
+      icon: 'solar:wallet-money-bold',
+      path: paths.purchases.payment(pv.id),
+      haystack: `${pv.docNo} ${pv.whtCertNo ?? ''} ${contacts.name(pv.contactId)}`.toLowerCase(),
+    }));
+    const supplierCredits = data.purchaseCredits.map((c) => ({
+      key: `pc-${c.id}`,
+      title: `${c.docNo} · ${contacts.name(c.contactId)}`,
+      caption: `ใบลดหนี้จากผู้ขาย${c.supplierCreditNoteNo ? ` ${c.supplierCreditNoteNo}` : ''}`,
+      icon: 'solar:undo-left-round-bold',
+      path: paths.purchases.view(c.purchaseId),
+      haystack: `${c.docNo} ${c.supplierCreditNoteNo} ${contacts.name(c.contactId)}`.toLowerCase(),
+    }));
     const people = data.contacts.map((c) => ({
       key: `c-${c.id}`,
       title: contacts.name(c.id),
@@ -61,8 +94,10 @@ export function CommandPalette({ open, onClose }: Props) {
       haystack: `${c.code} ${contacts.name(c.id)} ${c.taxId ?? ''}`.toLowerCase(),
     }));
 
-    return [...menus, ...docs, ...people].filter((r) => r.haystack.includes(q)).slice(0, 12);
-  }, [query, data.sales, data.contacts, contacts]);
+    return [...menus, ...docs, ...receipts, ...purchases, ...payments, ...supplierCredits, ...people]
+      .filter((r) => r.haystack.includes(q))
+      .slice(0, 12);
+  }, [query, data.sales, data.receipts, data.purchases, data.payments, data.purchaseCredits, data.contacts, contacts]);
 
   const go = (r: Result | undefined) => {
     if (!r) return;
@@ -78,7 +113,7 @@ export function CommandPalette({ open, onClose }: Props) {
         autoFocus
         fullWidth
         value={query}
-        placeholder="ค้นหาเมนู เลขที่เอกสาร ลูกค้า หรือเลขผู้เสียภาษี"
+        placeholder="ค้นหาเมนู เลขที่เอกสารขาย/ซื้อ/ใบสำคัญจ่าย ผู้ติดต่อ หรือเลขผู้เสียภาษี"
         onChange={(e) => {
           setQuery(e.target.value);
           setCursor(0);

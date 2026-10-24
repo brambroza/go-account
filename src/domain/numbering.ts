@@ -16,7 +16,11 @@ export const DOC_PREFIX = {
   /** ใบเพิ่มหนี้ของบริษัทที่ไม่จด VAT (ไม่ใช่เอกสารภาษี) */
   debitMemo: 'DM',
   receipt: 'RE',
+  /** ใบเสร็จรับเงิน/ใบกำกับภาษี ของงานบริการ (ม.78/1) — ออกเมื่อรับชำระ */
+  receiptTaxInvoice: 'RT',
   purchase: 'PI',
+  /** ใบลดหนี้จากผู้ขาย (เลขที่ภายใน) */
+  purchaseCredit: 'PC',
   payment: 'PV',
   /** หนังสือรับรองการหักภาษี ณ ที่จ่าย (50 ทวิ) */
   whtCert: 'WT',
@@ -33,7 +37,21 @@ export type DocPrefix = (typeof DOC_PREFIX)[keyof typeof DOC_PREFIX];
  * (ซึ่งมาถึงไม่เรียงกัน) แยกเป็น `supplierInvoiceDate` และเดือนใช้สิทธิภาษีซื้อเป็น `vatClaimPeriod`
  * ยกเว้น JV — เลขภายในของสมุดรายวัน ออกตามลำดับการบันทึก (รวมรายการปิดภาษีเดือนที่ลงวันสิ้นเดือน)
  */
-export const DATE_ORDERED_PREFIXES: readonly DocPrefix[] = ['IV', 'BL', 'CN', 'CM', 'DN', 'DM', 'RE', 'PI', 'PV', 'WT', 'RF'];
+export const DATE_ORDERED_PREFIXES: readonly DocPrefix[] = [
+  'IV',
+  'BL',
+  'CN',
+  'CM',
+  'DN',
+  'DM',
+  'RE',
+  'RT',
+  'PI',
+  'PC',
+  'PV',
+  'WT',
+  'RF',
+];
 
 const DOC_NO_PATTERN = /^([A-Z]{2})(\d{4})-(\d{4,})$/;
 

@@ -41,6 +41,11 @@ import {
 //   - ใบลดหนี้ได้ originalNet/correctNet (มูลค่าตามใบกำกับ ณ วันออก ไล่ตามลำดับวันที่/เลขที่)
 //   - vatCloses = [] (ปิดภาษีเดือนเริ่มที่การปิดงวดครั้งถัดไป — รวมเดือนที่ปิดงวดไว้แล้วแต่ยังไม่ปิดภาษี)
 //   - ผังบัญชีเพิ่ม 1180 ภาษีชำระเกินยกไป, PI เริ่มบังคับเลขเรียงตามวันที่ (คู่ที่เรียงผิดของเดิมได้ legacyOrderThrough)
+//
+// v4 → v5 (Sprint B batch 3 — งานบริการ / ปิดปี / ยอดยกมา / ใบลดหนี้ผู้ขาย)
+//   - ผังบัญชีเพิ่ม 2151 ภาษีขายยังไม่ถึงกำหนด (งานบริการ ม.78/1)
+//   - purchaseCredits = [], yearCloses = [] (ยังไม่มีใบลดหนี้ผู้ขาย/การปิดปี) ไม่มี openingBalance
+//   - เอกสารเดิมทั้งหมดเป็น "ขายสินค้า" (ไม่มี saleType) ใบเสร็จเดิมเป็นใบเสร็จธรรมดา (RE) — ตัวเลขทุกรายงานเท่าเดิม
 // ----------------------------------------------------------------------
 
 /** เอกสารซื้อโครง v3 (หัก ณ ที่จ่ายระดับเอกสาร + ข้อมูลการจ่ายครั้งเดียว) */
@@ -58,7 +63,10 @@ type PurchaseV3 = Omit<PurchaseDoc, 'lines' | 'supplierInvoiceDate' | 'vatClaimP
 
 type PaymentV3 = Omit<Payment, 'whtItems'>;
 
-export type DataV3 = Omit<AccountingData, 'version' | 'purchases' | 'payments' | 'vatCloses'> & {
+/** โครง v4 = ปัจจุบันที่ยังไม่มีใบลดหนี้ผู้ขาย / ปิดปี / ยอดยกมา */
+export type DataV4 = Omit<AccountingData, 'version' | 'purchaseCredits' | 'yearCloses' | 'openingBalance'> & { version: 4 };
+
+export type DataV3 = Omit<DataV4, 'version' | 'purchases' | 'payments' | 'vatCloses'> & {
   version: 3;
   purchases: PurchaseV3[];
   payments: PaymentV3[];
@@ -187,7 +195,7 @@ function backfillCreditNoteValues(sales: SalesDoc[]): SalesDoc[] {
 }
 
 /** v3 → v4 (pure): หัก ณ ที่จ่ายระดับบรรทัด, วันที่ใบกำกับ/เดือนใช้สิทธิ, whtItems ในใบสำคัญจ่าย, vatCloses */
-export function migrateV3(data: DataV3): AccountingData {
+export function migrateV3(data: DataV3): DataV4 {
   const knownAccounts = new Set(data.accounts.map((a) => a.code));
   const purchaseById = new Map(data.purchases.map((p) => [p.id, p]));
   const purchases: PurchaseDoc[] = data.purchases.map((p) => {
@@ -223,12 +231,24 @@ export function migrateV3(data: DataV3): AccountingData {
   });
   return {
     ...data,
-    version: DATA_VERSION,
+    version: 4,
     accounts: [...data.accounts, ...DEFAULT_ACCOUNTS.filter((a) => !knownAccounts.has(a.code))],
     sales: backfillCreditNoteValues(data.sales),
     purchases,
     payments,
     vatCloses: [],
+  };
+}
+
+/** v4 → v5 (pure): บัญชี 2151, purchaseCredits / yearCloses ว่าง */
+export function migrateV4(data: DataV4): AccountingData {
+  const knownAccounts = new Set(data.accounts.map((a) => a.code));
+  return {
+    ...data,
+    version: DATA_VERSION,
+    accounts: [...data.accounts, ...DEFAULT_ACCOUNTS.filter((a) => !knownAccounts.has(a.code))],
+    purchaseCredits: [],
+    yearCloses: [],
   };
 }
 
@@ -255,6 +275,10 @@ function looksLikeV3(value: Record<string, unknown>): value is DataV3 {
   );
 }
 
+function looksLikeV4(value: Record<string, unknown>): value is DataV4 {
+  return value.version === 4 && Array.isArray(value.vatCloses) && looksLikeV3(value);
+}
+
 export type LoadResult = {
   /** null = อ่านไม่ได้/รูปแบบผิด ห้ามนำไปใช้ */
   data: AccountingData | null;
@@ -276,7 +300,7 @@ export function readAccountingData(raw: unknown): LoadResult {
   if (raw.version === 1) {
     if (!looksLikeV1(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 1 ไม่ครบ (ขาดรายการบางส่วน)'] };
     try {
-      candidate = migrateV3(migrateV1(raw));
+      candidate = migrateV4(migrateV3(migrateV1(raw)));
       migratedFrom = 1;
     } catch (error) {
       return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน 1 ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
@@ -286,10 +310,18 @@ export function readAccountingData(raw: unknown): LoadResult {
     const from = raw.version;
     if (!looksLikeV3(raw)) return { data: null, problems: [`ข้อมูลเวอร์ชัน ${from} ไม่ครบ (ขาดรายการบางส่วน)`] };
     try {
-      candidate = migrateV3({ ...raw, version: 3 });
+      candidate = migrateV4(migrateV3({ ...raw, version: 3 }));
       migratedFrom = from;
     } catch (error) {
       return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน ${from} ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
+    }
+  } else if (raw.version === 4) {
+    if (!looksLikeV4(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 4 ไม่ครบ (ขาดรายการบางส่วน)'] };
+    try {
+      candidate = migrateV4(raw);
+      migratedFrom = 4;
+    } catch (error) {
+      return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน 4 ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
     }
   } else if (raw.version !== DATA_VERSION) {
     return { data: null, problems: [`ไม่รองรับข้อมูลเวอร์ชัน ${String(raw.version)}`] };

@@ -104,6 +104,16 @@ export function VatReportTab({ rows, period, kind }: Props) {
                         ใบเพิ่มหนี้
                       </Typography>
                     )}
+                    {r.kind === 'receipt' && (
+                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                        ใบเสร็จรับเงิน/ใบกำกับภาษี (งานบริการ)
+                      </Typography>
+                    )}
+                    {r.kind === 'purchase-credit-note' && (
+                      <Typography variant="caption" sx={{ display: 'block', color: 'error.main' }}>
+                        ใบลดหนี้จากผู้ขาย
+                      </Typography>
+                    )}
                     {r.refDocNo && (
                       <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
                         {r.refDocNo} · บันทึก {formatThaiDate(r.recordedDate)}

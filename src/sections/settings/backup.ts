@@ -37,6 +37,7 @@ export function backupCounts(data: AccountingData): BackupCount[] {
     { key: 'purchases', label: 'เอกสารซื้อ / ค่าใช้จ่าย', count: data.purchases.length },
     { key: 'payments', label: 'ใบสำคัญจ่าย', count: data.payments.length },
     { key: 'refunds', label: 'คืนเงินลูกค้า', count: data.refunds.length },
+    { key: 'purchaseCredits', label: 'ใบลดหนี้จากผู้ขาย', count: data.purchaseCredits.length },
     { key: 'contacts', label: 'ลูกค้า / ผู้ขาย', count: data.contacts.length },
     { key: 'journal', label: 'รายการบัญชี', count: data.journal.length },
   ];
