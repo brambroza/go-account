@@ -14,6 +14,7 @@ import { useBoolean } from 'src/hooks/use-boolean';
 
 import { downloadText } from 'src/utils/download';
 
+import { usePermissions } from 'src/auth';
 import { useAccounting, useAccountLookup, useContactLookup } from 'src/store';
 import { periodOf, periodLabel, receiptTitle, eTaxReadiness, formatThaiDate, buildReceiptETaxXml } from 'src/domain';
 
@@ -23,6 +24,7 @@ import { EmptyContent } from 'src/components/empty-content';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { Money, ETaxLabel } from 'src/sections/shared';
+import { useServerDownload } from 'src/sections/shared/server-reports';
 
 import { ReceiptPreview } from '../receipt-preview';
 import { MarkUploadedDialog } from '../../tax/mark-uploaded-dialog';
@@ -32,7 +34,9 @@ import { MarkUploadedDialog } from '../../tax/mark-uploaded-dialog';
 /** ใบเสร็จรับเงิน (RE) / ใบเสร็จรับเงิน/ใบกำกับภาษีของงานบริการ (RT): ดู พิมพ์ ดาวน์โหลด XML และสถานะ e-Tax */
 export function ReceiptView() {
   const { id = '' } = useParams();
-  const { data } = useAccounting();
+  const { data, mode } = useAccounting();
+  const serverDownload = useServerDownload();
+  const { canWrite } = usePermissions();
   const contacts = useContactLookup();
   const accounts = useAccountLookup();
   const uploadDialog = useBoolean();
@@ -61,7 +65,15 @@ export function ReceiptView() {
   const etaxProblems = eTaxReadiness(data.company, buyer);
   const entry = data.journal.find((j) => j.id === receipt.journalId);
 
-  const downloadXml = () => {
+  const downloadXml = async () => {
+    if (mode === 'api') {
+      try {
+        await serverDownload(`/files/etax/${encodeURIComponent(receipt.docNo)}.xml`);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'ดาวน์โหลด XML ไม่สำเร็จ');
+      }
+      return;
+    }
     try {
       const xml = buildReceiptETaxXml({ receipt, invoice, company: data.company, buyer });
       downloadText(`${receipt.docNo}.xml`, xml, 'application/xml;charset=utf-8');
@@ -142,7 +154,7 @@ export function ReceiptView() {
                   <Button variant="outlined" startIcon={<Iconify icon="solar:file-download-bold" />} onClick={downloadXml}>
                     ดาวน์โหลด XML
                   </Button>
-                  {receipt.etax === 'signed' && (
+                  {canWrite && receipt.etax === 'signed' && (
                     <Button color="inherit" onClick={uploadDialog.onTrue}>
                       ทำเครื่องหมายว่านำส่งแล้ว
                     </Button>

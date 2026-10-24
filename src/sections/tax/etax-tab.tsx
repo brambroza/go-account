@@ -20,6 +20,7 @@ import { useBoolean } from 'src/hooks/use-boolean';
 
 import { downloadText } from 'src/utils/download';
 
+import { CanWrite } from 'src/auth';
 import { useAccounting, useContactLookup } from 'src/store';
 import { eTaxDocs, inPeriod, buildETaxXml, formatThaiDate, buildReceiptETaxXml } from 'src/domain';
 
@@ -29,6 +30,7 @@ import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
 
 import { Money, ETaxLabel } from 'src/sections/shared';
+import { useServerDownload } from 'src/sections/shared/server-reports';
 
 import { MarkUploadedDialog } from './mark-uploaded-dialog';
 
@@ -39,7 +41,8 @@ import { MarkUploadedDialog } from './mark-uploaded-dialog';
  * รวมใบเสร็จรับเงิน/ใบกำกับภาษีของงานบริการ (ตามวันที่รับเงิน)
  */
 export function ETaxTab({ period }: { period: Period }) {
-  const { data } = useAccounting();
+  const { data, mode } = useAccounting();
+  const serverDownload = useServerDownload();
   const contacts = useContactLookup();
   const markDialog = useBoolean();
 
@@ -50,7 +53,22 @@ export function ETaxTab({ period }: { period: Period }) {
   const waiting = docs.filter((d) => d.etax === 'signed' || d.etax === 'pending-sign');
   const signed = waiting.filter((d) => d.etax === 'signed');
 
-  const downloadAll = () => {
+  const downloadAll = async () => {
+    if (mode === 'api') {
+      // โหมด api: XML จากเซิร์ฟเวอร์ทีละฉบับ (ยังไม่ลงลายมือชื่อ — Phase D)
+      const failed: string[] = [];
+      // eslint-disable-next-line no-restricted-syntax
+      for (const row of waiting) {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await serverDownload(`/files/etax/${encodeURIComponent(row.docNo)}.xml`);
+        } catch (error) {
+          failed.push(`${row.docNo}: ${error instanceof Error ? error.message : ''}`);
+        }
+      }
+      if (failed.length) toast.error(`ดาวน์โหลด XML ไม่ได้ ${failed.length} ฉบับ: ${failed.slice(0, 3).join(' · ')}`);
+      return;
+    }
     const files: { name: string; xml: string }[] = [];
     const failed: string[] = [];
     waiting.forEach((row) => {
@@ -90,14 +108,11 @@ export function ETaxTab({ period }: { period: Period }) {
         <Button variant="outlined" startIcon={<Iconify icon="solar:file-download-bold" />} disabled={!waiting.length} onClick={downloadAll}>
           ดาวน์โหลด XML ที่รอนำส่ง ({waiting.length})
         </Button>
-        <Button
-          variant="contained"
-          disabled={!signed.length}
-          onClick={markDialog.onTrue}
-          startIcon={<Iconify icon="solar:check-circle-bold" />}
-        >
-          ทำเครื่องหมายว่านำส่งแล้ว ({signed.length})
-        </Button>
+        <CanWrite>
+          <Button variant="contained" disabled={!signed.length} onClick={markDialog.onTrue} startIcon={<Iconify icon="solar:check-circle-bold" />}>
+            ทำเครื่องหมายว่านำส่งแล้ว ({signed.length})
+          </Button>
+        </CanWrite>
       </Stack>
 
       {docs.length ? (

@@ -13,14 +13,17 @@ import Typography from '@mui/material/Typography';
 
 import { downloadText } from 'src/utils/download';
 
+import { useAccounting } from 'src/store';
 import { sumBaht, formatTaxId, periodLabel, vatReportCsv, formatThaiDate, isValidThaiTaxId } from 'src/domain';
 
 import { Label } from 'src/components/label';
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
 
 import { Money } from 'src/sections/shared';
+import { useServerDownload } from 'src/sections/shared/server-reports';
 
 // ----------------------------------------------------------------------
 
@@ -41,6 +44,22 @@ export function VatReportTab({ rows, period, kind }: Props) {
   const vat = sumBaht(rows.map((r) => r.vat));
   const problems = rows.map((r) => vatRowProblem(r));
   const badCount = problems.filter(Boolean).length;
+  const { mode } = useAccounting();
+  const download = useServerDownload();
+  const fileName = `${kind === 'sales' ? 'sales' : 'purchase'}-vat-${period.year}-${String(period.month).padStart(2, '0')}.csv`;
+
+  /** โหมด api: CSV จากเซิร์ฟเวอร์ (`/files/vat/...`) ทุก byte ตรงกับ golden; โหมด local สร้างในเบราว์เซอร์ */
+  const exportCsv = async () => {
+    if (mode !== 'api') {
+      downloadText(fileName, vatReportCsv(rows, title), 'text/csv;charset=utf-8');
+      return;
+    }
+    try {
+      await download(`/files/vat/${period.year}-${String(period.month).padStart(2, '0')}/${kind}.csv`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'ดาวน์โหลดไม่สำเร็จ');
+    }
+  };
 
   return (
     <Stack spacing={2.5}>
@@ -53,13 +72,7 @@ export function VatReportTab({ rows, period, kind }: Props) {
           variant="outlined"
           startIcon={<Iconify icon="solar:file-download-bold" />}
           disabled={!rows.length}
-          onClick={() =>
-            downloadText(
-              `${kind === 'sales' ? 'sales' : 'purchase'}-vat-${period.year}-${String(period.month).padStart(2, '0')}.csv`,
-              vatReportCsv(rows, title),
-              'text/csv;charset=utf-8'
-            )
-          }
+          onClick={exportCsv}
         >
           ส่งออก CSV
         </Button>

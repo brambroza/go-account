@@ -1,4 +1,5 @@
 import type { Period } from 'src/domain';
+import type { VatReportDto, WhtReportDto } from 'src/sections/shared/server-reports';
 
 import { useMemo, useState } from 'react';
 
@@ -15,12 +16,14 @@ import { paths } from 'src/routes/paths';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
+import { OwnerOnly } from 'src/auth';
 import { useAccounting } from 'src/store';
 import {
   inPeriod,
   periodOf,
   todayISO,
   whtTotals,
+  periodKey,
   eTaxWaiting,
   periodLabel,
   shiftPeriod,
@@ -39,6 +42,7 @@ import { CustomTabs } from 'src/components/custom-tabs';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { Money } from 'src/sections/shared';
+import { toPp30, toVatRows, useServerReport } from 'src/sections/shared/server-reports';
 
 import { WhtTab } from './wht-tab';
 import { ETaxTab } from './etax-tab';
@@ -51,20 +55,33 @@ type TabValue = 'sales' | 'purchase' | 'pp30' | 'pnd3' | 'pnd53' | 'etax';
 
 /** ศูนย์ภาษี: ภ.พ.30, รายงานภาษีซื้อ/ขาย, ภ.ง.ด.3/53, e-Tax และการปิดงวด */
 export function TaxView() {
-  const { data } = useAccounting();
+  const { data, mode } = useAccounting();
   const lockDialog = useBoolean();
   const lock = data.company.lockedThrough;
   const [period, setPeriod] = useState<Period>(() => periodOf(todayISO()));
   const [tab, setTab] = useState<TabValue>('pp30');
+  const month = periodKey(period);
+
+  // โหมด api: ตัวเลขภาษีมาจากเซิร์ฟเวอร์ (/reports/vat, /reports/wht) — ระหว่างโหลดใช้ค่าที่คำนวณจากสมุดที่โหลดมา (preview)
+  const api = mode === 'api';
+  const serverVat = useServerReport<VatReportDto>(api ? `/reports/vat/${month}` : null);
+  const serverPnd3 = useServerReport<WhtReportDto>(api ? `/reports/wht/${month}/pnd3` : null);
+  const serverPnd53 = useServerReport<WhtReportDto>(api ? `/reports/wht/${month}/pnd53` : null);
 
   const report = useMemo(() => {
-    const sales = salesVatReport(data.sales, data.contacts, period, data.receipts);
-    const purchases = purchaseVatReport(data.purchases, data.contacts, period, data.purchaseCredits);
-    const pnd3 = whtTotals(whtPayeesForPeriod(data, period, 'PND3'));
-    const pnd53 = whtTotals(whtPayeesForPeriod(data, period, 'PND53'));
     const etaxWaiting = eTaxWaiting(data).filter((d) => inPeriod(d.date, period)).length;
-    return { sales, purchases, pp30: pp30ForPeriod(data, period), pnd3, pnd53, etaxWaiting };
-  }, [data, period]);
+    const v = serverVat.data;
+    const totals = (w: WhtReportDto) => ({ payees: w.payeeCount, amount: w.amount, tax: w.tax });
+    return {
+      sales: v ? toVatRows(v.sales) : salesVatReport(data.sales, data.contacts, period, data.receipts),
+      purchases: v ? toVatRows(v.purchases) : purchaseVatReport(data.purchases, data.contacts, period, data.purchaseCredits),
+      pp30: v ? toPp30(v.pp30, data.vatCloses, month) : pp30ForPeriod(data, period),
+      pnd3: serverPnd3.data ? totals(serverPnd3.data) : whtTotals(whtPayeesForPeriod(data, period, 'PND3')),
+      pnd53: serverPnd53.data ? totals(serverPnd53.data) : whtTotals(whtPayeesForPeriod(data, period, 'PND53')),
+      etaxWaiting,
+    };
+  }, [data, period, month, serverVat.data, serverPnd3.data, serverPnd53.data]);
+  const serverError = serverVat.error ?? serverPnd3.error ?? serverPnd53.error;
 
   const due = filingDueDates(period);
 
@@ -108,15 +125,23 @@ export function TaxView() {
         sx={{ mb: 3, alignItems: 'center' }}
         icon={<Iconify icon="solar:lock-keyhole-minimalistic-bold" />}
         action={
-          <Button color="inherit" size="small" variant="outlined" onClick={lockDialog.onTrue}>
-            ปิดงวด
-          </Button>
+          <OwnerOnly>
+            <Button color="inherit" size="small" variant="outlined" onClick={lockDialog.onTrue}>
+              ปิดงวด
+            </Button>
+          </OwnerOnly>
         }
       >
         {lock
           ? `ปิดงวดถึงวันที่ ${formatThaiDate(lock)} — รายการที่ลงวันที่ถึงวันนี้แก้หรือเพิ่มไม่ได้`
           : 'ยังไม่ได้ปิดงวด — หลังยื่นแบบของเดือนแล้วให้ปิดงวด เพื่อกันการลงรายการย้อนหลังเข้างวดที่ยื่นแล้ว'}
       </Alert>
+
+      {serverError && (
+        <Alert severity="error" variant="outlined" sx={{ mb: 3 }}>
+          โหลดรายงานภาษีจากเซิร์ฟเวอร์ไม่สำเร็จ: {serverError} — ตัวเลขด้านล่างคำนวณจากข้อมูลที่โหลดไว้ (ยังไม่ยืนยันจากเซิร์ฟเวอร์)
+        </Alert>
+      )}
 
       <Box sx={{ display: 'grid', gap: 2, mb: 3, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' } }}>
         {cards.map((c) => (
@@ -210,8 +235,8 @@ export function TaxView() {
           )}
           {tab === 'sales' && <VatReportTab rows={report.sales} period={period} kind="sales" />}
           {tab === 'purchase' && <VatReportTab rows={report.purchases} period={period} kind="purchase" />}
-          {tab === 'pnd3' && <WhtTab form="PND3" period={period} />}
-          {tab === 'pnd53' && <WhtTab form="PND53" period={period} />}
+          {tab === 'pnd3' && <WhtTab form="PND3" period={period} server={serverPnd3.data} />}
+          {tab === 'pnd53' && <WhtTab form="PND53" period={period} server={serverPnd53.data} />}
           {tab === 'etax' && <ETaxTab period={period} />}
         </Box>
       </Card>

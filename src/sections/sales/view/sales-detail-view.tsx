@@ -17,6 +17,7 @@ import { useBoolean } from 'src/hooks/use-boolean';
 
 import { downloadText } from 'src/utils/download';
 
+import { usePermissions } from 'src/auth';
 import { outstandingOf, useAccounting, useAccountLookup, useContactLookup } from 'src/store';
 import {
   todayISO,
@@ -40,6 +41,7 @@ import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
+import { useServerDownload } from 'src/sections/shared/server-reports';
 import { Money, ETaxLabel, SalesStatusLabel } from 'src/sections/shared';
 
 import { RefundDialog } from '../refund-dialog';
@@ -52,7 +54,9 @@ import { MarkUploadedDialog } from '../../tax/mark-uploaded-dialog';
 /** รายละเอียดเอกสารขาย: ตัวอย่างพิมพ์ (จาก snapshot), รับชำระ, ลดหนี้, คืนเงินลูกค้า, e-Tax */
 export function SalesDetailView() {
   const { id = '' } = useParams();
-  const { data } = useAccounting();
+  const { data, mode } = useAccounting();
+  const serverDownload = useServerDownload();
+  const { canWrite } = usePermissions();
   const contacts = useContactLookup();
   const accounts = useAccountLookup();
   const payDialog = useBoolean();
@@ -103,7 +107,15 @@ export function SalesDetailView() {
   const canDebit = isInvoice && doc.status !== 'cancelled' && !doc.opening && !(doc.saleType === 'service' && !isTax);
   const canCredit = isInvoice && toSatang(creditable) > 0 && !doc.opening;
 
-  const downloadXml = () => {
+  const downloadXml = async () => {
+    if (mode === 'api') {
+      try {
+        await serverDownload(`/files/etax/${encodeURIComponent(doc.docNo)}.xml`);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'ดาวน์โหลด XML ไม่สำเร็จ');
+      }
+      return;
+    }
     try {
       const xml = buildETaxXml({ doc, company: data.company, buyer, referenced, referencedReceipt });
       downloadText(`${doc.docNo}.xml`, xml, 'application/xml;charset=utf-8');
@@ -126,7 +138,7 @@ export function SalesDetailView() {
             <Button variant="outlined" startIcon={<Iconify icon="solar:printer-minimalistic-bold" />} onClick={() => window.print()}>
               พิมพ์
             </Button>
-            {canCredit && (
+            {canWrite && canCredit && (
               <Button
                 component={RouterLink}
                 href={paths.sales.creditNote(doc.id)}
@@ -137,22 +149,17 @@ export function SalesDetailView() {
                 ออกใบลดหนี้
               </Button>
             )}
-            {canDebit && (
-              <Button
-                component={RouterLink}
-                href={paths.sales.debitNote(doc.id)}
-                variant="outlined"
-                startIcon={<Iconify icon="mingcute:add-line" />}
-              >
+            {canWrite && canDebit && (
+              <Button component={RouterLink} href={paths.sales.debitNote(doc.id)} variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />}>
                 ออกใบเพิ่มหนี้
               </Button>
             )}
-            {toSatang(customerCredit) > 0 && (
+            {canWrite && toSatang(customerCredit) > 0 && (
               <Button variant="outlined" startIcon={<Iconify icon="solar:wallet-money-bold" />} onClick={refundDialog.onTrue}>
                 คืนเงินลูกค้า
               </Button>
             )}
-            {isInvoice && toSatang(outstanding) > 0 && (
+            {canWrite && isInvoice && toSatang(outstanding) > 0 && (
               <Button variant="contained" startIcon={<Iconify icon="solar:hand-money-bold" />} onClick={payDialog.onTrue}>
                 รับชำระ
               </Button>
@@ -258,7 +265,7 @@ export function SalesDetailView() {
                   >
                     ดาวน์โหลด XML
                   </Button>
-                  {doc.etax === 'signed' && (
+                  {canWrite && doc.etax === 'signed' && (
                     <Button color="inherit" onClick={uploadDialog.onTrue}>
                       ทำเครื่องหมายว่านำส่งแล้ว
                     </Button>
