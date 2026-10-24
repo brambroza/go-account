@@ -109,6 +109,7 @@ export const ERROR_CODES: readonly [string, RegExp][] = [
   ['OPENING_NOT_MONTH_END', /^วันที่ยอดยกมาต้องเป็นวันสิ้นเดือน/],
   ['OPENING_BLOCKED', /^บันทึกยอดยกมาได้ก่อนมีรายการอื่นเท่านั้น/],
   ['OPENING_CONTROL_ACCOUNT', /เป็นบัญชีคุม — ลูกหนี้\/เจ้าหนี้กรอกเป็นรายการค้างทีละใบ/],
+  ['OPENING_LINE_INVALID', /^บรรทัดที่ \d+: /],
   ['OPENING_DUPLICATE_DOC', /ของผู้ติดต่อเดียวกันซ้ำในรายการค้าง$/],
   ['OPENING_NUMBER_CONFLICT', /ซ้ำรูปแบบเลขที่ที่ระบบนี้จะออกหลังวันยอดยกมา/],
   ['OPENING_DOCNO_REQUIRED', /: ระบุเลขที่เอกสารในระบบเดิม$/],
