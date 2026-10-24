@@ -207,7 +207,17 @@ export type ScenarioStep =
   | { action: 'issueFromQuotation'; input: InvoiceInput & { quotation: string } }
   | { action: 'closeYear'; input: { fiscalYearEnd: string } };
 
-export type ScenarioCompany = { name: string; taxId: string; branchNo: string; vatRegistered: boolean; address: Address };
+/** ข้อมูลบริษัทของ scenario — ค่าที่ไม่ระบุใช้ของ `emptyData().company` (อีเมล, ไม่มี rdUserId/phone) */
+export type ScenarioCompany = {
+  name: string;
+  taxId: string;
+  branchNo: string;
+  vatRegistered: boolean;
+  address: Address;
+  email?: string;
+  phone?: string;
+  rdUserId?: string;
+};
 
 export type Scenario = { name: string; description: string; company: ScenarioCompany; steps: ScenarioStep[] };
 
@@ -876,22 +886,41 @@ export type ScenarioStepResult =
   | { ok: true; output: ReturnType<typeof observe> }
   | { ok: false; error: { code: string; message: string } };
 
-/** replay scenario จากบริษัทว่าง — คืนผลทีละขั้น (ขั้นที่ถูกปฏิเสธไม่เปลี่ยน state) */
-export function runScenario(scenario: Scenario): ScenarioStepResult[] {
+/** บริษัทตั้งต้นของ scenario = `emptyData().company` ทับด้วยค่าของ scenario (ที่อยู่ทั้งก้อน) — ฝั่ง C# สร้าง tenant จากค่านี้ */
+export function scenarioCompany(scenario: Pick<Scenario, 'company'>): AccountingData['company'] {
+  return { ...emptyData().company, ...scenario.company };
+}
+
+/** state หลังขั้นที่ `index` (เริ่ม 1) และลำดับของรายการ statement (id → ref) — ใช้สร้าง report golden */
+export type ScenarioCheckpoint = { index: number; state: AccountingData; statementRefs: ReadonlyMap<string, number> };
+
+/**
+ * replay scenario จากบริษัทว่าง — คืนผลทีละขั้น (ขั้นที่ถูกปฏิเสธไม่เปลี่ยน state)
+ * `onStep` ได้ state หลังทุกขั้น (รวมขั้นที่ถูกปฏิเสธ = state เดิม)
+ */
+export function replayScenario(scenario: Scenario, onStep?: (checkpoint: ScenarioCheckpoint) => void): ScenarioStepResult[] {
   const base = emptyData();
-  let state: AccountingData = { ...base, company: { ...base.company, ...scenario.company } };
+  let state: AccountingData = { ...base, company: scenarioCompany(scenario) };
   const ctx: ReplayContext = { statementRefs: new Map(), nextRef: 1 };
   return scenario.steps.map((step, i) => {
+    let out: ScenarioStepResult;
     try {
       const next = apply(state, step, `${scenario.name}-${i + 1}`, ctx);
       const output = observe(state, next.state, ctx, next.result);
       ({ state } = next);
-      return { ok: true, output };
+      out = { ok: true, output };
     } catch (error) {
       if (!(error instanceof BusinessRuleError)) throw error;
-      return { ok: false, error: { code: errorCodeOf(error.message), message: error.message } };
+      out = { ok: false, error: { code: errorCodeOf(error.message), message: error.message } };
     }
+    onStep?.({ index: i + 1, state, statementRefs: ctx.statementRefs });
+    return out;
   });
+}
+
+/** replay scenario จากบริษัทว่าง — คืนผลทีละขั้น (ขั้นที่ถูกปฏิเสธไม่เปลี่ยน state) */
+export function runScenario(scenario: Scenario): ScenarioStepResult[] {
+  return replayScenario(scenario);
 }
 
 // ---------------- scenarios ----------------

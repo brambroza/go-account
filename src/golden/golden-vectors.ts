@@ -2,6 +2,8 @@ import type { CalcInput } from 'src/domain/document-calc';
 import type { VatMode, Payment, WhtLineItem, PurchaseLine, PurchaseCreditNote } from 'src/domain/types';
 
 import { bahtText } from 'src/domain/baht-text';
+import { csvCell } from 'src/domain/vat-report';
+import { normalizeInvoiceNo } from 'src/domain/duplicates';
 import { lineAmount, calcDocument, lineNetAmounts } from 'src/domain/document-calc';
 import { ACC, DEFAULT_ACCOUNTS, CONTROL_ACCOUNTS } from 'src/domain/chart-of-accounts';
 import { receiptWhtAmount, RECEIPT_WHT_MAX_RATE, PURCHASE_WHT_MAX_RATE } from 'src/domain/wht';
@@ -64,7 +66,9 @@ import {
   formatThaiDateShort,
 } from 'src/domain/thai-date';
 
+import { REPORT_SCENARIOS } from './scenarios-reports';
 import { runScenario, SALES_SCENARIOS } from './scenarios';
+import { reportVector, corruptionVector, CORRUPTION_CASES } from './reports';
 import { BANKING_SCENARIOS, CLOSING_SCENARIOS, PURCHASE_SCENARIOS } from './scenarios-c4b';
 
 import type { Scenario } from './scenarios';
@@ -787,6 +791,72 @@ function scenarioVectors(scenarios: Scenario[]): GoldenVector[] {
   }));
 }
 
+/** ไฟล์ scenario golden → scenario (ใช้กับ report/integrity golden) */
+export const SCENARIO_FILES: Record<string, Scenario[]> = {
+  'scenarios-sales.json': SALES_SCENARIOS,
+  'scenarios-purchases.json': PURCHASE_SCENARIOS,
+  'scenarios-banking.json': BANKING_SCENARIOS,
+  'scenarios-closing.json': CLOSING_SCENARIOS,
+  'scenarios-reports.json': REPORT_SCENARIOS,
+};
+
+// ---------------- ข้อความ: NFKC (เลขที่ใบกำกับผู้ขาย, ช่อง CSV) ----------------
+
+/**
+ * อักขระ compatibility (NFKC) — ฝั่ง C# ต้องรันด้วย ICU (ไม่ใช่ InvariantGlobalization) จึงได้ผลเดียวกับ `String.normalize('NFKC')`
+ * รวมตัวที่ toUpperCase ของ JS เปลี่ยนความยาว (ß → SS)
+ */
+function textVectors(): GoldenVector[] {
+  const { list, add } = collector();
+  [
+    'INV-001',
+    'ＩＮＶ－００１',
+    'INV　001',
+    'INV-①②③',
+    '㈱สยาม-12',
+    'ﬁle-0099',
+    'Ⅻ-5',
+    '½-2',
+    'No.²³',
+    '№ 7',
+    'ｶﾀｶﾅ-1',
+    'straße-01',
+    'ǰob-1',
+    'ﬀ-0',
+    'İstanbul-1',
+    'ıi-1',
+    'INV-๐๑๒',
+    'ใบกำกับ ๑/๒๕๖๙',
+    'A​B-0010',
+    'Ａ－ＢＣ／００１',
+    'ⓐⓑ-①⓪',
+    '',
+  ].forEach((value, i) => add(`normalizeInvoiceNo/${i}:${JSON.stringify(value)}`, { value }, normalizeInvoiceNo(value)));
+  [
+    'ปกติ',
+    '=SUM(A1)',
+    '+66',
+    '-5',
+    '@x',
+    '\t=1',
+    '\r=1',
+    '\u00a0=1',
+    ' =1',
+    '\u200b+1',
+    '＝HYPERLINK("x")',
+    '﹦1',
+    '＋1',
+    '－1',
+    '＠x',
+    'มี "อัญประกาศ"',
+    'ﬁ',
+    '',
+  ].forEach((value, i) => {
+    add(`csvCell/${i}:${JSON.stringify(value)}`, { value }, csvCell(value));
+  });
+  return list;
+}
+
 /** สร้าง golden vectors ทั้งหมด (pure — ไม่อ่าน/เขียนไฟล์) */
 export function buildGoldenSet(): GoldenSet {
   return {
@@ -802,6 +872,10 @@ export function buildGoldenSet(): GoldenSet {
     'scenarios-purchases.json': scenarioVectors(PURCHASE_SCENARIOS),
     'scenarios-banking.json': scenarioVectors(BANKING_SCENARIOS),
     'scenarios-closing.json': scenarioVectors(CLOSING_SCENARIOS),
+    'scenarios-reports.json': scenarioVectors(REPORT_SCENARIOS),
+    'reports.json': Object.entries(SCENARIO_FILES).flatMap(([file, scenarios]) => scenarios.map((s) => reportVector(file, s))),
+    'integrity.json': CORRUPTION_CASES.map((c) => corruptionVector(c, SCENARIO_FILES)),
+    'text.json': textVectors(),
   };
 }
 

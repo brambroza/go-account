@@ -1,0 +1,163 @@
+{
+  "file": "integrity.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 6,
+  "vectors": [
+    {
+      "name": "integrity/journal-amount-changed-balanced",
+      "input": {
+        "afterStep": 14,
+        "corruptions": [
+          {
+            "docNo": "JV6910-0001",
+            "lines": [
+              {
+                "credit": 0,
+                "debit": 13000,
+                "line": 1
+              },
+              {
+                "credit": 12500,
+                "debit": 0,
+                "line": 2
+              },
+              {
+                "credit": 50,
+                "debit": 0,
+                "line": 4
+              }
+            ],
+            "op": "journalLines"
+          }
+        ],
+        "file": "scenarios-sales.json",
+        "name": "journal-amount-changed-balanced",
+        "scenario": "goods-exclusive-full-payment-etax"
+      },
+      "output": [
+        "IV6910-0001: ยอดในเอกสารไม่ตรงกับรายการบัญชี JV6910-0001",
+        "1130 ลูกหนี้การค้า: ยอดบัญชี -856.50 ไม่ตรงกับทะเบียน 0.00",
+        "2150 ภาษีขาย 2026-10: ยอดบัญชี 120.00 ไม่ตรงกับทะเบียน 976.50"
+      ]
+    },
+    {
+      "name": "integrity/paid-amount-and-receipt-removed",
+      "input": {
+        "afterStep": 13,
+        "corruptions": [
+          {
+            "docNo": "IV6909-0001",
+            "op": "salesPaidAmount",
+            "paidAmount": 3000
+          },
+          {
+            "docNo": "RE6910-0001",
+            "op": "deleteReceipt"
+          }
+        ],
+        "file": "scenarios-sales.json",
+        "name": "paid-amount-and-receipt-removed",
+        "scenario": "goods-inclusive-partial-receipts"
+      },
+      "output": [
+        "ตัวนับเลขที่ RE6910 = 1 แต่ไม่พบเอกสาร",
+        "IV6909-0001: ยอดค้างชำระติดลบ",
+        "IV6909-0001: ยอดรับชำระไม่ตรงกับใบเสร็จ",
+        "JV6910-0001: รายการบัญชีไม่มีเอกสารต้นทาง",
+        "1130 ลูกหนี้การค้า: ยอดบัญชี 0.00 ไม่ตรงกับทะเบียน -1200.58"
+      ]
+    },
+    {
+      "name": "integrity/sequence-counter-and-journal-date",
+      "input": {
+        "afterStep": 37,
+        "corruptions": [
+          {
+            "key": "IV6910",
+            "op": "sequence",
+            "value": 5
+          },
+          {
+            "date": "2026-10-25",
+            "docNo": "JV6910-0003",
+            "op": "journalDate"
+          }
+        ],
+        "file": "scenarios-sales.json",
+        "name": "sequence-counter-and-journal-date",
+        "scenario": "date-order-and-validation"
+      },
+      "output": [
+        "ตัวนับเลขที่ IV6910 = 5 แต่มีเอกสาร 2 ใบ",
+        "RE6910-0001: วันที่ไม่ตรงกับรายการบัญชี JV6910-0003"
+      ]
+    },
+    {
+      "name": "integrity/purchase-paid-flag",
+      "input": {
+        "afterStep": 20,
+        "corruptions": [
+          {
+            "docNo": "PI6910-0001",
+            "op": "purchasePaid",
+            "paid": false
+          }
+        ],
+        "file": "scenarios-purchases.json",
+        "name": "purchase-paid-flag",
+        "scenario": "purchase-wht-lines-partial-payments"
+      },
+      "output": [
+        "PI6910-0001: สถานะจ่ายแล้วไม่ตรงกับใบสำคัญจ่าย"
+      ]
+    },
+    {
+      "name": "integrity/vat-close-and-service-receipt-vat",
+      "input": {
+        "afterStep": 21,
+        "corruptions": [
+          {
+            "op": "vatCloseOutput",
+            "outputVat": 2500,
+            "period": "2026-10"
+          },
+          {
+            "docNo": "RT6910-0001",
+            "op": "receiptVat",
+            "vat": 150
+          }
+        ],
+        "file": "scenarios-closing.json",
+        "name": "vat-close-and-service-receipt-vat",
+        "scenario": "monthly-vat-close-carry-forward"
+      },
+      "output": [
+        "ปิดภาษีเดือน 2026-10: ตัวเลขไม่ตรงกับรายงานภาษี/ยอดยกมา (มีเอกสารเปลี่ยนหลังปิด)",
+        "RT6910-0001: ภาษีขายในใบเสร็จรับเงิน/ใบกำกับภาษี (150.00) ไม่ตรงกับสัดส่วนภาษีรอตัด (140.00)",
+        "RT6910-0001: ยอดในเอกสารไม่ตรงกับรายการบัญชี JV6910-0003",
+        "VAT-2026-10: ยอดเอกสารลงบัญชีไม่ได้ (ไม่สมดุล)",
+        "2151 ภาษีขายยังไม่ถึงกำหนด: ยอดบัญชี 140.00 ไม่ตรงกับทะเบียน 130.00",
+        "2150 ภาษีขาย 2026-10: ยอดบัญชี 2170.00 ไม่ตรงกับทะเบียน 2180.00"
+      ]
+    },
+    {
+      "name": "integrity/bank-statement-amount",
+      "input": {
+        "afterStep": 36,
+        "corruptions": [
+          {
+            "amount": 49999,
+            "op": "statementAmount",
+            "ref": 1
+          }
+        ],
+        "file": "scenarios-banking.json",
+        "name": "bank-statement-amount",
+        "scenario": "bank-statement-import-matching"
+      },
+      "output": [
+        "กระทบยอด 1121 (JV6910-0001): ยอดไม่เท่ากัน: statement 49999.00 ≠ สมุดบัญชี 50000.00"
+      ]
+    }
+  ]
+}

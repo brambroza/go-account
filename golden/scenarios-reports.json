@@ -1,0 +1,4950 @@
+{
+  "file": "scenarios-reports.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 1,
+  "vectors": [
+    {
+      "name": "reports-tax-files-and-escaping",
+      "input": {
+        "company": {
+          "address": {
+            "addressNo": "918/288",
+            "buildingName": "อาคารสาธิต",
+            "district": "บางนา",
+            "floorNo": "7",
+            "moo": "10",
+            "postalCode": "10260",
+            "province": "กรุงเทพมหานคร",
+            "street": "สุขุมวิท",
+            "subDistrict": "บางนา"
+          },
+          "branchNo": "00000",
+          "email": "tax@report.example",
+          "name": "บริษัท รายงาน & ภาษี จำกัด",
+          "phone": "02-123-4567",
+          "rdUserId": "GA000001",
+          "taxId": "0105539123459",
+          "vatRegistered": true
+        },
+        "description": "ข้อมูลสำหรับรายงาน/ไฟล์ภาษี: ใบกำกับ/ใบลด/เพิ่มหนี้ที่มีอักขระพิเศษ (XML escape), งานบริการ RT + ใบลดหนี้อ้างใบเสร็จ, ภ.ง.ด.3 บุคคลธรรมดา 4 ประเภทเงินได้แบ่งจ่าย 2 เดือน, ภ.ง.ด.53 สาขา, ผู้รับเงินข้อมูลไม่ครบ, CSV formula injection, statement + จับคู่อัตโนมัติ, ปิดภาษีเดือน",
+        "steps": [
+          {
+            "action": "saveContact",
+            "input": {
+              "address": {
+                "addressNo": "99/9",
+                "buildingName": "อาคาร \"สาทร\" ทาวเวอร์",
+                "district": "สาทร",
+                "floorNo": "12",
+                "postalCode": "10120",
+                "province": "กรุงเทพมหานคร",
+                "roomNo": "1201",
+                "street": "สาทรใต้",
+                "subDistrict": "ยานนาวา"
+              },
+              "branchNo": "00002",
+              "code": "C101",
+              "creditDays": 30,
+              "email": "ap@ab.example",
+              "kind": "customer",
+              "legalForm": "juristic",
+              "name": "เอ & บี <เทรดดิ้ง> จำกัด",
+              "taxId": "0105558123451",
+              "title": "บริษัท"
+            }
+          },
+          {
+            "action": "saveContact",
+            "input": {
+              "address": {
+                "addressNo": "5",
+                "district": "เมือง",
+                "postalCode": "50000",
+                "province": "เชียงใหม่"
+              },
+              "code": "C102",
+              "creditDays": 15,
+              "kind": "customer",
+              "legalForm": "individual",
+              "name": "=SUM(A1) ร้านค้า",
+              "taxId": "1100100123454",
+              "title": ""
+            }
+          },
+          {
+            "action": "saveContact",
+            "input": {
+              "address": {
+                "addressNo": "1",
+                "province": "ภูเก็ต"
+              },
+              "branchNo": "0",
+              "code": "C103",
+              "creditDays": 0,
+              "kind": "both",
+              "legalForm": "juristic",
+              "name": "＝HYPERLINK(\"x\") จำกัด",
+              "taxId": "0105562123451",
+              "title": ""
+            }
+          },
+          {
+            "action": "saveContact",
+            "input": {
+              "address": {
+                "addressNo": "45/6",
+                "district": "บางกะปิ",
+                "moo": "3",
+                "postalCode": "10240",
+                "province": "กรุงเทพมหานคร",
+                "soi": "ลาดพร้าว 101/1",
+                "street": "ลาดพร้าว*",
+                "subDistrict": "คลองจั่น",
+                "village": "หมู่บ้าน #1 & 2"
+              },
+              "code": "V101",
+              "creditDays": 0,
+              "kind": "vendor",
+              "lastName": "ใจ'ดี|มาก",
+              "legalForm": "individual",
+              "name": "สมศรี \"ช่างภาพ\"",
+              "taxId": "3600100998878",
+              "title": "นาง"
+            }
+          },
+          {
+            "action": "saveContact",
+            "input": {
+              "address": {
+                "addressNo": "7/77",
+                "district": "บางพลี",
+                "postalCode": "10540",
+                "province": "สมุทรปราการ",
+                "street": "บางนา-ตราด"
+              },
+              "branchNo": "00001",
+              "code": "V102",
+              "creditDays": 30,
+              "kind": "vendor",
+              "legalForm": "juristic",
+              "name": "ขนส่ง & โลจิสติกส์ #1",
+              "taxId": "0103560123452",
+              "title": "ห้างหุ้นส่วนจำกัด"
+            }
+          },
+          {
+            "action": "saveContact",
+            "input": {
+              "address": {
+                "addressNo": "1",
+                "province": "ขอนแก่น"
+              },
+              "code": "V103",
+              "creditDays": 0,
+              "kind": "vendor",
+              "lastName": "ไม่ครบ",
+              "legalForm": "individual",
+              "name": "ดำ",
+              "taxId": "1234567890123",
+              "title": "นาย"
+            }
+          },
+          {
+            "action": "issueTaxInvoice",
+            "input": {
+              "contact": "C101",
+              "date": "2026-10-03",
+              "dueDate": "2026-11-02",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า A & B <รุ่นใหม่>",
+                  "discount": 10,
+                  "qty": 2.5,
+                  "unitPrice": 1234.567
+                },
+                {
+                  "accountCode": "4900",
+                  "description": "ค่าขนส่ง 'ด่วน'",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 99.995
+                }
+              ],
+              "note": "ชำระภายใน 30 วัน",
+              "vatMode": "exclusive"
+            }
+          },
+          {
+            "action": "issueTaxInvoice",
+            "input": {
+              "contact": "C102",
+              "date": "2026-10-05",
+              "dueDate": "2026-10-20",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า",
+                  "discount": 0,
+                  "qty": 3,
+                  "unitPrice": 500
+                }
+              ],
+              "vatMode": "inclusive"
+            }
+          },
+          {
+            "action": "issueTaxInvoice",
+            "input": {
+              "contact": "C103",
+              "date": "2026-10-06",
+              "dueDate": "2026-10-06",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 1000
+                }
+              ],
+              "vatMode": "exclusive"
+            }
+          },
+          {
+            "action": "issueCreditNote",
+            "input": {
+              "date": "2026-10-08",
+              "invoice": "IV6910-0001",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "คืน <ชำรุด>",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 500
+                }
+              ],
+              "reason": "สินค้า \"ชำรุด\" & เสียหาย"
+            }
+          },
+          {
+            "action": "issueDebitNote",
+            "input": {
+              "date": "2026-10-09",
+              "invoice": "IV6910-0001",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "ค่าติดตั้งเพิ่ม",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 200
+                }
+              ],
+              "reason": "เพิ่มงานติดตั้ง"
+            }
+          },
+          {
+            "action": "receivePayment",
+            "input": {
+              "amount": 1500,
+              "date": "2026-10-10",
+              "depositAccountCode": "1120",
+              "invoice": "IV6910-0002",
+              "whtAmount": 0
+            }
+          },
+          {
+            "action": "issueTaxInvoice",
+            "input": {
+              "contact": "C101",
+              "date": "2026-10-12",
+              "dueDate": "2026-11-11",
+              "lines": [
+                {
+                  "accountCode": "4200",
+                  "description": "ที่ปรึกษา & อบรม",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 20000
+                }
+              ],
+              "saleType": "service",
+              "vatMode": "exclusive"
+            }
+          },
+          {
+            "action": "receivePayment",
+            "input": {
+              "amount": 10700,
+              "date": "2026-10-15",
+              "depositAccountCode": "1120",
+              "invoice": "BL6910-0001",
+              "whtAmount": 300
+            }
+          },
+          {
+            "action": "receivePayment",
+            "input": {
+              "amount": 10700,
+              "date": "2026-10-20",
+              "depositAccountCode": "1120",
+              "invoice": "BL6910-0001",
+              "whtAmount": 0
+            }
+          },
+          {
+            "action": "issueCreditNote",
+            "input": {
+              "date": "2026-10-21",
+              "invoice": "BL6910-0001",
+              "lines": [
+                {
+                  "accountCode": "4200",
+                  "description": "ส่วนลดหลังการขาย",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 1000
+                }
+              ],
+              "reason": "ส่วนลดพิเศษ"
+            }
+          },
+          {
+            "action": "setETaxStatus",
+            "input": {
+              "docs": [
+                "IV6910-0001",
+                "CN6910-0001",
+                "RT6910-0001"
+              ],
+              "etax": "signed"
+            }
+          },
+          {
+            "action": "recordPurchase",
+            "input": {
+              "claimVat": false,
+              "contact": "V101",
+              "date": "2026-10-10",
+              "lines": [
+                {
+                  "accountCode": "5600",
+                  "description": "ถ่ายภาพสินค้า",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 10000,
+                  "whtIncomeType": "ค่าบริการ",
+                  "whtRate": 3
+                },
+                {
+                  "accountCode": "5300",
+                  "description": "เช่าสตูดิโอ",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 5000,
+                  "whtIncomeType": "ค่าเช่า",
+                  "whtRate": 5
+                },
+                {
+                  "accountCode": "5400",
+                  "description": "ขนส่งอุปกรณ์",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "ค่าขนส่ง",
+                  "whtRate": 1
+                },
+                {
+                  "accountCode": "5500",
+                  "description": "โฆษณาออนไลน์",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 3000,
+                  "whtIncomeType": "ค่าโฆษณา",
+                  "whtRate": 2
+                }
+              ],
+              "supplierInvoiceNo": "บิล 1/2569",
+              "vatMode": "none",
+              "whtCondition": "1"
+            }
+          },
+          {
+            "action": "payPurchase",
+            "input": {
+              "accountCode": "1120",
+              "amount": 8000,
+              "date": "2026-10-15",
+              "purchase": "PI6910-0001"
+            }
+          },
+          {
+            "action": "recordPurchase",
+            "input": {
+              "claimVat": true,
+              "contact": "V102",
+              "date": "2026-10-12",
+              "lines": [
+                {
+                  "accountCode": "5400",
+                  "description": "ค่าขนส่งสินค้า",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 5000,
+                  "whtIncomeType": "ค่าขนส่ง",
+                  "whtRate": 1
+                }
+              ],
+              "supplierInvoiceDate": "2026-10-12",
+              "supplierInvoiceNo": "INV-77",
+              "vatClaimPeriod": "2026-10",
+              "vatMode": "exclusive",
+              "whtCondition": "1"
+            }
+          },
+          {
+            "action": "payPurchase",
+            "input": {
+              "accountCode": "1120",
+              "date": "2026-10-20",
+              "purchase": "PI6910-0002"
+            }
+          },
+          {
+            "action": "recordPurchase",
+            "input": {
+              "claimVat": false,
+              "contact": "V103",
+              "date": "2026-10-14",
+              "lines": [
+                {
+                  "accountCode": "5600",
+                  "description": "ซ่อมเครื่อง",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 3000,
+                  "whtIncomeType": "ค่าจ้างทำของ",
+                  "whtRate": 3
+                }
+              ],
+              "supplierInvoiceNo": "",
+              "vatMode": "none",
+              "whtCondition": "2"
+            }
+          },
+          {
+            "action": "payPurchase",
+            "input": {
+              "accountCode": "1110",
+              "date": "2026-10-25",
+              "purchase": "PI6910-0003"
+            }
+          },
+          {
+            "action": "addBankStatementLines",
+            "input": {
+              "accountCode": "1120",
+              "imported": true,
+              "lines": [
+                {
+                  "amount": 1500,
+                  "balance": 1500,
+                  "date": "2026-10-10",
+                  "description": "รับโอน =SUM ร้านค้า"
+                },
+                {
+                  "amount": 10400,
+                  "balance": 11900,
+                  "date": "2026-10-16",
+                  "description": "รับโอน เอ & บี"
+                },
+                {
+                  "amount": -7670,
+                  "balance": 4230,
+                  "date": "2026-10-16",
+                  "description": "โอนจ่ายช่างภาพ"
+                },
+                {
+                  "amount": 10700,
+                  "balance": 14930,
+                  "date": "2026-10-21",
+                  "description": "รับโอน เอ & บี"
+                },
+                {
+                  "amount": -25,
+                  "balance": 14905,
+                  "date": "2026-10-31",
+                  "description": "ค่าธรรมเนียม"
+                }
+              ]
+            }
+          },
+          {
+            "action": "autoMatchBank",
+            "input": {
+              "accountCode": "1120"
+            }
+          },
+          {
+            "action": "lockPeriod",
+            "input": {
+              "through": "2026-10-31",
+              "today": "2026-11-10"
+            }
+          },
+          {
+            "action": "payPurchase",
+            "input": {
+              "accountCode": "1120",
+              "date": "2026-11-05",
+              "purchase": "PI6910-0001"
+            }
+          },
+          {
+            "action": "issueTaxInvoice",
+            "input": {
+              "contact": "C102",
+              "date": "2026-11-06",
+              "dueDate": "2026-11-06",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 4000
+                }
+              ],
+              "vatMode": "exclusive"
+            }
+          }
+        ]
+      },
+      "output": [
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0
+            },
+            "docs": [],
+            "etax": [],
+            "invoices": [],
+            "journal": [],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {},
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0
+            },
+            "docs": [],
+            "etax": [],
+            "invoices": [],
+            "journal": [],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {},
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [],
+            "etax": [],
+            "invoices": [],
+            "journal": [],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [],
+            "etax": [],
+            "invoices": [],
+            "journal": [],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [],
+            "etax": [],
+            "invoices": [],
+            "journal": [],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [],
+            "etax": [],
+            "invoices": [],
+            "journal": [],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00002",
+                  "name": "เอ & บี <เทรดดิ้ง> จำกัด",
+                  "taxId": "0105558123451"
+                },
+                "contact": "C101",
+                "correctNet": null,
+                "creditToCustomer": null,
+                "date": "2026-10-03",
+                "deferredVatRounding": null,
+                "docNo": "IV6910-0001",
+                "dueDate": "2026-11-02",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0001",
+                "kind": "tax-invoice",
+                "net": 317642,
+                "note": "ชำระภายใน 30 วัน",
+                "opening": false,
+                "originalNet": null,
+                "reason": null,
+                "refDocNo": null,
+                "refReceiptNo": null,
+                "saleType": null,
+                "seller": {
+                  "taxId": "0105539123459",
+                  "vatRegistered": true
+                },
+                "total": 339877,
+                "type": "sales",
+                "vat": 22235,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 339877,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-03",
+                "description": "ขายเชื่อ บริษัท เอ & บี <เทรดดิ้ง> จำกัด",
+                "docNo": "JV6910-0001",
+                "lines": [
+                  {
+                    "accountCode": "1130",
+                    "credit": 0,
+                    "debit": 339877,
+                    "description": "บริษัท เอ & บี <เทรดดิ้ง> จำกัด"
+                  },
+                  {
+                    "accountCode": "4100",
+                    "credit": 307642,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "4900",
+                    "credit": 10000,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 22235,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "sales",
+                "sourceDocNo": "IV6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "=SUM(A1) ร้านค้า",
+                  "taxId": "1100100123454"
+                },
+                "contact": "C102",
+                "correctNet": null,
+                "creditToCustomer": null,
+                "date": "2026-10-05",
+                "deferredVatRounding": null,
+                "docNo": "IV6910-0002",
+                "dueDate": "2026-10-20",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0002",
+                "kind": "tax-invoice",
+                "net": 140187,
+                "note": null,
+                "opening": false,
+                "originalNet": null,
+                "reason": null,
+                "refDocNo": null,
+                "refReceiptNo": null,
+                "saleType": null,
+                "seller": {
+                  "taxId": "0105539123459",
+                  "vatRegistered": true
+                },
+                "total": 150000,
+                "type": "sales",
+                "vat": 9813,
+                "vatMode": "inclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 339877,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 150000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-05",
+                "description": "ขายเชื่อ =SUM(A1) ร้านค้า",
+                "docNo": "JV6910-0002",
+                "lines": [
+                  {
+                    "accountCode": "1130",
+                    "credit": 0,
+                    "debit": 150000,
+                    "description": "=SUM(A1) ร้านค้า"
+                  },
+                  {
+                    "accountCode": "4100",
+                    "credit": 140187,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 9813,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "sales",
+                "sourceDocNo": "IV6910-0002"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "＝HYPERLINK(\"x\") จำกัด",
+                  "taxId": "0105562123451"
+                },
+                "contact": "C103",
+                "correctNet": null,
+                "creditToCustomer": null,
+                "date": "2026-10-06",
+                "deferredVatRounding": null,
+                "docNo": "IV6910-0003",
+                "dueDate": "2026-10-06",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0003",
+                "kind": "tax-invoice",
+                "net": 100000,
+                "note": null,
+                "opening": false,
+                "originalNet": null,
+                "reason": null,
+                "refDocNo": null,
+                "refReceiptNo": null,
+                "saleType": null,
+                "seller": {
+                  "taxId": "0105539123459",
+                  "vatRegistered": true
+                },
+                "total": 107000,
+                "type": "sales",
+                "vat": 7000,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 339877,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 150000,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-06",
+                "description": "ขายเชื่อ ＝HYPERLINK(\"x\") จำกัด",
+                "docNo": "JV6910-0003",
+                "lines": [
+                  {
+                    "accountCode": "1130",
+                    "credit": 0,
+                    "debit": 107000,
+                    "description": "＝HYPERLINK(\"x\") จำกัด"
+                  },
+                  {
+                    "accountCode": "4100",
+                    "credit": 100000,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 7000,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "sales",
+                "sourceDocNo": "IV6910-0003"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00002",
+                  "name": "เอ & บี <เทรดดิ้ง> จำกัด",
+                  "taxId": "0105558123451"
+                },
+                "contact": "C101",
+                "correctNet": 267642,
+                "creditToCustomer": 0,
+                "date": "2026-10-08",
+                "deferredVatRounding": null,
+                "docNo": "CN6910-0001",
+                "dueDate": "2026-10-08",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0004",
+                "kind": "credit-note",
+                "net": 50000,
+                "note": null,
+                "opening": false,
+                "originalNet": 317642,
+                "reason": "สินค้า \"ชำรุด\" & เสียหาย",
+                "refDocNo": "IV6910-0001",
+                "refReceiptNo": null,
+                "saleType": null,
+                "seller": {
+                  "taxId": "0105539123459",
+                  "vatRegistered": true
+                },
+                "total": 53500,
+                "type": "sales",
+                "vat": 3500,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 286377,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 150000,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-08",
+                "description": "ลดหนี้ บริษัท เอ & บี <เทรดดิ้ง> จำกัด — สินค้า \"ชำรุด\" & เสียหาย",
+                "docNo": "JV6910-0004",
+                "lines": [
+                  {
+                    "accountCode": "4100",
+                    "credit": 0,
+                    "debit": 50000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 0,
+                    "debit": 3500,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "1130",
+                    "credit": 53500,
+                    "debit": 0,
+                    "description": "บริษัท เอ & บี <เทรดดิ้ง> จำกัด"
+                  }
+                ],
+                "source": "credit-note",
+                "sourceDocNo": "CN6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00002",
+                  "name": "เอ & บี <เทรดดิ้ง> จำกัด",
+                  "taxId": "0105558123451"
+                },
+                "contact": "C101",
+                "correctNet": 287642,
+                "creditToCustomer": null,
+                "date": "2026-10-09",
+                "deferredVatRounding": null,
+                "docNo": "DN6910-0001",
+                "dueDate": "2026-10-09",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0005",
+                "kind": "debit-note",
+                "net": 20000,
+                "note": null,
+                "opening": false,
+                "originalNet": 267642,
+                "reason": "เพิ่มงานติดตั้ง",
+                "refDocNo": "IV6910-0001",
+                "refReceiptNo": null,
+                "saleType": null,
+                "seller": {
+                  "taxId": "0105539123459",
+                  "vatRegistered": true
+                },
+                "total": 21400,
+                "type": "sales",
+                "vat": 1400,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 150000,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-09",
+                "description": "เพิ่มหนี้ บริษัท เอ & บี <เทรดดิ้ง> จำกัด — เพิ่มงานติดตั้ง",
+                "docNo": "JV6910-0005",
+                "lines": [
+                  {
+                    "accountCode": "1130",
+                    "credit": 0,
+                    "debit": 21400,
+                    "description": "บริษัท เอ & บี <เทรดดิ้ง> จำกัด"
+                  },
+                  {
+                    "accountCode": "4100",
+                    "credit": 20000,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 1400,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "debit-note",
+                "sourceDocNo": "DN6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "amount": 150000,
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "=SUM(A1) ร้านค้า",
+                  "taxId": "1100100123454"
+                },
+                "contact": "C102",
+                "date": "2026-10-10",
+                "depositAccountCode": "1120",
+                "docNo": "RE6910-0001",
+                "invoiceDocNo": "IV6910-0002",
+                "isTaxInvoice": false,
+                "journalDocNo": "JV6910-0006",
+                "seller": {
+                  "taxId": "0105539123459",
+                  "vatRegistered": true
+                },
+                "type": "receipt",
+                "vat": null,
+                "whtAmount": 0
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-10",
+                "description": "รับชำระจาก =SUM(A1) ร้านค้า (IV6910-0002)",
+                "docNo": "JV6910-0006",
+                "lines": [
+                  {
+                    "accountCode": "1120",
+                    "credit": 0,
+                    "debit": 150000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "1130",
+                    "credit": 150000,
+                    "debit": 0,
+                    "description": "=SUM(A1) ร้านค้า"
+                  }
+                ],
+                "source": "receipt",
+                "sourceDocNo": "RE6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00002",
+                  "name": "เอ & บี <เทรดดิ้ง> จำกัด",
+                  "taxId": "0105558123451"
+                },
+                "contact": "C101",
+                "correctNet": null,
+                "creditToCustomer": null,
+                "date": "2026-10-12",
+                "deferredVatRounding": null,
+                "docNo": "BL6910-0001",
+                "dueDate": "2026-11-11",
+                "isTaxInvoice": false,
+                "journalDocNo": "JV6910-0007",
+                "kind": "tax-invoice",
+                "net": 2000000,
+                "note": null,
+                "opening": false,
+                "originalNet": null,
+                "reason": null,
+                "refDocNo": null,
+                "refReceiptNo": null,
+                "saleType": "service",
+                "seller": {
+                  "taxId": "0105539123459",
+                  "vatRegistered": true
+                },
+                "total": 2140000,
+                "type": "sales",
+                "vat": 140000,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 2140000,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-12",
+                "description": "ขายเชื่อ บริษัท เอ & บี <เทรดดิ้ง> จำกัด",
+                "docNo": "JV6910-0007",
+                "lines": [
+                  {
+                    "accountCode": "1130",
+                    "credit": 0,
+                    "debit": 2140000,
+                    "description": "บริษัท เอ & บี <เทรดดิ้ง> จำกัด"
+                  },
+                  {
+                    "accountCode": "4200",
+                    "credit": 2000000,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2151",
+                    "credit": 140000,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "sales",
+                "sourceDocNo": "BL6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "amount": 1070000,
+                "buyer": {
+                  "branchNo": "00002",
+                  "name": "เอ & บี <เทรดดิ้ง> จำกัด",
+                  "taxId": "0105558123451"
+                },
+                "contact": "C101",
+                "date": "2026-10-15",
+                "depositAccountCode": "1120",
+                "docNo": "RT6910-0001",
+                "invoiceDocNo": "BL6910-0001",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0008",
+                "seller": {
+                  "taxId": "0105539123459",
+                  "vatRegistered": true
+                },
+                "type": "receipt",
+                "vat": 70000,
+                "whtAmount": 30000
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 1070000,
+                "paidAmount": 1070000,
+                "status": "partial"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-15",
+                "description": "รับชำระจาก บริษัท เอ & บี <เทรดดิ้ง> จำกัด (BL6910-0001)",
+                "docNo": "JV6910-0008",
+                "lines": [
+                  {
+                    "accountCode": "1120",
+                    "credit": 0,
+                    "debit": 1040000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "1160",
+                    "credit": 0,
+                    "debit": 30000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "1130",
+                    "credit": 1070000,
+                    "debit": 0,
+                    "description": "บริษัท เอ & บี <เทรดดิ้ง> จำกัด"
+                  },
+                  {
+                    "accountCode": "2151",
+                    "credit": 0,
+                    "debit": 70000,
+                    "description": "ภาษีขายถึงกำหนดเมื่อรับชำระ"
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 70000,
+                    "debit": 0,
+                    "description": "ภาษีขายตามใบเสร็จรับเงิน/ใบกำกับภาษี"
+                  }
+                ],
+                "source": "receipt",
+                "sourceDocNo": "RT6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 0,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "amount": 1070000,
+                "buyer": {
+                  "branchNo": "00002",
+                  "name": "เอ & บี <เทรดดิ้ง> จำกัด",
+                  "taxId": "0105558123451"
+                },
+                "contact": "C101",
+                "date": "2026-10-20",
+                "depositAccountCode": "1120",
+                "docNo": "RT6910-0002",
+                "invoiceDocNo": "BL6910-0001",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0009",
+                "seller": {
+                  "taxId": "0105539123459",
+                  "vatRegistered": true
+                },
+                "type": "receipt",
+                "vat": 70000,
+                "whtAmount": 0
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-20",
+                "description": "รับชำระจาก บริษัท เอ & บี <เทรดดิ้ง> จำกัด (BL6910-0001)",
+                "docNo": "JV6910-0009",
+                "lines": [
+                  {
+                    "accountCode": "1120",
+                    "credit": 0,
+                    "debit": 1070000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "1130",
+                    "credit": 1070000,
+                    "debit": 0,
+                    "description": "บริษัท เอ & บี <เทรดดิ้ง> จำกัด"
+                  },
+                  {
+                    "accountCode": "2151",
+                    "credit": 0,
+                    "debit": 70000,
+                    "description": "ภาษีขายถึงกำหนดเมื่อรับชำระ"
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 70000,
+                    "debit": 0,
+                    "description": "ภาษีขายตามใบเสร็จรับเงิน/ใบกำกับภาษี"
+                  }
+                ],
+                "source": "receipt",
+                "sourceDocNo": "RT6910-0002"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00002",
+                  "name": "เอ & บี <เทรดดิ้ง> จำกัด",
+                  "taxId": "0105558123451"
+                },
+                "contact": "C101",
+                "correctNet": 1900000,
+                "creditToCustomer": 107000,
+                "date": "2026-10-21",
+                "deferredVatRounding": null,
+                "docNo": "CN6910-0002",
+                "dueDate": "2026-10-21",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0010",
+                "kind": "credit-note",
+                "net": 100000,
+                "note": null,
+                "opening": false,
+                "originalNet": 2000000,
+                "reason": "ส่วนลดพิเศษ",
+                "refDocNo": "BL6910-0001",
+                "refReceiptNo": "RT6910-0002",
+                "saleType": "service",
+                "seller": {
+                  "taxId": "0105539123459",
+                  "vatRegistered": true
+                },
+                "total": 107000,
+                "type": "sales",
+                "vat": 7000,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-21",
+                "description": "ลดหนี้ บริษัท เอ & บี <เทรดดิ้ง> จำกัด — ส่วนลดพิเศษ",
+                "docNo": "JV6910-0010",
+                "lines": [
+                  {
+                    "accountCode": "4200",
+                    "credit": 0,
+                    "debit": 100000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 0,
+                    "debit": 7000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2120",
+                    "credit": 107000,
+                    "debit": 0,
+                    "description": "บริษัท เอ & บี <เทรดดิ้ง> จำกัด"
+                  }
+                ],
+                "source": "credit-note",
+                "sourceDocNo": "CN6910-0002"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "claimVat": false,
+                "contact": "V101",
+                "date": "2026-10-10",
+                "docNo": "PI6910-0001",
+                "journalDocNo": "JV6910-0011",
+                "net": 2000000,
+                "note": null,
+                "opening": false,
+                "supplier": {
+                  "branchNo": "00000",
+                  "name": "สมศรี \"ช่างภาพ\"",
+                  "taxId": "3600100998878"
+                },
+                "supplierInvoiceDate": null,
+                "supplierInvoiceNo": "บิล 1/2569",
+                "total": 2000000,
+                "type": "purchase",
+                "vat": 0,
+                "vatClaimPeriod": null,
+                "vatMode": "none",
+                "vatRate": 0,
+                "whtCondition": "1",
+                "whtIncomeTypes": [
+                  "ค่าบริการ",
+                  "ค่าเช่า",
+                  "ค่าขนส่ง",
+                  "ค่าโฆษณา"
+                ],
+                "whtRates": [
+                  3,
+                  5,
+                  1,
+                  2
+                ]
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-10",
+                "description": "ซื้อ/ค่าใช้จ่าย นาง สมศรี \"ช่างภาพ\" ใจ'ดี|มาก (บิล 1/2569)",
+                "docNo": "JV6910-0011",
+                "lines": [
+                  {
+                    "accountCode": "5300",
+                    "credit": 0,
+                    "debit": 500000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "5400",
+                    "credit": 0,
+                    "debit": 200000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "5500",
+                    "credit": 0,
+                    "debit": 300000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "5600",
+                    "credit": 0,
+                    "debit": 1000000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2110",
+                    "credit": 2000000,
+                    "debit": 0,
+                    "description": "นาง สมศรี \"ช่างภาพ\" ใจ'ดี|มาก"
+                  }
+                ],
+                "source": "purchase",
+                "sourceDocNo": "PI6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [
+              {
+                "docNo": "PI6910-0001",
+                "outstanding": 2000000,
+                "paid": false
+              }
+            ],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "accountCode": "1120",
+                "amount": 800000,
+                "contact": "V101",
+                "date": "2026-10-15",
+                "docNo": "PV6910-0001",
+                "journalDocNo": "JV6910-0012",
+                "netPaid": 774800,
+                "payee": {
+                  "branchNo": "00000",
+                  "name": "สมศรี \"ช่างภาพ\"",
+                  "taxId": "3600100998878"
+                },
+                "purchaseDocNo": "PI6910-0001",
+                "type": "payment",
+                "whtAmount": 25200,
+                "whtCertNo": "WT6910-0001",
+                "whtItems": [
+                  {
+                    "base": 400000,
+                    "incomeType": "ค่าบริการ",
+                    "rate": 3,
+                    "tax": 12000
+                  },
+                  {
+                    "base": 200000,
+                    "incomeType": "ค่าเช่า",
+                    "rate": 5,
+                    "tax": 10000
+                  },
+                  {
+                    "base": 80000,
+                    "incomeType": "ค่าขนส่ง",
+                    "rate": 1,
+                    "tax": 800
+                  },
+                  {
+                    "base": 120000,
+                    "incomeType": "ค่าโฆษณา",
+                    "rate": 2,
+                    "tax": 2400
+                  }
+                ]
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-15",
+                "description": "จ่ายชำระ นาง สมศรี \"ช่างภาพ\" ใจ'ดี|มาก (PI6910-0001)",
+                "docNo": "JV6910-0012",
+                "lines": [
+                  {
+                    "accountCode": "2110",
+                    "credit": 0,
+                    "debit": 800000,
+                    "description": "นาง สมศรี \"ช่างภาพ\" ใจ'ดี|มาก"
+                  },
+                  {
+                    "accountCode": "1120",
+                    "credit": 774800,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2160",
+                    "credit": 25200,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "payment",
+                "sourceDocNo": "PV6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [
+              {
+                "docNo": "PI6910-0001",
+                "outstanding": 1200000,
+                "paid": false
+              }
+            ],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "claimVat": true,
+                "contact": "V102",
+                "date": "2026-10-12",
+                "docNo": "PI6910-0002",
+                "journalDocNo": "JV6910-0013",
+                "net": 500000,
+                "note": null,
+                "opening": false,
+                "supplier": {
+                  "branchNo": "00001",
+                  "name": "ขนส่ง & โลจิสติกส์ #1",
+                  "taxId": "0103560123452"
+                },
+                "supplierInvoiceDate": "2026-10-12",
+                "supplierInvoiceNo": "INV-77",
+                "total": 535000,
+                "type": "purchase",
+                "vat": 35000,
+                "vatClaimPeriod": "2026-10",
+                "vatMode": "exclusive",
+                "vatRate": 7,
+                "whtCondition": "1",
+                "whtIncomeTypes": [
+                  "ค่าขนส่ง"
+                ],
+                "whtRates": [
+                  1
+                ]
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-12",
+                "description": "ซื้อ/ค่าใช้จ่าย ห้างหุ้นส่วนจำกัด ขนส่ง & โลจิสติกส์ #1 (INV-77)",
+                "docNo": "JV6910-0013",
+                "lines": [
+                  {
+                    "accountCode": "5400",
+                    "credit": 0,
+                    "debit": 500000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "1170",
+                    "credit": 0,
+                    "debit": 35000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2110",
+                    "credit": 535000,
+                    "debit": 0,
+                    "description": "ห้างหุ้นส่วนจำกัด ขนส่ง & โลจิสติกส์ #1"
+                  }
+                ],
+                "source": "purchase",
+                "sourceDocNo": "PI6910-0002"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [
+              {
+                "docNo": "PI6910-0001",
+                "outstanding": 1200000,
+                "paid": false
+              },
+              {
+                "docNo": "PI6910-0002",
+                "outstanding": 535000,
+                "paid": false
+              }
+            ],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "accountCode": "1120",
+                "amount": 535000,
+                "contact": "V102",
+                "date": "2026-10-20",
+                "docNo": "PV6910-0002",
+                "journalDocNo": "JV6910-0014",
+                "netPaid": 530000,
+                "payee": {
+                  "branchNo": "00001",
+                  "name": "ขนส่ง & โลจิสติกส์ #1",
+                  "taxId": "0103560123452"
+                },
+                "purchaseDocNo": "PI6910-0002",
+                "type": "payment",
+                "whtAmount": 5000,
+                "whtCertNo": "WT6910-0002",
+                "whtItems": [
+                  {
+                    "base": 500000,
+                    "incomeType": "ค่าขนส่ง",
+                    "rate": 1,
+                    "tax": 5000
+                  }
+                ]
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-20",
+                "description": "จ่ายชำระ ห้างหุ้นส่วนจำกัด ขนส่ง & โลจิสติกส์ #1 (PI6910-0002)",
+                "docNo": "JV6910-0014",
+                "lines": [
+                  {
+                    "accountCode": "2110",
+                    "credit": 0,
+                    "debit": 535000,
+                    "description": "ห้างหุ้นส่วนจำกัด ขนส่ง & โลจิสติกส์ #1"
+                  },
+                  {
+                    "accountCode": "1120",
+                    "credit": 530000,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2160",
+                    "credit": 5000,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "payment",
+                "sourceDocNo": "PV6910-0002"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [
+              {
+                "docNo": "PI6910-0001",
+                "outstanding": 1200000,
+                "paid": false
+              },
+              {
+                "docNo": "PI6910-0002",
+                "outstanding": 0,
+                "paid": true
+              }
+            ],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "claimVat": false,
+                "contact": "V103",
+                "date": "2026-10-14",
+                "docNo": "PI6910-0003",
+                "journalDocNo": "JV6910-0015",
+                "net": 300000,
+                "note": null,
+                "opening": false,
+                "supplier": {
+                  "branchNo": "00000",
+                  "name": "ดำ",
+                  "taxId": "1234567890123"
+                },
+                "supplierInvoiceDate": null,
+                "supplierInvoiceNo": "",
+                "total": 300000,
+                "type": "purchase",
+                "vat": 0,
+                "vatClaimPeriod": null,
+                "vatMode": "none",
+                "vatRate": 0,
+                "whtCondition": "2",
+                "whtIncomeTypes": [
+                  "ค่าจ้างทำของ"
+                ],
+                "whtRates": [
+                  3
+                ]
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-14",
+                "description": "ซื้อ/ค่าใช้จ่าย นาย ดำ ไม่ครบ",
+                "docNo": "JV6910-0015",
+                "lines": [
+                  {
+                    "accountCode": "5600",
+                    "credit": 0,
+                    "debit": 300000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2110",
+                    "credit": 300000,
+                    "debit": 0,
+                    "description": "นาย ดำ ไม่ครบ"
+                  }
+                ],
+                "source": "purchase",
+                "sourceDocNo": "PI6910-0003"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [
+              {
+                "docNo": "PI6910-0001",
+                "outstanding": 1200000,
+                "paid": false
+              },
+              {
+                "docNo": "PI6910-0002",
+                "outstanding": 0,
+                "paid": true
+              },
+              {
+                "docNo": "PI6910-0003",
+                "outstanding": 300000,
+                "paid": false
+              }
+            ],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "accountCode": "1110",
+                "amount": 300000,
+                "contact": "V103",
+                "date": "2026-10-25",
+                "docNo": "PV6910-0003",
+                "journalDocNo": "JV6910-0016",
+                "netPaid": 291000,
+                "payee": {
+                  "branchNo": "00000",
+                  "name": "ดำ",
+                  "taxId": "1234567890123"
+                },
+                "purchaseDocNo": "PI6910-0003",
+                "type": "payment",
+                "whtAmount": 9000,
+                "whtCertNo": "WT6910-0003",
+                "whtItems": [
+                  {
+                    "base": 300000,
+                    "incomeType": "ค่าจ้างทำของ",
+                    "rate": 3,
+                    "tax": 9000
+                  }
+                ]
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-25",
+                "description": "จ่ายชำระ นาย ดำ ไม่ครบ (PI6910-0003)",
+                "docNo": "JV6910-0016",
+                "lines": [
+                  {
+                    "accountCode": "2110",
+                    "credit": 0,
+                    "debit": 300000,
+                    "description": "นาย ดำ ไม่ครบ"
+                  },
+                  {
+                    "accountCode": "1110",
+                    "credit": 291000,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2160",
+                    "credit": 9000,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "payment",
+                "sourceDocNo": "PV6910-0003"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [
+              {
+                "docNo": "PI6910-0001",
+                "outstanding": 1200000,
+                "paid": false
+              },
+              {
+                "docNo": "PI6910-0002",
+                "outstanding": 0,
+                "paid": true
+              },
+              {
+                "docNo": "PI6910-0003",
+                "outstanding": 0,
+                "paid": true
+              }
+            ],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [
+              {
+                "accountCode": "1120",
+                "amount": 150000,
+                "balance": 150000,
+                "date": "2026-10-10",
+                "description": "รับโอน =SUM ร้านค้า",
+                "imported": true,
+                "ref": 1
+              },
+              {
+                "accountCode": "1120",
+                "amount": 1040000,
+                "balance": 1190000,
+                "date": "2026-10-16",
+                "description": "รับโอน เอ & บี",
+                "imported": true,
+                "ref": 2
+              },
+              {
+                "accountCode": "1120",
+                "amount": -767000,
+                "balance": 423000,
+                "date": "2026-10-16",
+                "description": "โอนจ่ายช่างภาพ",
+                "imported": true,
+                "ref": 3
+              },
+              {
+                "accountCode": "1120",
+                "amount": 1070000,
+                "balance": 1493000,
+                "date": "2026-10-21",
+                "description": "รับโอน เอ & บี",
+                "imported": true,
+                "ref": 4
+              },
+              {
+                "accountCode": "1120",
+                "amount": -2500,
+                "balance": 1490500,
+                "date": "2026-10-31",
+                "description": "ค่าธรรมเนียม",
+                "imported": true,
+                "ref": 5
+              }
+            ],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [
+              {
+                "docNo": "PI6910-0001",
+                "outstanding": 1200000,
+                "paid": false
+              },
+              {
+                "docNo": "PI6910-0002",
+                "outstanding": 0,
+                "paid": true
+              },
+              {
+                "docNo": "PI6910-0003",
+                "outstanding": 0,
+                "paid": true
+              }
+            ],
+            "quotations": [],
+            "result": {
+              "added": 5,
+              "skipped": 0
+            },
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [
+              {
+                "accountCode": "1120",
+                "auto": true,
+                "journalDocNos": [
+                  "JV6910-0006"
+                ],
+                "statementRefs": [
+                  1
+                ]
+              },
+              {
+                "accountCode": "1120",
+                "auto": true,
+                "journalDocNos": [
+                  "JV6910-0008"
+                ],
+                "statementRefs": [
+                  2
+                ]
+              },
+              {
+                "accountCode": "1120",
+                "auto": true,
+                "journalDocNos": [
+                  "JV6910-0009"
+                ],
+                "statementRefs": [
+                  4
+                ]
+              }
+            ],
+            "bankStatements": [
+              {
+                "accountCode": "1120",
+                "amount": 150000,
+                "balance": 150000,
+                "date": "2026-10-10",
+                "description": "รับโอน =SUM ร้านค้า",
+                "imported": true,
+                "ref": 1
+              },
+              {
+                "accountCode": "1120",
+                "amount": 1040000,
+                "balance": 1190000,
+                "date": "2026-10-16",
+                "description": "รับโอน เอ & บี",
+                "imported": true,
+                "ref": 2
+              },
+              {
+                "accountCode": "1120",
+                "amount": -767000,
+                "balance": 423000,
+                "date": "2026-10-16",
+                "description": "โอนจ่ายช่างภาพ",
+                "imported": true,
+                "ref": 3
+              },
+              {
+                "accountCode": "1120",
+                "amount": 1070000,
+                "balance": 1493000,
+                "date": "2026-10-21",
+                "description": "รับโอน เอ & บี",
+                "imported": true,
+                "ref": 4
+              },
+              {
+                "accountCode": "1120",
+                "amount": -2500,
+                "balance": 1490500,
+                "date": "2026-10-31",
+                "description": "ค่าธรรมเนียม",
+                "imported": true,
+                "ref": 5
+              }
+            ],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [
+              {
+                "docNo": "PI6910-0001",
+                "outstanding": 1200000,
+                "paid": false
+              },
+              {
+                "docNo": "PI6910-0002",
+                "outstanding": 0,
+                "paid": true
+              },
+              {
+                "docNo": "PI6910-0003",
+                "outstanding": 0,
+                "paid": true
+              }
+            ],
+            "quotations": [],
+            "result": {
+              "matched": 3
+            },
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [
+              {
+                "accountCode": "1120",
+                "auto": true,
+                "journalDocNos": [
+                  "JV6910-0006"
+                ],
+                "statementRefs": [
+                  1
+                ]
+              },
+              {
+                "accountCode": "1120",
+                "auto": true,
+                "journalDocNos": [
+                  "JV6910-0008"
+                ],
+                "statementRefs": [
+                  2
+                ]
+              },
+              {
+                "accountCode": "1120",
+                "auto": true,
+                "journalDocNos": [
+                  "JV6910-0009"
+                ],
+                "statementRefs": [
+                  4
+                ]
+              }
+            ],
+            "bankStatements": [
+              {
+                "accountCode": "1120",
+                "amount": 150000,
+                "balance": 150000,
+                "date": "2026-10-10",
+                "description": "รับโอน =SUM ร้านค้า",
+                "imported": true,
+                "ref": 1
+              },
+              {
+                "accountCode": "1120",
+                "amount": 1040000,
+                "balance": 1190000,
+                "date": "2026-10-16",
+                "description": "รับโอน เอ & บี",
+                "imported": true,
+                "ref": 2
+              },
+              {
+                "accountCode": "1120",
+                "amount": -767000,
+                "balance": 423000,
+                "date": "2026-10-16",
+                "description": "โอนจ่ายช่างภาพ",
+                "imported": true,
+                "ref": 3
+              },
+              {
+                "accountCode": "1120",
+                "amount": 1070000,
+                "balance": 1493000,
+                "date": "2026-10-21",
+                "description": "รับโอน เอ & บี",
+                "imported": true,
+                "ref": 4
+              },
+              {
+                "accountCode": "1120",
+                "amount": -2500,
+                "balance": 1490500,
+                "date": "2026-10-31",
+                "description": "ค่าธรรมเนียม",
+                "imported": true,
+                "ref": 5
+              }
+            ],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-31",
+                "description": "ปิดภาษีมูลค่าเพิ่ม เดือน 2026-10",
+                "docNo": "JV6910-0017",
+                "lines": [
+                  {
+                    "accountCode": "2150",
+                    "credit": 0,
+                    "debit": 169948,
+                    "description": "ภาษีขาย"
+                  },
+                  {
+                    "accountCode": "1170",
+                    "credit": 35000,
+                    "debit": 0,
+                    "description": "ภาษีซื้อ"
+                  },
+                  {
+                    "accountCode": "2170",
+                    "credit": 134948,
+                    "debit": 0,
+                    "description": "ภาษีที่ต้องชำระ"
+                  }
+                ],
+                "source": "vat-close",
+                "sourceDocNo": "VAT-2026-10"
+              }
+            ],
+            "lockedThrough": "2026-10-31",
+            "openingDate": null,
+            "purchases": [
+              {
+                "docNo": "PI6910-0001",
+                "outstanding": 1200000,
+                "paid": false
+              },
+              {
+                "docNo": "PI6910-0002",
+                "outstanding": 0,
+                "paid": true
+              },
+              {
+                "docNo": "PI6910-0003",
+                "outstanding": 0,
+                "paid": true
+              }
+            ],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [
+              {
+                "broughtForward": 0,
+                "carriedForward": 0,
+                "date": "2026-10-31",
+                "inputVat": 35000,
+                "journalDocNo": "JV6910-0017",
+                "outputVat": 169948,
+                "payable": 134948,
+                "period": "2026-10"
+              }
+            ],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [
+              {
+                "accountCode": "1120",
+                "auto": true,
+                "journalDocNos": [
+                  "JV6910-0006"
+                ],
+                "statementRefs": [
+                  1
+                ]
+              },
+              {
+                "accountCode": "1120",
+                "auto": true,
+                "journalDocNos": [
+                  "JV6910-0008"
+                ],
+                "statementRefs": [
+                  2
+                ]
+              },
+              {
+                "accountCode": "1120",
+                "auto": true,
+                "journalDocNos": [
+                  "JV6910-0009"
+                ],
+                "statementRefs": [
+                  4
+                ]
+              }
+            ],
+            "bankStatements": [
+              {
+                "accountCode": "1120",
+                "amount": 150000,
+                "balance": 150000,
+                "date": "2026-10-10",
+                "description": "รับโอน =SUM ร้านค้า",
+                "imported": true,
+                "ref": 1
+              },
+              {
+                "accountCode": "1120",
+                "amount": 1040000,
+                "balance": 1190000,
+                "date": "2026-10-16",
+                "description": "รับโอน เอ & บี",
+                "imported": true,
+                "ref": 2
+              },
+              {
+                "accountCode": "1120",
+                "amount": -767000,
+                "balance": 423000,
+                "date": "2026-10-16",
+                "description": "โอนจ่ายช่างภาพ",
+                "imported": true,
+                "ref": 3
+              },
+              {
+                "accountCode": "1120",
+                "amount": 1070000,
+                "balance": 1493000,
+                "date": "2026-10-21",
+                "description": "รับโอน เอ & บี",
+                "imported": true,
+                "ref": 4
+              },
+              {
+                "accountCode": "1120",
+                "amount": -2500,
+                "balance": 1490500,
+                "date": "2026-10-31",
+                "description": "ค่าธรรมเนียม",
+                "imported": true,
+                "ref": 5
+              }
+            ],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "accountCode": "1120",
+                "amount": 1200000,
+                "contact": "V101",
+                "date": "2026-11-05",
+                "docNo": "PV6911-0001",
+                "journalDocNo": "JV6911-0001",
+                "netPaid": 1162200,
+                "payee": {
+                  "branchNo": "00000",
+                  "name": "สมศรี \"ช่างภาพ\"",
+                  "taxId": "3600100998878"
+                },
+                "purchaseDocNo": "PI6910-0001",
+                "type": "payment",
+                "whtAmount": 37800,
+                "whtCertNo": "WT6911-0001",
+                "whtItems": [
+                  {
+                    "base": 600000,
+                    "incomeType": "ค่าบริการ",
+                    "rate": 3,
+                    "tax": 18000
+                  },
+                  {
+                    "base": 300000,
+                    "incomeType": "ค่าเช่า",
+                    "rate": 5,
+                    "tax": 15000
+                  },
+                  {
+                    "base": 120000,
+                    "incomeType": "ค่าขนส่ง",
+                    "rate": 1,
+                    "tax": 1200
+                  },
+                  {
+                    "base": 180000,
+                    "incomeType": "ค่าโฆษณา",
+                    "rate": 2,
+                    "tax": 3600
+                  }
+                ]
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-11-05",
+                "description": "จ่ายชำระ นาง สมศรี \"ช่างภาพ\" ใจ'ดี|มาก (PI6910-0001)",
+                "docNo": "JV6911-0001",
+                "lines": [
+                  {
+                    "accountCode": "2110",
+                    "credit": 0,
+                    "debit": 1200000,
+                    "description": "นาง สมศรี \"ช่างภาพ\" ใจ'ดี|มาก"
+                  },
+                  {
+                    "accountCode": "1120",
+                    "credit": 1162200,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2160",
+                    "credit": 37800,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "payment",
+                "sourceDocNo": "PV6911-0001"
+              }
+            ],
+            "lockedThrough": "2026-10-31",
+            "openingDate": null,
+            "purchases": [
+              {
+                "docNo": "PI6910-0001",
+                "outstanding": 0,
+                "paid": true
+              },
+              {
+                "docNo": "PI6910-0002",
+                "outstanding": 0,
+                "paid": true
+              },
+              {
+                "docNo": "PI6910-0003",
+                "outstanding": 0,
+                "paid": true
+              }
+            ],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [
+              {
+                "broughtForward": 0,
+                "carriedForward": 0,
+                "date": "2026-10-31",
+                "inputVat": 35000,
+                "journalDocNo": "JV6910-0017",
+                "outputVat": 169948,
+                "payable": 134948,
+                "period": "2026-10"
+              }
+            ],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [
+              {
+                "accountCode": "1120",
+                "auto": true,
+                "journalDocNos": [
+                  "JV6910-0006"
+                ],
+                "statementRefs": [
+                  1
+                ]
+              },
+              {
+                "accountCode": "1120",
+                "auto": true,
+                "journalDocNos": [
+                  "JV6910-0008"
+                ],
+                "statementRefs": [
+                  2
+                ]
+              },
+              {
+                "accountCode": "1120",
+                "auto": true,
+                "journalDocNos": [
+                  "JV6910-0009"
+                ],
+                "statementRefs": [
+                  4
+                ]
+              }
+            ],
+            "bankStatements": [
+              {
+                "accountCode": "1120",
+                "amount": 150000,
+                "balance": 150000,
+                "date": "2026-10-10",
+                "description": "รับโอน =SUM ร้านค้า",
+                "imported": true,
+                "ref": 1
+              },
+              {
+                "accountCode": "1120",
+                "amount": 1040000,
+                "balance": 1190000,
+                "date": "2026-10-16",
+                "description": "รับโอน เอ & บี",
+                "imported": true,
+                "ref": 2
+              },
+              {
+                "accountCode": "1120",
+                "amount": -767000,
+                "balance": 423000,
+                "date": "2026-10-16",
+                "description": "โอนจ่ายช่างภาพ",
+                "imported": true,
+                "ref": 3
+              },
+              {
+                "accountCode": "1120",
+                "amount": 1070000,
+                "balance": 1493000,
+                "date": "2026-10-21",
+                "description": "รับโอน เอ & บี",
+                "imported": true,
+                "ref": 4
+              },
+              {
+                "accountCode": "1120",
+                "amount": -2500,
+                "balance": 1490500,
+                "date": "2026-10-31",
+                "description": "ค่าธรรมเนียม",
+                "imported": true,
+                "ref": 5
+              }
+            ],
+            "customerCredit": {
+              "C101": 107000,
+              "C102": 0,
+              "C103": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "=SUM(A1) ร้านค้า",
+                  "taxId": "1100100123454"
+                },
+                "contact": "C102",
+                "correctNet": null,
+                "creditToCustomer": null,
+                "date": "2026-11-06",
+                "deferredVatRounding": null,
+                "docNo": "IV6911-0001",
+                "dueDate": "2026-11-06",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6911-0002",
+                "kind": "tax-invoice",
+                "net": 400000,
+                "note": null,
+                "opening": false,
+                "originalNet": null,
+                "reason": null,
+                "refDocNo": null,
+                "refReceiptNo": null,
+                "saleType": null,
+                "seller": {
+                  "taxId": "0105539123459",
+                  "vatRegistered": true
+                },
+                "total": 428000,
+                "type": "sales",
+                "vat": 28000,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6911-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 2140000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 307777,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 0,
+                "paidAmount": 150000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0003",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6911-0001",
+                "outstanding": 428000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-11-06",
+                "description": "ขายเชื่อ =SUM(A1) ร้านค้า",
+                "docNo": "JV6911-0002",
+                "lines": [
+                  {
+                    "accountCode": "1130",
+                    "credit": 0,
+                    "debit": 428000,
+                    "description": "=SUM(A1) ร้านค้า"
+                  },
+                  {
+                    "accountCode": "4100",
+                    "credit": 400000,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 28000,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "sales",
+                "sourceDocNo": "IV6911-0001"
+              }
+            ],
+            "lockedThrough": "2026-10-31",
+            "openingDate": null,
+            "purchases": [
+              {
+                "docNo": "PI6910-0001",
+                "outstanding": 0,
+                "paid": true
+              },
+              {
+                "docNo": "PI6910-0002",
+                "outstanding": 0,
+                "paid": true
+              },
+              {
+                "docNo": "PI6910-0003",
+                "outstanding": 0,
+                "paid": true
+              }
+            ],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C103": 0,
+              "V101": 0,
+              "V102": 0,
+              "V103": 0
+            },
+            "vatCloses": [
+              {
+                "broughtForward": 0,
+                "carriedForward": 0,
+                "date": "2026-10-31",
+                "inputVat": 35000,
+                "journalDocNo": "JV6910-0017",
+                "outputVat": 169948,
+                "payable": 134948,
+                "period": "2026-10"
+              }
+            ],
+            "yearCloses": []
+          }
+        }
+      ]
+    }
+  ]
+}
