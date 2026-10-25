@@ -38,6 +38,9 @@ const MembersPage = lazy(() => import('src/pages/settings/members'));
 const LoginPage = lazy(() => import('src/pages/auth/login'));
 const SignupPage = lazy(() => import('src/pages/auth/signup'));
 const AcceptInvitePage = lazy(() => import('src/pages/auth/accept-invite'));
+const VerifyEmailPage = lazy(() => import('src/pages/auth/verify-email'));
+const ForgotPasswordPage = lazy(() => import('src/pages/auth/forgot-password'));
+const ResetPasswordPage = lazy(() => import('src/pages/auth/reset-password'));
 
 const w = (page: React.ReactNode) => <RequireWrite>{page}</RequireWrite>;
 
@@ -52,6 +55,10 @@ export function Router() {
     { path: '/login', element: <GuestGuard>{blank(<LoginPage />)}</GuestGuard> },
     { path: '/signup', element: <GuestGuard>{blank(<SignupPage />)}</GuestGuard> },
     { path: '/accept-invite', element: blank(<AcceptInvitePage />) },
+    // ลิงก์จากอีเมล — เปิดได้ทั้งตอน login อยู่และยังไม่ login
+    { path: '/verify-email', element: blank(<VerifyEmailPage />) },
+    { path: '/reset-password', element: blank(<ResetPasswordPage />) },
+    { path: '/forgot-password', element: <GuestGuard>{blank(<ForgotPasswordPage />)}</GuestGuard> },
     {
       path: '/',
       element: (

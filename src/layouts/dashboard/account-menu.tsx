@@ -11,6 +11,8 @@ import Typography from '@mui/material/Typography';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
+import { useBoolean } from 'src/hooks/use-boolean';
+
 import { useAuth, ROLE_LABEL, usePermissions } from 'src/auth';
 
 import { Label } from 'src/components/label';
@@ -18,14 +20,17 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { usePopover, CustomPopover } from 'src/components/custom-popover';
 
+import { ChangePasswordDialog } from 'src/sections/auth/change-password-dialog';
+
 // ----------------------------------------------------------------------
 
-/** เมนูผู้ใช้ (โหมด api): บริษัท + บทบาท, สลับบริษัท (มีหลายบริษัท), ผู้ใช้งาน (owner), ออกจากระบบ */
+/** เมนูผู้ใช้ (โหมด api): บริษัท + บทบาท, สลับบริษัท (มีหลายบริษัท), ผู้ใช้งาน (owner), เปลี่ยนรหัสผ่าน, ออกจากระบบ */
 export function AccountMenu() {
   const { user, tenant, memberships, switchTenant, logout } = useAuth();
   const { isOwner } = usePermissions();
   const router = useRouter();
   const popover = usePopover();
+  const changePassword = useBoolean();
   const [switching, setSwitching] = useState(false);
 
   if (!user) return null;
@@ -102,6 +107,11 @@ export function AccountMenu() {
           <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
             {user.email}
           </Typography>
+          {!user.emailVerified && (
+            <Label variant="soft" color="warning" sx={{ mt: 0.5 }}>
+              ยังไม่ยืนยันอีเมล
+            </Label>
+          )}
         </Box>
         <Divider sx={{ borderStyle: 'dashed' }} />
         <MenuList sx={{ py: 1 }}>
@@ -145,12 +155,23 @@ export function AccountMenu() {
               ผู้ใช้งานของบริษัท
             </MenuItem>
           )}
+          <MenuItem
+            onClick={() => {
+              popover.onClose();
+              changePassword.onTrue();
+            }}
+          >
+            <Iconify icon="solar:lock-password-bold-duotone" width={20} />
+            เปลี่ยนรหัสผ่าน
+          </MenuItem>
           <MenuItem onClick={onLogout} sx={{ color: 'error.main' }}>
             <Iconify icon="solar:logout-2-bold-duotone" width={20} />
             ออกจากระบบ
           </MenuItem>
         </MenuList>
       </CustomPopover>
+
+      <ChangePasswordDialog open={changePassword.value} onClose={changePassword.onFalse} />
     </>
   );
 }

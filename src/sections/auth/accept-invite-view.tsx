@@ -15,7 +15,7 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
-import { useAuth } from 'src/auth';
+import { useAuth, tokenFromHash } from 'src/auth';
 
 import { Form, Field } from 'src/components/hook-form';
 
@@ -30,9 +30,8 @@ const NewUserSchema = zod.object({
 
 type NewUserSchemaType = zod.input<typeof NewUserSchema>;
 
-/** token อยู่ใน fragment (`/accept-invite#token=…`) — ไม่ถูกส่งไปเซิร์ฟเวอร์ใน URL/log */
-const tokenFromHash = () =>
-  new URLSearchParams(window.location.hash.replace(/^#/, '')).get('token') ?? '';
+/** token อยู่ใน fragment (`/accept-invite#token=…`) — ไม่ถูกส่งไปเซิร์ฟเวอร์ใน URL/log; ไม่ลบจาก URL เพราะใช้ใน returnTo ตอน login ก่อนตอบรับ */
+const readToken = () => tokenFromHash(window.location.hash);
 
 /**
  * ตอบรับคำเชิญเข้าบริษัท: login อยู่แล้ว = ตอบรับด้วยบัญชีนี้ (อีเมลต้องตรงกับคำเชิญ) แล้วสลับไปบริษัทนั้น,
@@ -41,7 +40,7 @@ const tokenFromHash = () =>
 export function AcceptInviteView() {
   const { client, status, user, switchTenant, refreshMe } = useAuth();
   const router = useRouter();
-  const [token] = useState(tokenFromHash);
+  const [token] = useState(readToken);
   const [error, setError] = useState<string | null>(null);
   const [accepting, setAccepting] = useState(false);
   const methods = useForm<NewUserSchemaType>({

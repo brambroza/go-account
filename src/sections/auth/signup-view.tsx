@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
@@ -19,19 +20,23 @@ import { useAuth } from 'src/auth';
 import { SignupSchema } from 'src/schemas/auth/auth-schemas';
 import { normalizeTaxId, normalizeBranch5 } from 'src/domain';
 
+import { Iconify } from 'src/components/iconify';
 import { Form, Field } from 'src/components/hook-form';
 
 import { AuthLayout } from './auth-layout';
+import { ResendVerificationForm } from './resend-verification-form';
 
 // ----------------------------------------------------------------------
 
 /**
  * สมัครบริษัทใหม่ + ผู้ใช้เจ้าของ (โหมด api) — เซิร์ฟเวอร์สร้างผังบัญชีตั้งต้นและทะเบียนเงินสดย่อย/ธนาคารให้
  * จากนั้นเริ่มสมุดด้วยยอดยกมา (ตั้งค่า → ยอดยกมา) — ไม่อัปโหลดข้อมูล localStorage ขึ้นเซิร์ฟเวอร์
+ * D2: สมัครแล้วไม่ได้ login ทันที — แสดงหน้า "ตรวจอีเมล" (ข้อความเดียวกันทุกกรณี) ยืนยันจากลิงก์แล้วเข้าสู่ระบบ
  */
 export function SignupView() {
   const { signup } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [sent, setSent] = useState<{ message: string; email: string } | null>(null);
   const methods = useForm<SignupSchemaType>({
     resolver: zodResolver(SignupSchema),
     defaultValues: {
@@ -49,7 +54,7 @@ export function SignupView() {
   const onSubmit = methods.handleSubmit(async (v) => {
     setError(null);
     try {
-      await signup({
+      const message = await signup({
         email: v.email.trim(),
         password: v.password,
         displayName: v.displayName.trim(),
@@ -60,10 +65,30 @@ export function SignupView() {
           vatRegistered: v.vatRegistered,
         },
       });
+      setSent({ message, email: v.email.trim() });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'สมัครไม่สำเร็จ');
     }
   });
+
+  if (sent) {
+    return (
+      <AuthLayout title="ตรวจอีเมลของคุณ" subtitle="อีกขั้นเดียว — ยืนยันอีเมลก่อนเริ่มบันทึกเอกสาร">
+        <Stack spacing={2.5}>
+          <Alert severity="success" variant="outlined" icon={<Iconify icon="solar:letter-bold-duotone" />}>
+            {sent.message}
+          </Alert>
+          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+            ยังไม่ได้รับอีเมล? รอสักครู่แล้วตรวจกล่องสแปม หรือขอลิงก์ใหม่
+          </Typography>
+          <ResendVerificationForm loggedIn={false} defaultEmail={sent.email} />
+          <Button component={RouterLink} href={paths.auth.login} variant="contained" size="large">
+            ไปหน้าเข้าสู่ระบบ
+          </Button>
+        </Stack>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout
@@ -115,7 +140,7 @@ export function SignupView() {
             size="large"
             loading={formState.isSubmitting}
           >
-            สมัครและเริ่มใช้งาน
+            สมัครใช้งาน
           </LoadingButton>
           <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center' }}>
             มีบัญชีแล้ว?{' '}

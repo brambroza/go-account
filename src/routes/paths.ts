@@ -50,6 +50,11 @@ export const paths = {
   auth: {
     login: '/login',
     signup: '/signup',
+    /** ลิงก์ในอีเมล: `/verify-email#token=…` */
+    verifyEmail: '/verify-email',
+    forgotPassword: '/forgot-password',
+    /** ลิงก์ในอีเมล: `/reset-password#token=…` */
+    resetPassword: '/reset-password',
   },
   page404: '/404',
 };

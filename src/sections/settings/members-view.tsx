@@ -1,4 +1,4 @@
-import type { Role, Member } from 'src/auth';
+import type { Role, Member, PendingInvitation } from 'src/auth';
 import type { InviteSchemaType } from 'src/schemas/auth/auth-schemas';
 
 import { useForm } from 'react-hook-form';
@@ -29,6 +29,7 @@ import { InviteSchema } from 'src/schemas/auth/auth-schemas';
 
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
+import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { Form, Field } from 'src/components/hook-form';
 import { EmptyContent } from 'src/components/empty-content';
@@ -53,6 +54,10 @@ export function MembersView() {
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [removing, setRemoving] = useState<Member | null>(null);
+  const [invitations, setInvitations] = useState<PendingInvitation[] | null>(null);
+  const [invError, setInvError] = useState<string | null>(null);
+  const [busyInvite, setBusyInvite] = useState<string | null>(null);
+  const [revoking, setRevoking] = useState<PendingInvitation | null>(null);
 
   const methods = useForm<InviteSchemaType>({
     resolver: zodResolver(InviteSchema),
@@ -69,9 +74,50 @@ export function MembersView() {
     }
   }, [client]);
 
+  const loadInvitations = useCallback(async () => {
+    if (!client) return;
+    try {
+      setInvError(null);
+      setInvitations(await client.get<PendingInvitation[]>('/tenant/members/invitations'));
+    } catch (e) {
+      setInvError(e instanceof Error ? e.message : 'โหลดคำเชิญไม่สำเร็จ');
+    }
+  }, [client]);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadInvitations();
+  }, [load, loadInvitations]);
+
+  const resendInvitation = async (inv: PendingInvitation) => {
+    if (!client) return;
+    setBusyInvite(inv.id);
+    try {
+      await client.request(`/tenant/members/invitations/${encodeURIComponent(inv.id)}/resend`, { method: 'POST' });
+      toast.success(`ส่งคำเชิญใหม่ไปที่ ${inv.email} แล้ว — ลิงก์เดิมใช้ไม่ได้`);
+      await loadInvitations();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'ส่งคำเชิญใหม่ไม่สำเร็จ');
+    } finally {
+      setBusyInvite(null);
+    }
+  };
+
+  const revokeInvitation = async () => {
+    const inv = revoking;
+    if (!client || !inv) return;
+    setBusyInvite(inv.id);
+    try {
+      await client.request(`/tenant/members/invitations/${encodeURIComponent(inv.id)}`, { method: 'DELETE' });
+      toast.success(`ยกเลิกคำเชิญ ${inv.email} แล้ว`);
+      setRevoking(null);
+      await loadInvitations();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'ยกเลิกคำเชิญไม่สำเร็จ');
+    } finally {
+      setBusyInvite(null);
+    }
+  };
 
   const invite = methods.handleSubmit(async (v) => {
     if (!client) return;
@@ -82,6 +128,7 @@ export function MembersView() {
       });
       toast.success(`ส่งคำเชิญไปที่ ${v.email.trim()} แล้ว (ลิงก์ใช้ได้ภายในเวลาที่กำหนด)`);
       methods.reset({ email: '', role: v.role });
+      await loadInvitations();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'ส่งคำเชิญไม่สำเร็จ');
     }
@@ -122,6 +169,79 @@ export function MembersView() {
   };
 
   const owners = members?.filter((m) => m.role === 'owner').length ?? 0;
+
+  let invitationContent: React.ReactNode;
+  if (invError) {
+    invitationContent = (
+      <EmptyContent
+        filled
+        title="โหลดคำเชิญไม่สำเร็จ"
+        description={invError}
+        action={
+          <Button variant="contained" sx={{ mt: 2 }} onClick={loadInvitations}>
+            ลองใหม่
+          </Button>
+        }
+        sx={{ py: 6 }}
+      />
+    );
+  } else if (!invitations) {
+    invitationContent = <LoadingScreen sx={{ py: 6 }} />;
+  } else if (!invitations.length) {
+    invitationContent = (
+      <EmptyContent filled title="ไม่มีคำเชิญที่รอตอบรับ" description="คำเชิญที่ส่งแล้วยังไม่ตอบรับจะแสดงที่นี่" sx={{ py: 5 }} />
+    );
+  } else {
+    invitationContent = (
+      <Scrollbar>
+        <Table size="small" sx={{ minWidth: 720 }}>
+          <TableHead>
+            <TableRow>
+              <TableCell>อีเมล</TableCell>
+              <TableCell>บทบาท</TableCell>
+              <TableCell>ส่งเมื่อ</TableCell>
+              <TableCell>หมดอายุ</TableCell>
+              <TableCell>ผู้เชิญ</TableCell>
+              <TableCell align="right" />
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {invitations.map((inv) => (
+              <TableRow key={inv.id}>
+                <TableCell>{inv.email}</TableCell>
+                <TableCell>{ROLE_LABEL[inv.role]}</TableCell>
+                <TableCell>{formatThaiDate(inv.createdAt.slice(0, 10))}</TableCell>
+                <TableCell>
+                  {inv.expired ? (
+                    <Label variant="soft" color="error">
+                      หมดอายุแล้ว
+                    </Label>
+                  ) : (
+                    formatThaiDate(inv.expiresAt.slice(0, 10))
+                  )}
+                </TableCell>
+                <TableCell>{inv.invitedBy}</TableCell>
+                <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
+                  <LoadingButton
+                    size="small"
+                    loading={busyInvite === inv.id && !revoking}
+                    disabled={!!busyInvite}
+                    startIcon={<Iconify icon="solar:restart-bold-duotone" width={18} />}
+                    onClick={() => resendInvitation(inv)}
+                  >
+                    ส่งใหม่
+                  </LoadingButton>
+                  <Button size="small" color="error" disabled={!!busyInvite} onClick={() => setRevoking(inv)}>
+                    ยกเลิก
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Scrollbar>
+    );
+  }
 
   let content: React.ReactNode;
   if (error) {
@@ -262,10 +382,36 @@ export function MembersView() {
         </Card>
 
         <Card>
+          <CardHeader
+            title={`คำเชิญที่รอตอบรับ${invitations?.length ? ` (${invitations.length})` : ''}`}
+            subheader="ส่งใหม่ = ลิงก์ใหม่ (ลิงก์เดิมใช้ไม่ได้) และนับอายุใหม่ · ยกเลิก = ลิงก์ใช้ไม่ได้ทันที"
+            sx={{ mb: 2 }}
+          />
+          {invitationContent}
+        </Card>
+
+        <Card>
           <CardHeader title={`ผู้ใช้งาน${members ? ` (${members.length})` : ''}`} sx={{ mb: 2 }} />
           {content}
         </Card>
       </Stack>
+
+      <ConfirmDialog
+        open={!!revoking}
+        onClose={() => setRevoking(null)}
+        title="ยกเลิกคำเชิญ"
+        content={revoking ? `ลิงก์ในอีเมลที่ส่งถึง ${revoking.email} จะใช้ไม่ได้ทันที — เชิญใหม่ได้ภายหลัง` : ''}
+        action={
+          <LoadingButton
+            variant="contained"
+            color="error"
+            loading={!!revoking && busyInvite === revoking.id}
+            onClick={revokeInvitation}
+          >
+            ยกเลิกคำเชิญ
+          </LoadingButton>
+        }
+      />
 
       <ConfirmDialog
         open={!!removing}

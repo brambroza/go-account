@@ -6,7 +6,7 @@ import { createApiClient } from 'src/utils/api-client';
 
 import { CONFIG } from 'src/config-global';
 
-import type { Role, Membership, SessionUser, SignupInput, SessionResponse } from './types';
+import type { Role, Membership, SessionUser, SignupInput, SessionResponse, AcceptedResponse } from './types';
 
 // ----------------------------------------------------------------------
 // session ของผู้ใช้ (โหมด api) — cookie httpOnly อยู่ที่เบราว์เซอร์ หน้าเว็บรู้สถานะจาก `GET /auth/me`
@@ -25,8 +25,15 @@ export type AuthContextValue = {
   role: Role | null;
   /** client เดียวของแอป (โหมด api) — null ในโหมด local */
   client: ApiClient | null;
+  /** ยืนยันอีเมลแล้ว (โหมด local = true) — false = แสดงแถบให้ยืนยัน, คำขอบันทึกถูกปฏิเสธ */
+  emailVerified: boolean;
   login: (email: string, password: string) => Promise<void>;
-  signup: (input: SignupInput) => Promise<void>;
+  /** สมัคร — ไม่มี session (ต้องยืนยันอีเมลแล้วเข้าสู่ระบบ) คืนข้อความจากเซิร์ฟเวอร์ */
+  signup: (input: SignupInput) => Promise<string>;
+  /** ส่งลิงก์ยืนยันอีเมลใหม่ (login อยู่ = บัญชีนี้, ไม่ login = ตาม email) คืนข้อความจากเซิร์ฟเวอร์ */
+  resendVerification: (email?: string) => Promise<string>;
+  /** เปลี่ยนรหัสผ่าน (session อื่นถูกยกเลิก) คืนจำนวน session ที่ถูกยกเลิก */
+  changePassword: (currentPassword: string, newPassword: string) => Promise<number>;
   logout: () => Promise<void>;
   switchTenant: (tenantId: string) => Promise<void>;
   /** โหลดรายชื่อบริษัท/บทบาทใหม่ (หลังเปลี่ยนบทบาทสมาชิก) */
@@ -45,6 +52,7 @@ const LOCAL_USER: SessionUser = {
   id: 'local',
   email: 'demo@localhost',
   displayName: 'ผู้ใช้ทดลอง (ข้อมูลในเครื่อง)',
+  emailVerified: true,
 };
 
 type Props = { children: React.ReactNode };
@@ -66,8 +74,11 @@ function LocalAuthProvider({ children }: Props) {
       memberships: [tenant],
       role: 'owner',
       client: null,
+      emailVerified: true,
       login: noop,
-      signup: noop,
+      signup: async () => '',
+      resendVerification: async () => '',
+      changePassword: async () => 0,
       logout: noop,
       switchTenant: noop,
       refreshMe: noop,
@@ -136,13 +147,30 @@ function ApiAuthProvider({ children }: Props) {
         });
         await startSession(s);
       },
+      emailVerified: me?.user.emailVerified ?? false,
       signup: async (input) => {
-        const s = await client.request<SessionResponse>('/auth/signup', {
+        // D2: 202 เหมือนกันทุกกรณี ไม่มี cookie — ผู้ใช้ยืนยันอีเมลจากลิงก์แล้วเข้าสู่ระบบ
+        const res = await client.request<AcceptedResponse>('/auth/signup', {
           method: 'POST',
           body: input,
           noRefresh: true,
         });
-        await startSession(s);
+        return res.message;
+      },
+      resendVerification: async (email) => {
+        const res = await client.request<AcceptedResponse>('/auth/resend-verification', {
+          method: 'POST',
+          body: email ? { email } : {},
+          noRefresh: !me,
+        });
+        return res.message;
+      },
+      changePassword: async (currentPassword, newPassword) => {
+        const res = await client.request<{ revokedSessions: number }>('/auth/password/change', {
+          method: 'POST',
+          body: { currentPassword, newPassword },
+        });
+        return res.revokedSessions;
       },
       logout: async () => {
         try {

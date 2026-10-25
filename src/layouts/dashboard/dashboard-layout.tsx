@@ -26,6 +26,7 @@ import { SettingsButton } from 'src/components/settings';
 
 import { downloadBackup } from 'src/sections/settings/backup';
 import { ResetDemoDialog } from 'src/sections/settings/reset-demo-dialog';
+import { EmailVerificationBanner } from 'src/sections/auth/email-verification-banner';
 
 import { NavContent } from './nav-content';
 import { AccountMenu } from './account-menu';
@@ -151,6 +152,7 @@ export function DashboardLayout({ children }: Props) {
 
         <Box component="main" sx={{ flexGrow: 1, px: { xs: 2, md: 4 }, py: { xs: 3, md: 4 } }}>
           <Box sx={{ maxWidth: 1360, mx: 'auto' }}>
+            <EmailVerificationBanner />
             {storageError && (
               <Alert
                 severity="error"

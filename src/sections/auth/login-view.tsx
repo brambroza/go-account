@@ -44,11 +44,19 @@ export function LoginView() {
   });
 
   const returnTo = searchParams.get('returnTo');
+  let notice: string | null = null;
+  if (searchParams.get('reset') === '1') notice = 'ตั้งรหัสผ่านใหม่แล้ว — เข้าสู่ระบบด้วยรหัสผ่านใหม่ (อุปกรณ์อื่นถูกออกจากระบบแล้ว)';
+  else if (searchParams.get('verified') === '1') notice = 'ยืนยันอีเมลแล้ว — เข้าสู่ระบบเพื่อเริ่มใช้งาน';
 
   return (
     <AuthLayout title="เข้าสู่ระบบ GO Account" subtitle="โปรแกรมบัญชีออนไลน์สำหรับ SME">
       <Form methods={methods} onSubmit={onSubmit}>
         <Stack spacing={2.5}>
+          {notice && !error && (
+            <Alert severity="success" variant="outlined">
+              {notice}
+            </Alert>
+          )}
           {error && (
             <Alert severity="error" variant="outlined">
               {error}
@@ -61,6 +69,14 @@ export function LoginView() {
             type="password"
             autoComplete="current-password"
           />
+          <Link
+            component={RouterLink}
+            href={paths.auth.forgotPassword}
+            variant="body2"
+            sx={{ alignSelf: 'flex-end', mt: -1 }}
+          >
+            ลืมรหัสผ่าน?
+          </Link>
           <LoadingButton
             type="submit"
             variant="contained"
