@@ -64,6 +64,16 @@ VITE_DATA_MODE=api yarn dev     # http://localhost:8081 → /login, /signup
                   refresh ไม่ผ่าน → หน้า login, ProblemDetails → ApiError (message = detail ภาษาไทย, code)
 ```
 
+## Docker / deploy (D3)
+
+- `Dockerfile`: `yarn build` (โหมด `api`) → **nginx unprivileged** (uid 101, port 8080) — SPA fallback, security headers + CSP (`deploy/nginx/security-headers.conf`),
+  assets ที่มี hash cache 1 ปี, `index.html` no-cache, `/api/*` และ `/health`, `/health/live` reverse proxy ไป go-account-api ⇒ หน้าเว็บกับ API **origin เดียวกัน**
+  (cookie `__Host-`/Secure + SameSite=Strict ใช้ได้โดยไม่ต้องตั้ง domain)
+- ค่าตอนรัน (env ของ container, แทนใน `deploy/nginx/default.conf.template`): `GA_API_UPSTREAM` (`http://api:8080`), `GA_PUBLIC_SCHEME` (`https` = ส่ง HSTS + `X-Forwarded-Proto: https`),
+  `GA_TRUSTED_PROXY_CIDR` / `GA_REAL_IP_HEADER` (IP จริงจาก edge), `GA_MAX_BODY`
+- staging ในเครื่อง + deploy DigitalOcean + runbook อยู่ใน go-account-api: `docker-compose.staging.yml`, `.github/workflows/deploy-staging.yml`, `docs/ops/`
+- CI: `.github/workflows/ci.yml` — test, lint, tsc, build (โหมด api) แล้ว build image + ตรวจ non-root/SPA/CSP/HSTS (ไม่ push)
+
 ## ทำอะไรได้แล้ว
 
 | หน้า | ความสามารถ |
