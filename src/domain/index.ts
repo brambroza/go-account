@@ -48,10 +48,14 @@ export * from './thai-tax-id';
 
 export * from './receivables';
 
+export * from './thai-address';
 
 export * from './document-calc';
 
+
 export * from './wht-certificate';
+
+export * from './adjustment-reason';
 
 export * from './chart-of-accounts';
 

@@ -3,6 +3,7 @@ import type { AccountingData, OpeningBalance } from 'src/domain';
 import {
   ACC,
   balanceOf,
+  DATA_VERSION,
   calcDocument,
   trialBalance,
   buildETaxXml,
@@ -472,7 +473,7 @@ describe('U10 migrated payments whose WHT rounds to 0', () => {
     };
     const store = createAccountingStore({ storage, fallback: demo });
     expect(store.getSnapshot()).toMatchObject({ readOnly: false, problems: [] });
-    expect(store.getSnapshot().data.version).toBe(7);
+    expect(store.getSnapshot().data.version).toBe(DATA_VERSION);
   });
 
   it('v6 data already migrated with the empty whtItems is repaired by v6 → v7', () => {

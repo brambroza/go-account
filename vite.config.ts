@@ -29,6 +29,8 @@ const VENDOR_CHUNKS: [string, RegExp][] = [
 ];
 
 function manualChunks(id: string): string | undefined {
+  // ตารางจังหวัด/อำเภอ/ตำบล (~400 kB ก่อนบีบอัด) เปลี่ยนน้อย — แยกก้อนให้ cache ได้นานและ bundle หลักเล็กลง
+  if (id.replace(/\\/g, '/').endsWith('src/domain/data/thai-address.json')) return 'data-thai-address';
   if (!id.includes('node_modules')) return undefined;
   const hit = VENDOR_CHUNKS.find(([, pattern]) => pattern.test(id.replace(/\\/g, '/')));
   return hit ? hit[0] : 'vendor';

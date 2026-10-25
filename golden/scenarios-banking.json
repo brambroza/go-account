@@ -9,8 +9,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -1345,8 +1347,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -1360,9 +1364,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -2119,6 +2128,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -4238,6 +4248,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -4919,8 +4930,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -4934,9 +4947,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -6375,6 +6393,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -6775,6 +6794,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": "service",

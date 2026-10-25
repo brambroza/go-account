@@ -1,7 +1,7 @@
 {
   "file": "thai-date.json",
   "generator": "go-account/scripts/export-golden.ts (yarn golden)",
-  "count": 223,
+  "count": 257,
   "vectors": [
     {
       "name": "toBE/2000",
@@ -611,6 +611,27 @@
       "output": -1
     },
     {
+      "name": "constants/FILING_EXTENSIONS",
+      "input": {},
+      "output": [
+        {
+          "reference": "ประกาศกระทรวงการคลังเรื่องขยายเวลาการยื่นแบบทางอินเทอร์เน็ต (ฉบับที่ 8) ถึง 31 ม.ค. 2570",
+          "source": "extension-8",
+          "throughPeriod": "2026-12",
+          "vatDay": 23,
+          "whtDay": 15
+        }
+      ]
+    },
+    {
+      "name": "constants/STATUTORY_DUE_DAYS",
+      "input": {},
+      "output": {
+        "vat": 15,
+        "wht": 7
+      }
+    },
+    {
       "name": "periodKey/2026-10",
       "input": {
         "period": {
@@ -649,6 +670,7 @@
         }
       },
       "output": {
+        "dueDateSource": "extension-8",
         "vat": "2026-11-23",
         "wht": "2026-11-15"
       }
@@ -845,6 +867,7 @@
         }
       },
       "output": {
+        "dueDateSource": "extension-8",
         "vat": "2027-01-23",
         "wht": "2027-01-15"
       }
@@ -1041,6 +1064,7 @@
         }
       },
       "output": {
+        "dueDateSource": "extension-8",
         "vat": "2026-02-23",
         "wht": "2026-02-15"
       }
@@ -1237,6 +1261,7 @@
         }
       },
       "output": {
+        "dueDateSource": "extension-8",
         "vat": "2025-03-23",
         "wht": "2025-03-15"
       }
@@ -1390,6 +1415,400 @@
         "period": {
           "month": 2,
           "year": 2025
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "periodKey/2027-01",
+      "input": {
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": "2027-01"
+    },
+    {
+      "name": "periodLabel/2027-01",
+      "input": {
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": "มกราคม 2570"
+    },
+    {
+      "name": "periodShortLabel/2027-01",
+      "input": {
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": "ม.ค. 70"
+    },
+    {
+      "name": "filingDueDates/2027-01",
+      "input": {
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": {
+        "dueDateSource": "statutory",
+        "vat": "2027-02-15",
+        "wht": "2027-02-07"
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-01-13",
+      "input": {
+        "delta": -13,
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 12,
+        "year": 2025
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-01-1",
+      "input": {
+        "delta": -1,
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 12,
+        "year": 2026
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-01+0",
+      "input": {
+        "delta": 0,
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 1,
+        "year": 2027
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-01+1",
+      "input": {
+        "delta": 1,
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 2,
+        "year": 2027
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-01+2",
+      "input": {
+        "delta": 2,
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 3,
+        "year": 2027
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-01+12",
+      "input": {
+        "delta": 12,
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 1,
+        "year": 2028
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-01+25",
+      "input": {
+        "delta": 25,
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 2,
+        "year": 2029
+      }
+    },
+    {
+      "name": "inPeriod/2026-10-01@2027-01",
+      "input": {
+        "date": "2026-10-01",
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2026-12-31@2027-01",
+      "input": {
+        "date": "2026-12-31",
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2026-01-15@2027-01",
+      "input": {
+        "date": "2026-01-15",
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2025-02-28@2027-01",
+      "input": {
+        "date": "2025-02-28",
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2024-02-29@2027-01",
+      "input": {
+        "date": "2024-02-29",
+        "period": {
+          "month": 1,
+          "year": 2027
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "periodKey/2027-12",
+      "input": {
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": "2027-12"
+    },
+    {
+      "name": "periodLabel/2027-12",
+      "input": {
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": "ธันวาคม 2570"
+    },
+    {
+      "name": "periodShortLabel/2027-12",
+      "input": {
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": "ธ.ค. 70"
+    },
+    {
+      "name": "filingDueDates/2027-12",
+      "input": {
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": {
+        "dueDateSource": "statutory",
+        "vat": "2028-01-15",
+        "wht": "2028-01-07"
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-12-13",
+      "input": {
+        "delta": -13,
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 11,
+        "year": 2026
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-12-1",
+      "input": {
+        "delta": -1,
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 11,
+        "year": 2027
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-12+0",
+      "input": {
+        "delta": 0,
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 12,
+        "year": 2027
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-12+1",
+      "input": {
+        "delta": 1,
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 1,
+        "year": 2028
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-12+2",
+      "input": {
+        "delta": 2,
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 2,
+        "year": 2028
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-12+12",
+      "input": {
+        "delta": 12,
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 12,
+        "year": 2028
+      }
+    },
+    {
+      "name": "shiftPeriod/2027-12+25",
+      "input": {
+        "delta": 25,
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": {
+        "month": 1,
+        "year": 2030
+      }
+    },
+    {
+      "name": "inPeriod/2026-10-01@2027-12",
+      "input": {
+        "date": "2026-10-01",
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2026-12-31@2027-12",
+      "input": {
+        "date": "2026-12-31",
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2026-01-15@2027-12",
+      "input": {
+        "date": "2026-01-15",
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2025-02-28@2027-12",
+      "input": {
+        "date": "2025-02-28",
+        "period": {
+          "month": 12,
+          "year": 2027
+        }
+      },
+      "output": false
+    },
+    {
+      "name": "inPeriod/2024-02-29@2027-12",
+      "input": {
+        "date": "2024-02-29",
+        "period": {
+          "month": 12,
+          "year": 2027
         }
       },
       "output": false

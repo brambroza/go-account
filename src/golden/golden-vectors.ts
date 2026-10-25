@@ -1,12 +1,18 @@
 import type { CalcInput } from 'src/domain/document-calc';
-import type { VatMode, Payment, WhtLineItem, PurchaseLine, PurchaseCreditNote } from 'src/domain/types';
+import type { Address , VatMode, Payment, WhtLineItem, PurchaseLine, PurchaseCreditNote } from 'src/domain/types';
+
+import fs from 'fs';
+import path from 'path';
+import { createHash } from 'crypto';
 
 import { bahtText } from 'src/domain/baht-text';
 import { csvCell } from 'src/domain/vat-report';
 import { normalizeInvoiceNo } from 'src/domain/duplicates';
+import { rdBranchType, sanitizeRdText } from 'src/domain/rd-wht-file';
 import { lineAmount, calcDocument, lineNetAmounts } from 'src/domain/document-calc';
 import { ACC, DEFAULT_ACCOUNTS, CONTROL_ACCOUNTS } from 'src/domain/chart-of-accounts';
 import { receiptWhtAmount, RECEIPT_WHT_MAX_RATE, PURCHASE_WHT_MAX_RATE } from 'src/domain/wht';
+import { ETAX_TYPE_CODE, ETAX_TYPE_NAME, eTaxPurposeCode, adjustmentSummary } from 'src/domain/etax-xml';
 import {
   nextDocNo,
   DOC_PREFIX,
@@ -33,6 +39,23 @@ import {
   prorateBaht,
   formatPlain,
 } from 'src/domain/money';
+import {
+  ADJUSTMENT_REASONS,
+  adjustmentPurposeText,
+  adjustmentReasonProblem,
+  adjustmentReasonOptions,
+  adjustmentReasonDisplay,
+} from 'src/domain/adjustment-reason';
+import {
+  thaiDistricts,
+  thaiProvinces,
+  findSubDistrict,
+  thaiSubDistricts,
+  withAddressCodes,
+  addressCodeProblem,
+  normalizePlaceName,
+  resolveAddressCodes,
+} from 'src/domain/thai-address';
 import {
   purchaseTotals,
   purchaseWhtGroups,
@@ -62,6 +85,8 @@ import {
   formatThaiDate,
   isValidISODate,
   periodShortLabel,
+  FILING_EXTENSIONS,
+  STATUTORY_DUE_DAYS,
   endOfPreviousMonth,
   formatThaiDateShort,
 } from 'src/domain/thai-date';
@@ -702,7 +727,12 @@ function thaiDateVectors(): GoldenVector[] {
     { year: 2026, month: 12 },
     { year: 2026, month: 1 },
     { year: 2025, month: 2 },
+    // หลังประกาศขยายเวลาฉบับที่ 8 (งวด 2026-12) = วันตามกฎหมาย 7 / 15
+    { year: 2027, month: 1 },
+    { year: 2027, month: 12 },
   ];
+  add('constants/FILING_EXTENSIONS', {}, FILING_EXTENSIONS.map((e) => ({ ...e })));
+  add('constants/STATUTORY_DUE_DAYS', {}, { ...STATUTORY_DUE_DAYS });
   periods.forEach((period) => {
     const key = periodKey(period);
     add(`periodKey/${key}`, { period }, key);
@@ -854,6 +884,185 @@ function textVectors(): GoldenVector[] {
   ].forEach((value, i) => {
     add(`csvCell/${i}:${JSON.stringify(value)}`, { value }, csvCell(value));
   });
+  // ข้อความในไฟล์ ภ.ง.ด. (Format กลาง): อักขระต้องห้าม + เครื่องหมายคำพูดโค้ง ‘’“”
+  (
+    [
+      ['918/288 "A&B", #1', 100],
+      ['บริษัท “เอ” จำกัด', 100],
+      ['ร้าน‘สมใจ’', 100],
+      ['“”‘’', 100],
+      ['a*b+c\\d!e$f%g#h@i', 100],
+      ['  หลาย   ช่อง\tว่าง\r\n|ท่อ  ', 100],
+      ['x'.repeat(50), 40],
+      ['', 10],
+    ] as [string, number][]
+  ).forEach(([value, maxLength], i) => add(`sanitizeRdText/${i}:${JSON.stringify(value)}`, { value, maxLength }, sanitizeRdText(value, maxLength)));
+  return list;
+}
+
+// ---------------- ที่อยู่: จังหวัด/อำเภอ/ตำบล + รหัส TIS 1099 ----------------
+
+const THAI_ADDRESS_FILE = path.resolve(__dirname, '..', 'domain', 'data', 'thai-address.json');
+
+/**
+ * ชุดข้อมูลที่อยู่ (sha256 ของไฟล์ — go-account-api เก็บสำเนาไฟล์เดียวกัน) + การค้นหา/จับคู่ชื่อ/ตรวจรหัส
+ * ที่ `etax-xml` และ `saveContact` ใช้ — ฝั่ง C# ต้องได้ผลเดียวกันทุกตัว
+ */
+function thaiAddressVectors(): GoldenVector[] {
+  const { list, add } = collector();
+  const bytes = fs.readFileSync(THAI_ADDRESS_FILE);
+  add(
+    'constants/dataset',
+    {},
+    {
+      sha256: createHash('sha256').update(bytes).digest('hex'),
+      bytes: bytes.length,
+      provinces: thaiProvinces().length,
+      districts: thaiProvinces().reduce((n, p) => n + thaiDistricts(p.code).length, 0),
+      subDistricts: thaiProvinces().reduce((n, p) => n + thaiDistricts(p.code).reduce((m, d) => m + thaiSubDistricts(d.code).length, 0), 0),
+    }
+  );
+  add('thaiProvinces/all', {}, thaiProvinces());
+  ['10', '11', '50', '38', '99', ''].forEach((code) => add(`thaiDistricts/${code}`, { provinceCode: code }, thaiDistricts(code)));
+  ['1001', '1047', '1105', '5001', '9999'].forEach((code) =>
+    add(`thaiSubDistricts/${code}`, { districtCode: code }, thaiSubDistricts(code))
+  );
+  ['100101', '850406', '960101', '000000'].forEach((code) => add(`findSubDistrict/${code}`, { code }, findSubDistrict(code) ?? null));
+
+  (
+    [
+      ['province', ' จังหวัด เชียงใหม่ '],
+      ['province', 'จ.ระยอง'],
+      ['province', 'กทม.'],
+      ['district', 'อำเภอเมืองระยอง'],
+      ['district', 'อ\u0e4d\u0e32เภอเมืองระยอง'],
+      ['district', 'เขตบางนา'],
+      ['district', 'อ. บางพลี'],
+      ['district', 'กิ่งอำเภอเกาะช้าง'],
+      ['district', 'เขต'],
+      ['subDistrict', 'แขวงบางนาใต้'],
+      ['subDistrict', 'ต.บางกระสอ'],
+      ['subDistrict', 'จ.ป.ร.'],
+      ['subDistrict', 'ตำบล\u00a0บ้านเลน'],
+      ['subDistrict', ''],
+    ] as ['province' | 'district' | 'subDistrict', string][]
+  ).forEach(([level, name], i) => add(`normalizePlaceName/${i}:${level}:${JSON.stringify(name)}`, { level, name }, normalizePlaceName(level, name)));
+
+  const addresses: Address[] = [
+    { subDistrictCode: '104703' },
+    { provinceCode: '10', districtCode: '1047', subDistrictCode: '104703', province: 'ผิด', district: 'ผิด', subDistrict: 'ผิด' },
+    { districtCode: '1047', subDistrict: 'แขวงบางนาเหนือ' },
+    { provinceCode: '11', district: 'พระสมุทรเจดีย์', subDistrict: 'ในคลองบางปลากด' },
+    { province: 'สมุทรปราการ', district: 'อำเภอพระสมุทรเจดีย์', subDistrict: 'ในคลองบางปลากด' },
+    { province: 'กทม.', district: 'เขตพระนคร', subDistrict: 'แขวงพระบรมมหาราชวัง' },
+    { province: 'กรุงเทพฯ' },
+    { province: 'นนทบุรี', district: 'อ.เมือง', subDistrict: 'ต. บางกระสอ' },
+    { province: 'จ.นนทบุรี', district: 'เมือง', subDistrict: 'บางกระสอ' },
+    { province: 'สมุทรปราการ', district: 'บางพลี', subDistrict: 'ในคลองบางปลากด' },
+    { province: 'กรุงเทพมหานคร', district: 'บางนา', subDistrict: 'บางนา' },
+    { subDistrictCode: '999999', province: 'ระยอง', district: 'เมืองระยอง', subDistrict: 'มาบตาพุด' },
+    { districtCode: '9999', provinceCode: '21' },
+    { provinceCode: '99', province: 'เชียงใหม่' },
+    { province: 'ไม่มีจังหวัดนี้', district: 'เมือง' },
+    { province: 'บึงกาฬ', district: 'เมืองบึงกาฬ' },
+    { province: 'นครศรีธรรมราช', district: 'อ.เมือง', subDistrict: 'ในเมือง' },
+    { province: 'ระยอง', district: 'อ\u0e4d\u0e32เภอเมืองระยอง' },
+    {},
+  ];
+  addresses.forEach((address, i) => {
+    add(`resolveAddressCodes/${i}`, { address }, resolveAddressCodes(address));
+    add(`withAddressCodes/${i}`, { address }, withAddressCodes(address));
+  });
+  [
+    {},
+    { provinceCode: '10', districtCode: '1047', subDistrictCode: '104703' },
+    { subDistrictCode: '104703' },
+    { districtCode: '1047' },
+    { provinceCode: '99' },
+    { districtCode: '1099' },
+    { subDistrictCode: '999999' },
+    { provinceCode: '11', districtCode: '1047' },
+    { provinceCode: '11', subDistrictCode: '104703' },
+    { districtCode: '1001', subDistrictCode: '104703' },
+    { provinceCode: '' },
+  ].forEach((address, i) => add(`addressCodeProblem/${i}`, { address }, addressCodeProblem(address)));
+  return list;
+}
+
+// ---------------- รหัส e-Tax / ไฟล์ ภ.ง.ด. ----------------
+
+/** รหัสประเภทเอกสาร (T02/81/80), รหัสเหตุผล B.3, ยอดสรุปใบลด/เพิ่มหนี้ (R2/R3), BRANCH_TYPE */
+function etaxCodeVectors(): GoldenVector[] {
+  const { list, add } = collector();
+  add('constants/ETAX_TYPE_CODE', {}, { ...ETAX_TYPE_CODE });
+  add('constants/ETAX_TYPE_NAME', {}, { ...ETAX_TYPE_NAME });
+  add('constants/ADJUSTMENT_REASONS', {}, ADJUSTMENT_REASONS.map((r) => ({ ...r })));
+  (['credit-note', 'debit-note'] as const).forEach((kind) =>
+    ([undefined, 'goods', 'service'] as const).forEach((saleType) => {
+      add(`adjustmentReasonOptions/${kind}:${saleType ?? 'none'}`, { kind, saleType: saleType ?? null }, adjustmentReasonOptions(kind, saleType).map((r) => r.code));
+      [undefined, 'CDNG02', 'CDNS04', 'DBNG01', 'DBNS02', 'CDNG99', 'X'].forEach((reasonCode) =>
+        add(
+          `eTaxPurposeCode/${kind}:${saleType ?? 'none'}:${reasonCode ?? 'none'}`,
+          { kind, saleType: saleType ?? null, reasonCode: reasonCode ?? null },
+          eTaxPurposeCode({ kind, saleType, reasonCode })
+        )
+      );
+    })
+  );
+  (
+    [
+      ['credit-note', 'goods', 'CDNG02', ''],
+      ['credit-note', 'goods', undefined, 'ลดราคา'],
+      ['credit-note', 'goods', undefined, '  '],
+      ['credit-note', 'goods', 'CDNG99', ''],
+      ['credit-note', 'goods', 'CDNS01', ''],
+      ['credit-note', undefined, 'DBNG01', 'x'],
+      ['credit-note', 'service', 'CDNS04', ''],
+      ['credit-note', 'service', 'CDNG01', 'x'],
+      ['debit-note', 'goods', 'DBNG02', undefined],
+      ['debit-note', 'service', 'DBNS99', ''],
+      ['debit-note', 'goods', 'CDNG01', 'x'],
+      ['debit-note', 'goods', 'X', 'x'],
+    ] as ['credit-note' | 'debit-note', 'goods' | 'service' | undefined, string | undefined, string | undefined][]
+  ).forEach(([kind, saleType, reasonCode, reason], i) => {
+    const label = kind === 'credit-note' ? 'ใบลดหนี้' : 'ใบเพิ่มหนี้';
+    const input = { kind, saleType: saleType ?? null, reasonCode: reasonCode ?? null, reason: reason ?? null, label };
+    add(`adjustmentReasonProblem/${i}`, input, adjustmentReasonProblem(kind, saleType, reasonCode, reason, label));
+    add(`adjustmentPurposeText/${i}`, input, adjustmentPurposeText({ kind, saleType, reasonCode, reason }));
+    add(`adjustmentReasonDisplay/${i}`, input, adjustmentReasonDisplay({ kind, reasonCode, reason }));
+  });
+  (
+    [
+      ['credit-note', 77_000, 76_961.5, 38.5, 2.7],
+      ['debit-note', 77_000, 78_000, 1_000, 70],
+      ['credit-note', 1_000, undefined, 200, 14],
+      ['debit-note', 1_000, undefined, 200, 14],
+      ['credit-note', undefined, undefined, 100, 7],
+      ['credit-note', 100.05, 0.01, 100.04, 7],
+    ] as ['credit-note' | 'debit-note', number | undefined, number | undefined, number, number][]
+  ).forEach(([kind, originalNet, correctNet, net, vat], i) => {
+    const out = adjustmentSummary({ kind, originalNet, correctNet }, { net, vat });
+    add(
+      `adjustmentSummary/${i}`,
+      { kind, originalNet: originalNet ?? null, correctNet: correctNet ?? null, net, vat },
+      { original: toSatang(out.original), lineTotal: toSatang(out.lineTotal), difference: toSatang(out.difference), grandTotal: toSatang(out.grandTotal) }
+    );
+  });
+  (
+    [
+      [true, undefined],
+      [true, true],
+      [false, true],
+      [false, false],
+      [false, undefined],
+    ] as [boolean, boolean | undefined][]
+  ).forEach(([vatRegistered, sbtRegistered]) =>
+    add(
+      `rdBranchType/${vatRegistered}:${sbtRegistered ?? 'none'}`,
+      { vatRegistered, sbtRegistered: sbtRegistered ?? null },
+      rdBranchType({ vatRegistered, sbtRegistered })
+    )
+  );
   return list;
 }
 
@@ -876,6 +1085,8 @@ export function buildGoldenSet(): GoldenSet {
     'reports.json': Object.entries(SCENARIO_FILES).flatMap(([file, scenarios]) => scenarios.map((s) => reportVector(file, s))),
     'integrity.json': CORRUPTION_CASES.map((c) => corruptionVector(c, SCENARIO_FILES)),
     'text.json': textVectors(),
+    'thai-address.json': thaiAddressVectors(),
+    'etax-codes.json': etaxCodeVectors(),
   };
 }
 

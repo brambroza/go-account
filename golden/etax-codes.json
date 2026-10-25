@@ -1,0 +1,1123 @@
+{
+  "file": "etax-codes.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 98,
+  "vectors": [
+    {
+      "name": "constants/ETAX_TYPE_CODE",
+      "input": {},
+      "output": {
+        "credit-note": "81",
+        "debit-note": "80",
+        "tax-invoice": "T02"
+      }
+    },
+    {
+      "name": "constants/ETAX_TYPE_NAME",
+      "input": {},
+      "output": {
+        "credit-note": "ใบลดหนี้",
+        "debit-note": "ใบเพิ่มหนี้",
+        "tax-invoice": "ใบแจ้งหนี้/ใบกำกับภาษี"
+      }
+    },
+    {
+      "name": "constants/ADJUSTMENT_REASONS",
+      "input": {},
+      "output": [
+        {
+          "code": "CDNG01",
+          "kind": "credit-note",
+          "label": "ลดราคาสินค้าที่ขาย (สินค้าผิดข้อกำหนดที่ตกลงกัน)",
+          "saleType": "goods"
+        },
+        {
+          "code": "CDNG02",
+          "kind": "credit-note",
+          "label": "สินค้าชำรุดเสียหาย",
+          "saleType": "goods"
+        },
+        {
+          "code": "CDNG03",
+          "kind": "credit-note",
+          "label": "สินค้าขาดจำนวนตามที่ตกลงซื้อขาย",
+          "saleType": "goods"
+        },
+        {
+          "code": "CDNG04",
+          "kind": "credit-note",
+          "label": "คำนวณราคาสินค้าผิดพลาดสูงกว่าที่เป็นจริง",
+          "saleType": "goods"
+        },
+        {
+          "code": "CDNG05",
+          "kind": "credit-note",
+          "label": "รับคืนสินค้า (ไม่ตรงตามคำพรรณนา)",
+          "saleType": "goods"
+        },
+        {
+          "code": "CDNG99",
+          "kind": "credit-note",
+          "label": "เหตุอื่น (ระบุสาเหตุ)",
+          "saleType": "goods"
+        },
+        {
+          "code": "CDNS01",
+          "kind": "credit-note",
+          "label": "ลดราคาค่าบริการ (บริการผิดข้อกำหนดที่ตกลงกัน)",
+          "saleType": "service"
+        },
+        {
+          "code": "CDNS02",
+          "kind": "credit-note",
+          "label": "ค่าบริการขาดจำนวน",
+          "saleType": "service"
+        },
+        {
+          "code": "CDNS03",
+          "kind": "credit-note",
+          "label": "คำนวณราคาค่าบริการผิดพลาดสูงกว่าที่เป็นจริง",
+          "saleType": "service"
+        },
+        {
+          "code": "CDNS04",
+          "kind": "credit-note",
+          "label": "บอกเลิกสัญญาบริการ",
+          "saleType": "service"
+        },
+        {
+          "code": "CDNS99",
+          "kind": "credit-note",
+          "label": "เหตุอื่น (ระบุสาเหตุ)",
+          "saleType": "service"
+        },
+        {
+          "code": "DBNG01",
+          "kind": "debit-note",
+          "label": "มีการเพิ่มราคาค่าสินค้า (สินค้าเกินกว่าจำนวนที่ตกลงกัน)",
+          "saleType": "goods"
+        },
+        {
+          "code": "DBNG02",
+          "kind": "debit-note",
+          "label": "คำนวณราคาสินค้าผิดพลาดต่ำกว่าที่เป็นจริง",
+          "saleType": "goods"
+        },
+        {
+          "code": "DBNG99",
+          "kind": "debit-note",
+          "label": "เหตุอื่น (ระบุสาเหตุ)",
+          "saleType": "goods"
+        },
+        {
+          "code": "DBNS01",
+          "kind": "debit-note",
+          "label": "การเพิ่มราคาค่าบริการ (บริการเกินกว่าข้อกำหนดที่ตกลงกัน)",
+          "saleType": "service"
+        },
+        {
+          "code": "DBNS02",
+          "kind": "debit-note",
+          "label": "คำนวณราคาค่าบริการผิดพลาดต่ำกว่าที่เป็นจริง",
+          "saleType": "service"
+        },
+        {
+          "code": "DBNS99",
+          "kind": "debit-note",
+          "label": "เหตุอื่น (ระบุสาเหตุ)",
+          "saleType": "service"
+        }
+      ]
+    },
+    {
+      "name": "adjustmentReasonOptions/credit-note:none",
+      "input": {
+        "kind": "credit-note",
+        "saleType": null
+      },
+      "output": [
+        "CDNG01",
+        "CDNG02",
+        "CDNG03",
+        "CDNG04",
+        "CDNG05",
+        "CDNG99"
+      ]
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:none:none",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": null,
+        "saleType": null
+      },
+      "output": "CDNG99"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:none:CDNG02",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "CDNG02",
+        "saleType": null
+      },
+      "output": "CDNG02"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:none:CDNS04",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "CDNS04",
+        "saleType": null
+      },
+      "output": "CDNS04"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:none:DBNG01",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "DBNG01",
+        "saleType": null
+      },
+      "output": "DBNG01"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:none:DBNS02",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "DBNS02",
+        "saleType": null
+      },
+      "output": "DBNS02"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:none:CDNG99",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "CDNG99",
+        "saleType": null
+      },
+      "output": "CDNG99"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:none:X",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "X",
+        "saleType": null
+      },
+      "output": "X"
+    },
+    {
+      "name": "adjustmentReasonOptions/credit-note:goods",
+      "input": {
+        "kind": "credit-note",
+        "saleType": "goods"
+      },
+      "output": [
+        "CDNG01",
+        "CDNG02",
+        "CDNG03",
+        "CDNG04",
+        "CDNG05",
+        "CDNG99"
+      ]
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:goods:none",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": null,
+        "saleType": "goods"
+      },
+      "output": "CDNG99"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:goods:CDNG02",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "CDNG02",
+        "saleType": "goods"
+      },
+      "output": "CDNG02"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:goods:CDNS04",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "CDNS04",
+        "saleType": "goods"
+      },
+      "output": "CDNS04"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:goods:DBNG01",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "DBNG01",
+        "saleType": "goods"
+      },
+      "output": "DBNG01"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:goods:DBNS02",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "DBNS02",
+        "saleType": "goods"
+      },
+      "output": "DBNS02"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:goods:CDNG99",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "CDNG99",
+        "saleType": "goods"
+      },
+      "output": "CDNG99"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:goods:X",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "X",
+        "saleType": "goods"
+      },
+      "output": "X"
+    },
+    {
+      "name": "adjustmentReasonOptions/credit-note:service",
+      "input": {
+        "kind": "credit-note",
+        "saleType": "service"
+      },
+      "output": [
+        "CDNS01",
+        "CDNS02",
+        "CDNS03",
+        "CDNS04",
+        "CDNS99"
+      ]
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:service:none",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": null,
+        "saleType": "service"
+      },
+      "output": "CDNS99"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:service:CDNG02",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "CDNG02",
+        "saleType": "service"
+      },
+      "output": "CDNG02"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:service:CDNS04",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "CDNS04",
+        "saleType": "service"
+      },
+      "output": "CDNS04"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:service:DBNG01",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "DBNG01",
+        "saleType": "service"
+      },
+      "output": "DBNG01"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:service:DBNS02",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "DBNS02",
+        "saleType": "service"
+      },
+      "output": "DBNS02"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:service:CDNG99",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "CDNG99",
+        "saleType": "service"
+      },
+      "output": "CDNG99"
+    },
+    {
+      "name": "eTaxPurposeCode/credit-note:service:X",
+      "input": {
+        "kind": "credit-note",
+        "reasonCode": "X",
+        "saleType": "service"
+      },
+      "output": "X"
+    },
+    {
+      "name": "adjustmentReasonOptions/debit-note:none",
+      "input": {
+        "kind": "debit-note",
+        "saleType": null
+      },
+      "output": [
+        "DBNG01",
+        "DBNG02",
+        "DBNG99"
+      ]
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:none:none",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": null,
+        "saleType": null
+      },
+      "output": "DBNG99"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:none:CDNG02",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "CDNG02",
+        "saleType": null
+      },
+      "output": "CDNG02"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:none:CDNS04",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "CDNS04",
+        "saleType": null
+      },
+      "output": "CDNS04"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:none:DBNG01",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "DBNG01",
+        "saleType": null
+      },
+      "output": "DBNG01"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:none:DBNS02",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "DBNS02",
+        "saleType": null
+      },
+      "output": "DBNS02"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:none:CDNG99",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "CDNG99",
+        "saleType": null
+      },
+      "output": "CDNG99"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:none:X",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "X",
+        "saleType": null
+      },
+      "output": "X"
+    },
+    {
+      "name": "adjustmentReasonOptions/debit-note:goods",
+      "input": {
+        "kind": "debit-note",
+        "saleType": "goods"
+      },
+      "output": [
+        "DBNG01",
+        "DBNG02",
+        "DBNG99"
+      ]
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:goods:none",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": null,
+        "saleType": "goods"
+      },
+      "output": "DBNG99"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:goods:CDNG02",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "CDNG02",
+        "saleType": "goods"
+      },
+      "output": "CDNG02"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:goods:CDNS04",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "CDNS04",
+        "saleType": "goods"
+      },
+      "output": "CDNS04"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:goods:DBNG01",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "DBNG01",
+        "saleType": "goods"
+      },
+      "output": "DBNG01"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:goods:DBNS02",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "DBNS02",
+        "saleType": "goods"
+      },
+      "output": "DBNS02"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:goods:CDNG99",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "CDNG99",
+        "saleType": "goods"
+      },
+      "output": "CDNG99"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:goods:X",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "X",
+        "saleType": "goods"
+      },
+      "output": "X"
+    },
+    {
+      "name": "adjustmentReasonOptions/debit-note:service",
+      "input": {
+        "kind": "debit-note",
+        "saleType": "service"
+      },
+      "output": [
+        "DBNS01",
+        "DBNS02",
+        "DBNS99"
+      ]
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:service:none",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": null,
+        "saleType": "service"
+      },
+      "output": "DBNS99"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:service:CDNG02",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "CDNG02",
+        "saleType": "service"
+      },
+      "output": "CDNG02"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:service:CDNS04",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "CDNS04",
+        "saleType": "service"
+      },
+      "output": "CDNS04"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:service:DBNG01",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "DBNG01",
+        "saleType": "service"
+      },
+      "output": "DBNG01"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:service:DBNS02",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "DBNS02",
+        "saleType": "service"
+      },
+      "output": "DBNS02"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:service:CDNG99",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "CDNG99",
+        "saleType": "service"
+      },
+      "output": "CDNG99"
+    },
+    {
+      "name": "eTaxPurposeCode/debit-note:service:X",
+      "input": {
+        "kind": "debit-note",
+        "reasonCode": "X",
+        "saleType": "service"
+      },
+      "output": "X"
+    },
+    {
+      "name": "adjustmentReasonProblem/0",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "",
+        "reasonCode": "CDNG02",
+        "saleType": "goods"
+      },
+      "output": null
+    },
+    {
+      "name": "adjustmentPurposeText/0",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "",
+        "reasonCode": "CDNG02",
+        "saleType": "goods"
+      },
+      "output": "สินค้าชำรุดเสียหาย"
+    },
+    {
+      "name": "adjustmentReasonDisplay/0",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "",
+        "reasonCode": "CDNG02",
+        "saleType": "goods"
+      },
+      "output": "สินค้าชำรุดเสียหาย"
+    },
+    {
+      "name": "adjustmentReasonProblem/1",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "ลดราคา",
+        "reasonCode": null,
+        "saleType": "goods"
+      },
+      "output": null
+    },
+    {
+      "name": "adjustmentPurposeText/1",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "ลดราคา",
+        "reasonCode": null,
+        "saleType": "goods"
+      },
+      "output": "ลดราคา"
+    },
+    {
+      "name": "adjustmentReasonDisplay/1",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "ลดราคา",
+        "reasonCode": null,
+        "saleType": "goods"
+      },
+      "output": "ลดราคา"
+    },
+    {
+      "name": "adjustmentReasonProblem/2",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "  ",
+        "reasonCode": null,
+        "saleType": "goods"
+      },
+      "output": "ใบลดหนี้ต้องระบุเหตุผล"
+    },
+    {
+      "name": "adjustmentPurposeText/2",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "  ",
+        "reasonCode": null,
+        "saleType": "goods"
+      },
+      "output": ""
+    },
+    {
+      "name": "adjustmentReasonDisplay/2",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "  ",
+        "reasonCode": null,
+        "saleType": "goods"
+      },
+      "output": ""
+    },
+    {
+      "name": "adjustmentReasonProblem/3",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "",
+        "reasonCode": "CDNG99",
+        "saleType": "goods"
+      },
+      "output": "ใบลดหนี้ต้องระบุเหตุผล"
+    },
+    {
+      "name": "adjustmentPurposeText/3",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "",
+        "reasonCode": "CDNG99",
+        "saleType": "goods"
+      },
+      "output": ""
+    },
+    {
+      "name": "adjustmentReasonDisplay/3",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "",
+        "reasonCode": "CDNG99",
+        "saleType": "goods"
+      },
+      "output": ""
+    },
+    {
+      "name": "adjustmentReasonProblem/4",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "",
+        "reasonCode": "CDNS01",
+        "saleType": "goods"
+      },
+      "output": "รหัสเหตุผล CDNS01 ใช้กับใบลดหนี้ขายสินค้าไม่ได้"
+    },
+    {
+      "name": "adjustmentPurposeText/4",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "",
+        "reasonCode": "CDNS01",
+        "saleType": "goods"
+      },
+      "output": "ลดราคาค่าบริการ (บริการผิดข้อกำหนดที่ตกลงกัน)"
+    },
+    {
+      "name": "adjustmentReasonDisplay/4",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "",
+        "reasonCode": "CDNS01",
+        "saleType": "goods"
+      },
+      "output": "ลดราคาค่าบริการ (บริการผิดข้อกำหนดที่ตกลงกัน)"
+    },
+    {
+      "name": "adjustmentReasonProblem/5",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "x",
+        "reasonCode": "DBNG01",
+        "saleType": null
+      },
+      "output": "รหัสเหตุผล DBNG01 ใช้กับใบลดหนี้ขายสินค้าไม่ได้"
+    },
+    {
+      "name": "adjustmentPurposeText/5",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "x",
+        "reasonCode": "DBNG01",
+        "saleType": null
+      },
+      "output": "มีการเพิ่มราคาค่าสินค้า (สินค้าเกินกว่าจำนวนที่ตกลงกัน)"
+    },
+    {
+      "name": "adjustmentReasonDisplay/5",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "x",
+        "reasonCode": "DBNG01",
+        "saleType": null
+      },
+      "output": "มีการเพิ่มราคาค่าสินค้า (สินค้าเกินกว่าจำนวนที่ตกลงกัน) — x"
+    },
+    {
+      "name": "adjustmentReasonProblem/6",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "",
+        "reasonCode": "CDNS04",
+        "saleType": "service"
+      },
+      "output": null
+    },
+    {
+      "name": "adjustmentPurposeText/6",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "",
+        "reasonCode": "CDNS04",
+        "saleType": "service"
+      },
+      "output": "บอกเลิกสัญญาบริการ"
+    },
+    {
+      "name": "adjustmentReasonDisplay/6",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "",
+        "reasonCode": "CDNS04",
+        "saleType": "service"
+      },
+      "output": "บอกเลิกสัญญาบริการ"
+    },
+    {
+      "name": "adjustmentReasonProblem/7",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "x",
+        "reasonCode": "CDNG01",
+        "saleType": "service"
+      },
+      "output": "รหัสเหตุผล CDNG01 ใช้กับใบลดหนี้งานบริการไม่ได้"
+    },
+    {
+      "name": "adjustmentPurposeText/7",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "x",
+        "reasonCode": "CDNG01",
+        "saleType": "service"
+      },
+      "output": "ลดราคาสินค้าที่ขาย (สินค้าผิดข้อกำหนดที่ตกลงกัน)"
+    },
+    {
+      "name": "adjustmentReasonDisplay/7",
+      "input": {
+        "kind": "credit-note",
+        "label": "ใบลดหนี้",
+        "reason": "x",
+        "reasonCode": "CDNG01",
+        "saleType": "service"
+      },
+      "output": "ลดราคาสินค้าที่ขาย (สินค้าผิดข้อกำหนดที่ตกลงกัน) — x"
+    },
+    {
+      "name": "adjustmentReasonProblem/8",
+      "input": {
+        "kind": "debit-note",
+        "label": "ใบเพิ่มหนี้",
+        "reason": null,
+        "reasonCode": "DBNG02",
+        "saleType": "goods"
+      },
+      "output": null
+    },
+    {
+      "name": "adjustmentPurposeText/8",
+      "input": {
+        "kind": "debit-note",
+        "label": "ใบเพิ่มหนี้",
+        "reason": null,
+        "reasonCode": "DBNG02",
+        "saleType": "goods"
+      },
+      "output": "คำนวณราคาสินค้าผิดพลาดต่ำกว่าที่เป็นจริง"
+    },
+    {
+      "name": "adjustmentReasonDisplay/8",
+      "input": {
+        "kind": "debit-note",
+        "label": "ใบเพิ่มหนี้",
+        "reason": null,
+        "reasonCode": "DBNG02",
+        "saleType": "goods"
+      },
+      "output": "คำนวณราคาสินค้าผิดพลาดต่ำกว่าที่เป็นจริง"
+    },
+    {
+      "name": "adjustmentReasonProblem/9",
+      "input": {
+        "kind": "debit-note",
+        "label": "ใบเพิ่มหนี้",
+        "reason": "",
+        "reasonCode": "DBNS99",
+        "saleType": "service"
+      },
+      "output": "ใบเพิ่มหนี้ต้องระบุเหตุผล"
+    },
+    {
+      "name": "adjustmentPurposeText/9",
+      "input": {
+        "kind": "debit-note",
+        "label": "ใบเพิ่มหนี้",
+        "reason": "",
+        "reasonCode": "DBNS99",
+        "saleType": "service"
+      },
+      "output": ""
+    },
+    {
+      "name": "adjustmentReasonDisplay/9",
+      "input": {
+        "kind": "debit-note",
+        "label": "ใบเพิ่มหนี้",
+        "reason": "",
+        "reasonCode": "DBNS99",
+        "saleType": "service"
+      },
+      "output": ""
+    },
+    {
+      "name": "adjustmentReasonProblem/10",
+      "input": {
+        "kind": "debit-note",
+        "label": "ใบเพิ่มหนี้",
+        "reason": "x",
+        "reasonCode": "CDNG01",
+        "saleType": "goods"
+      },
+      "output": "รหัสเหตุผล CDNG01 ใช้กับใบเพิ่มหนี้ขายสินค้าไม่ได้"
+    },
+    {
+      "name": "adjustmentPurposeText/10",
+      "input": {
+        "kind": "debit-note",
+        "label": "ใบเพิ่มหนี้",
+        "reason": "x",
+        "reasonCode": "CDNG01",
+        "saleType": "goods"
+      },
+      "output": "ลดราคาสินค้าที่ขาย (สินค้าผิดข้อกำหนดที่ตกลงกัน)"
+    },
+    {
+      "name": "adjustmentReasonDisplay/10",
+      "input": {
+        "kind": "debit-note",
+        "label": "ใบเพิ่มหนี้",
+        "reason": "x",
+        "reasonCode": "CDNG01",
+        "saleType": "goods"
+      },
+      "output": "ลดราคาสินค้าที่ขาย (สินค้าผิดข้อกำหนดที่ตกลงกัน) — x"
+    },
+    {
+      "name": "adjustmentReasonProblem/11",
+      "input": {
+        "kind": "debit-note",
+        "label": "ใบเพิ่มหนี้",
+        "reason": "x",
+        "reasonCode": "X",
+        "saleType": "goods"
+      },
+      "output": "รหัสเหตุผล X ใช้กับใบเพิ่มหนี้ขายสินค้าไม่ได้"
+    },
+    {
+      "name": "adjustmentPurposeText/11",
+      "input": {
+        "kind": "debit-note",
+        "label": "ใบเพิ่มหนี้",
+        "reason": "x",
+        "reasonCode": "X",
+        "saleType": "goods"
+      },
+      "output": ""
+    },
+    {
+      "name": "adjustmentReasonDisplay/11",
+      "input": {
+        "kind": "debit-note",
+        "label": "ใบเพิ่มหนี้",
+        "reason": "x",
+        "reasonCode": "X",
+        "saleType": "goods"
+      },
+      "output": " — x"
+    },
+    {
+      "name": "adjustmentSummary/0",
+      "input": {
+        "correctNet": 76961.5,
+        "kind": "credit-note",
+        "net": 38.5,
+        "originalNet": 77000,
+        "vat": 2.7
+      },
+      "output": {
+        "difference": 3850,
+        "grandTotal": 4120,
+        "lineTotal": 7696150,
+        "original": 7700000
+      }
+    },
+    {
+      "name": "adjustmentSummary/1",
+      "input": {
+        "correctNet": 78000,
+        "kind": "debit-note",
+        "net": 1000,
+        "originalNet": 77000,
+        "vat": 70
+      },
+      "output": {
+        "difference": 100000,
+        "grandTotal": 107000,
+        "lineTotal": 7800000,
+        "original": 7700000
+      }
+    },
+    {
+      "name": "adjustmentSummary/2",
+      "input": {
+        "correctNet": null,
+        "kind": "credit-note",
+        "net": 200,
+        "originalNet": 1000,
+        "vat": 14
+      },
+      "output": {
+        "difference": 20000,
+        "grandTotal": 21400,
+        "lineTotal": 80000,
+        "original": 100000
+      }
+    },
+    {
+      "name": "adjustmentSummary/3",
+      "input": {
+        "correctNet": null,
+        "kind": "debit-note",
+        "net": 200,
+        "originalNet": 1000,
+        "vat": 14
+      },
+      "output": {
+        "difference": 20000,
+        "grandTotal": 21400,
+        "lineTotal": 120000,
+        "original": 100000
+      }
+    },
+    {
+      "name": "adjustmentSummary/4",
+      "input": {
+        "correctNet": null,
+        "kind": "credit-note",
+        "net": 100,
+        "originalNet": null,
+        "vat": 7
+      },
+      "output": {
+        "difference": 10000,
+        "grandTotal": 10700,
+        "lineTotal": -10000,
+        "original": 0
+      }
+    },
+    {
+      "name": "adjustmentSummary/5",
+      "input": {
+        "correctNet": 0.01,
+        "kind": "credit-note",
+        "net": 100.04,
+        "originalNet": 100.05,
+        "vat": 7
+      },
+      "output": {
+        "difference": 10004,
+        "grandTotal": 10704,
+        "lineTotal": 1,
+        "original": 10005
+      }
+    },
+    {
+      "name": "rdBranchType/true:none",
+      "input": {
+        "sbtRegistered": null,
+        "vatRegistered": true
+      },
+      "output": "V"
+    },
+    {
+      "name": "rdBranchType/true:true",
+      "input": {
+        "sbtRegistered": true,
+        "vatRegistered": true
+      },
+      "output": "V"
+    },
+    {
+      "name": "rdBranchType/false:true",
+      "input": {
+        "sbtRegistered": true,
+        "vatRegistered": false
+      },
+      "output": "S"
+    },
+    {
+      "name": "rdBranchType/false:false",
+      "input": {
+        "sbtRegistered": false,
+        "vatRegistered": false
+      },
+      "output": ""
+    },
+    {
+      "name": "rdBranchType/false:none",
+      "input": {
+        "sbtRegistered": null,
+        "vatRegistered": false
+      },
+      "output": ""
+    }
+  ]
+}

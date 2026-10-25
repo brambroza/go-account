@@ -35,10 +35,20 @@ function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K
   return copy;
 }
 
-/** แปลงข้อมูลปัจจุบัน (v7) กลับเป็นโครง v6 — ไม่มีการรับเงินคืนจากผู้ขาย / บัญชี 1150 */
+/** ที่อยู่แบบ v7 (ไม่มีรหัส TIS 1099) */
+function namesOnly<T extends { address: AccountingData['company']['address'] }>(x: T): T {
+  return { ...x, address: omit(x.address, ['provinceCode', 'districtCode', 'subDistrictCode']) };
+}
+
+/** แปลงข้อมูลปัจจุบัน (v8) กลับเป็นโครง v7 — ที่อยู่บริษัท/ผู้ติดต่อยังไม่มีรหัสจังหวัด/อำเภอ/ตำบล */
+export function toV7(data: AccountingData): Record<string, unknown> {
+  return { ...data, version: 7, company: namesOnly(data.company), contacts: data.contacts.map(namesOnly) };
+}
+
+/** แปลงข้อมูลปัจจุบันกลับเป็นโครง v6 — ไม่มีการรับเงินคืนจากผู้ขาย / บัญชี 1150 */
 export function toV6(data: AccountingData): Record<string, unknown> {
   return {
-    ...omit(data, ['supplierRefunds']),
+    ...omit(toV7(data) as unknown as AccountingData, ['supplierRefunds']),
     version: 6,
     accounts: data.accounts.filter((a) => a.code !== ACC.supplierRefundReceivable),
   };

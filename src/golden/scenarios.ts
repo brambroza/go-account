@@ -95,7 +95,10 @@ type InvoiceInput = {
 export type ScenarioStep =
   | { action: 'saveContact'; input: ScenarioContact & { update?: boolean } }
   | { action: 'issueTaxInvoice'; input: InvoiceInput }
-  | { action: 'issueCreditNote' | 'issueDebitNote'; input: { invoice: string; date: string; reason: string; lines: ScenarioLine[] } }
+  | {
+      action: 'issueCreditNote' | 'issueDebitNote';
+      input: { invoice: string; date: string; reason: string; reasonCode?: string; lines: ScenarioLine[] };
+    }
   | {
       action: 'receivePayment';
       input: { invoice: string; date: string; amount: number; whtAmount: number; depositAccountCode: string };
@@ -275,7 +278,9 @@ export const ERROR_CODES: readonly [string, RegExp][] = [
   ['OPENING_DOC_ADJUSTMENT', /เป็นยอดยกมาจากระบบเดิม — /],
   ['INVOICE_CANCELLED', /ถูกยกเลิกด้วยใบลดหนี้แล้ว — ออกใบกำกับใหม่แทน$/],
   ['SERVICE_DEBIT_NOT_SUPPORTED', /เป็นใบแจ้งหนี้งานบริการ — ค่าบริการที่เพิ่มให้ออกใบแจ้งหนี้ใบใหม่/],
+  ['REASON_CODE_INVALID', /^รหัสเหตุผล \S+ ใช้กับ/],
   ['REASON_REQUIRED', /ต้องระบุเหตุผล$/],
+  ['ADDRESS_CODE_INVALID', /^รหัสจังหวัด\/อำเภอ\/ตำบลในที่อยู่ไม่ถูกต้อง/],
   ['ADJUSTMENT_BEFORE_INVOICE', /ต้องไม่ก่อนวันที่ใบกำกับเดิม$/],
   ['ADJUSTMENT_BEFORE_RECEIPT', /ต้องไม่ก่อนวันรับชำระครั้งล่าสุดของ /],
   ['CREDIT_EXCEEDS_CREDITABLE', /^ยอดลดหนี้ .+ เกินยอดที่ลดได้ /],
@@ -412,6 +417,7 @@ function salesOut(state: AccountingData, s: SalesDoc) {
     refDocNo: docNoOf(state, s.refDocId),
     refReceiptNo: docNoOf(state, s.refReceiptId),
     reason: s.reason ?? null,
+    reasonCode: s.reasonCode ?? null,
     note: s.note ?? null,
     originalNet: sat(s.originalNet),
     correctNet: sat(s.correctNet),
@@ -930,7 +936,14 @@ export const VAT_CO: ScenarioCompany = {
   taxId: '0105562077778',
   branchNo: '00000',
   vatRegistered: true,
-  address: { addressNo: '918/288', province: 'สมุทรปราการ', postalCode: '10290' },
+  // ที่อยู่มีแต่ชื่อ (ไม่ได้เลือกจากรายการ) — XML จับคู่ชื่อเป็นรหัส TIS 1099 (รวมคำนำหน้า "อำเภอ")
+  address: {
+    addressNo: '918/288',
+    subDistrict: 'ในคลองบางปลากด',
+    district: 'อำเภอพระสมุทรเจดีย์',
+    province: 'สมุทรปราการ',
+    postalCode: '10290',
+  },
 };
 
 export const NON_VAT_CO: ScenarioCompany = {
@@ -949,7 +962,18 @@ export const CUSTOMER: ScenarioContact = {
   name: 'เอบีซี ออโต้พาร์ท จำกัด',
   taxId: '0105565012341',
   branchNo: '0',
-  address: { addressNo: '99', street: 'บางนา-ตราด', province: 'กรุงเทพมหานคร', postalCode: '10260' },
+  // เลือกจากรายการ: รหัสจังหวัด/เขต/แขวง + ชื่อ
+  address: {
+    addressNo: '99',
+    street: 'บางนา-ตราด',
+    subDistrict: 'บางนาใต้',
+    district: 'บางนา',
+    province: 'กรุงเทพมหานคร',
+    postalCode: '10260',
+    provinceCode: '10',
+    districtCode: '1047',
+    subDistrictCode: '104703',
+  },
   email: 'ap@abc.example',
   creditDays: 30,
 };
@@ -1013,14 +1037,14 @@ export const receive = (inv: string, date: string, amount: number, whtAmount = 0
   input: { invoice: inv, date, amount, whtAmount, depositAccountCode },
 });
 
-export const credit = (inv: string, date: string, lines: ScenarioLine[], reason = 'ลดราคา'): ScenarioStep => ({
+export const credit = (inv: string, date: string, lines: ScenarioLine[], reason = 'ลดราคา', reasonCode?: string): ScenarioStep => ({
   action: 'issueCreditNote',
-  input: { invoice: inv, date, reason, lines },
+  input: { invoice: inv, date, reason, ...(reasonCode ? { reasonCode } : {}), lines },
 });
 
-export const debit = (inv: string, date: string, lines: ScenarioLine[], reason = 'เพิ่มราคา'): ScenarioStep => ({
+export const debit = (inv: string, date: string, lines: ScenarioLine[], reason = 'เพิ่มราคา', reasonCode?: string): ScenarioStep => ({
   action: 'issueDebitNote',
-  input: { invoice: inv, date, reason, lines },
+  input: { invoice: inv, date, reason, ...(reasonCode ? { reasonCode } : {}), lines },
 });
 
 export const refund = (date: string, amount: number, contactCode = 'C001', accountCode = '1120', note?: string): ScenarioStep => ({
@@ -1156,6 +1180,37 @@ export const SALES_SCENARIOS: Scenario[] = [
       refund('2026-09-22', 1_070.01),
       refund('2026-09-22', 1_070),
       refund('2026-09-23', 1),
+    ],
+  },
+  {
+    name: 'adjustment-reason-codes-and-address-codes',
+    description:
+      'รหัสเหตุผล ETDA (B.3): รหัสเฉพาะไม่ต้องมีข้อความ, รหัสผิดชนิด/ประเภทการขายถูกปฏิเสธ, …99 ต้องมีข้อความ; ' +
+      'รหัสที่อยู่ผิด/ไม่สอดคล้องถูกปฏิเสธ, ชื่อที่อยู่ถูกเติมรหัส TIS 1099; งานบริการใช้ CDNS',
+    company: VAT_CO,
+    steps: [
+      contact({ ...CUSTOMER, address: { ...CUSTOMER.address, subDistrictCode: '999999' } }),
+      contact({ ...CUSTOMER, address: { ...CUSTOMER.address, districtCode: '1201' } }),
+      contact(CUSTOMER),
+      // ชื่ออย่างเดียว (มีคำนำหน้า/ช่องว่าง/"ํา") → saveContact เติมรหัส
+      contact({
+        ...PERSON,
+        address: { addressNo: '12/3', subDistrict: 'ต. บางกระสอ', district: 'อ.เมือง', province: 'จ.นนทบุรี', postalCode: '11000' },
+      }),
+      invoice('2026-10-05', [L(10, 1_000)]),
+      invoice('2026-10-05', [L(2, 500)], 'exclusive', { contact: 'C002' }),
+      credit('IV6910-0001', '2026-10-06', [L(1, 1_000)], '', 'CDNG02'),
+      credit('IV6910-0001', '2026-10-06', [L(1, 1_000)], '', 'CDNS01'),
+      credit('IV6910-0001', '2026-10-06', [L(1, 1_000)], 'ลดราคา', 'DBNG01'),
+      credit('IV6910-0001', '2026-10-06', [L(1, 1_000)], '  ', 'CDNG99'),
+      credit('IV6910-0001', '2026-10-07', [L(1, 500)], 'ลูกค้าแจ้งสินค้าบุบ', 'CDNG05'),
+      debit('IV6910-0001', '2026-10-08', [L(1, 2_000)], '', 'DBNG02'),
+      debit('IV6910-0002', '2026-10-08', [L(1, 100)], 'ค่าขนส่งเพิ่ม'),
+      invoice('2026-10-09', [S(1, 3_000)], 'exclusive', { saleType: 'service' }),
+      receive('BL6910-0001', '2026-10-10', 3_210),
+      credit('BL6910-0001', '2026-10-11', [S(1, 1_000)], '', 'CDNG01'),
+      credit('BL6910-0001', '2026-10-11', [S(1, 1_000)], '', 'CDNS04'),
+      etax(['IV6910-0001', 'CN6910-0001', 'DN6910-0001'], 'signed'),
     ],
   },
   {

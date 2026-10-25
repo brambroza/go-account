@@ -1,7 +1,7 @@
 {
   "file": "scenarios-sales.json",
   "generator": "go-account/scripts/export-golden.ts (yarn golden)",
-  "count": 15,
+  "count": 16,
   "vectors": [
     {
       "name": "goods-exclusive-full-payment-etax",
@@ -9,8 +9,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -24,9 +26,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -286,6 +293,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -411,6 +419,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -1039,8 +1048,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -1054,9 +1065,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -1306,6 +1322,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -1760,8 +1777,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -1949,6 +1968,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -2064,6 +2084,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -2388,9 +2409,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -2643,6 +2669,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -2749,6 +2776,7 @@
                 "opening": false,
                 "originalNet": 1000000,
                 "reason": "เพิ่มราคา",
+                "reasonCode": null,
                 "refDocNo": "BL6908-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -2956,6 +2984,7 @@
                 "opening": false,
                 "originalNet": 1080000,
                 "reason": "สินค้าชำรุด",
+                "reasonCode": null,
                 "refDocNo": "BL6908-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -3243,6 +3272,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": "service",
@@ -3355,6 +3385,7 @@
                 "opening": false,
                 "originalNet": 300000,
                 "reason": "ยกเลิกงาน",
+                "reasonCode": null,
                 "refDocNo": "BL6908-0002",
                 "refReceiptNo": null,
                 "saleType": "service",
@@ -3432,8 +3463,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -3447,9 +3480,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -3660,6 +3698,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": "service",
@@ -4237,8 +4276,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -4252,9 +4293,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -4469,6 +4515,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": "service",
@@ -4701,6 +4748,7 @@
                 "opening": false,
                 "originalNet": 311526,
                 "reason": "ลดราคา",
+                "reasonCode": null,
                 "refDocNo": "BL6909-0001",
                 "refReceiptNo": null,
                 "saleType": "service",
@@ -4820,6 +4868,7 @@
                 "opening": false,
                 "originalNet": 218068,
                 "reason": "ปิดยอดงานที่ไม่ได้ทำ",
+                "reasonCode": null,
                 "refDocNo": "BL6909-0001",
                 "refReceiptNo": null,
                 "saleType": "service",
@@ -4939,6 +4988,7 @@
                 "opening": false,
                 "originalNet": 93458,
                 "reason": "ลดราคา",
+                "reasonCode": null,
                 "refDocNo": "BL6909-0001",
                 "refReceiptNo": "RT6909-0001",
                 "saleType": "service",
@@ -5029,8 +5079,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -5044,9 +5096,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -5272,6 +5329,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": "service",
@@ -5629,6 +5687,7 @@
                 "opening": false,
                 "originalNet": 500000,
                 "reason": "ส่วนลดหลังการขาย",
+                "reasonCode": null,
                 "refDocNo": "BL6909-0001",
                 "refReceiptNo": "RT6909-0002",
                 "saleType": "service",
@@ -5908,13 +5967,1976 @@
       ]
     },
     {
+      "name": "adjustment-reason-codes-and-address-codes",
+      "input": {
+        "company": {
+          "address": {
+            "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
+            "postalCode": "10290",
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
+          },
+          "branchNo": "00000",
+          "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
+          "taxId": "0105562077778",
+          "vatRegistered": true
+        },
+        "description": "รหัสเหตุผล ETDA (B.3): รหัสเฉพาะไม่ต้องมีข้อความ, รหัสผิดชนิด/ประเภทการขายถูกปฏิเสธ, …99 ต้องมีข้อความ; รหัสที่อยู่ผิด/ไม่สอดคล้องถูกปฏิเสธ, ชื่อที่อยู่ถูกเติมรหัส TIS 1099; งานบริการใช้ CDNS",
+        "steps": [
+          {
+            "action": "saveContact",
+            "input": {
+              "address": {
+                "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
+                "postalCode": "10260",
+                "province": "กรุงเทพมหานคร",
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "999999"
+              },
+              "branchNo": "0",
+              "code": "C001",
+              "creditDays": 30,
+              "email": "ap@abc.example",
+              "kind": "customer",
+              "legalForm": "juristic",
+              "name": "เอบีซี ออโต้พาร์ท จำกัด",
+              "taxId": "0105565012341",
+              "title": "บริษัท"
+            }
+          },
+          {
+            "action": "saveContact",
+            "input": {
+              "address": {
+                "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1201",
+                "postalCode": "10260",
+                "province": "กรุงเทพมหานคร",
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
+              },
+              "branchNo": "0",
+              "code": "C001",
+              "creditDays": 30,
+              "email": "ap@abc.example",
+              "kind": "customer",
+              "legalForm": "juristic",
+              "name": "เอบีซี ออโต้พาร์ท จำกัด",
+              "taxId": "0105565012341",
+              "title": "บริษัท"
+            }
+          },
+          {
+            "action": "saveContact",
+            "input": {
+              "address": {
+                "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
+                "postalCode": "10260",
+                "province": "กรุงเทพมหานคร",
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
+              },
+              "branchNo": "0",
+              "code": "C001",
+              "creditDays": 30,
+              "email": "ap@abc.example",
+              "kind": "customer",
+              "legalForm": "juristic",
+              "name": "เอบีซี ออโต้พาร์ท จำกัด",
+              "taxId": "0105565012341",
+              "title": "บริษัท"
+            }
+          },
+          {
+            "action": "saveContact",
+            "input": {
+              "address": {
+                "addressNo": "12/3",
+                "district": "อ.เมือง",
+                "postalCode": "11000",
+                "province": "จ.นนทบุรี",
+                "subDistrict": "ต. บางกระสอ"
+              },
+              "code": "C002",
+              "creditDays": 0,
+              "kind": "both",
+              "lastName": "ใจดี",
+              "legalForm": "individual",
+              "name": "สมชาย",
+              "taxId": "3-1099-00123-45-3",
+              "title": "นาย"
+            }
+          },
+          {
+            "action": "issueTaxInvoice",
+            "input": {
+              "contact": "C001",
+              "date": "2026-10-05",
+              "dueDate": "2026-10-05",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า",
+                  "discount": 0,
+                  "qty": 10,
+                  "unitPrice": 1000
+                }
+              ],
+              "vatMode": "exclusive"
+            }
+          },
+          {
+            "action": "issueTaxInvoice",
+            "input": {
+              "contact": "C002",
+              "date": "2026-10-05",
+              "dueDate": "2026-10-05",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า",
+                  "discount": 0,
+                  "qty": 2,
+                  "unitPrice": 500
+                }
+              ],
+              "vatMode": "exclusive"
+            }
+          },
+          {
+            "action": "issueCreditNote",
+            "input": {
+              "date": "2026-10-06",
+              "invoice": "IV6910-0001",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 1000
+                }
+              ],
+              "reason": "",
+              "reasonCode": "CDNG02"
+            }
+          },
+          {
+            "action": "issueCreditNote",
+            "input": {
+              "date": "2026-10-06",
+              "invoice": "IV6910-0001",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 1000
+                }
+              ],
+              "reason": "",
+              "reasonCode": "CDNS01"
+            }
+          },
+          {
+            "action": "issueCreditNote",
+            "input": {
+              "date": "2026-10-06",
+              "invoice": "IV6910-0001",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 1000
+                }
+              ],
+              "reason": "ลดราคา",
+              "reasonCode": "DBNG01"
+            }
+          },
+          {
+            "action": "issueCreditNote",
+            "input": {
+              "date": "2026-10-06",
+              "invoice": "IV6910-0001",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 1000
+                }
+              ],
+              "reason": "  ",
+              "reasonCode": "CDNG99"
+            }
+          },
+          {
+            "action": "issueCreditNote",
+            "input": {
+              "date": "2026-10-07",
+              "invoice": "IV6910-0001",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 500
+                }
+              ],
+              "reason": "ลูกค้าแจ้งสินค้าบุบ",
+              "reasonCode": "CDNG05"
+            }
+          },
+          {
+            "action": "issueDebitNote",
+            "input": {
+              "date": "2026-10-08",
+              "invoice": "IV6910-0001",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 2000
+                }
+              ],
+              "reason": "",
+              "reasonCode": "DBNG02"
+            }
+          },
+          {
+            "action": "issueDebitNote",
+            "input": {
+              "date": "2026-10-08",
+              "invoice": "IV6910-0002",
+              "lines": [
+                {
+                  "accountCode": "4100",
+                  "description": "สินค้า",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 100
+                }
+              ],
+              "reason": "ค่าขนส่งเพิ่ม"
+            }
+          },
+          {
+            "action": "issueTaxInvoice",
+            "input": {
+              "contact": "C001",
+              "date": "2026-10-09",
+              "dueDate": "2026-10-09",
+              "lines": [
+                {
+                  "accountCode": "4200",
+                  "description": "ค่าบริการ",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 3000
+                }
+              ],
+              "saleType": "service",
+              "vatMode": "exclusive"
+            }
+          },
+          {
+            "action": "receivePayment",
+            "input": {
+              "amount": 3210,
+              "date": "2026-10-10",
+              "depositAccountCode": "1120",
+              "invoice": "BL6910-0001",
+              "whtAmount": 0
+            }
+          },
+          {
+            "action": "issueCreditNote",
+            "input": {
+              "date": "2026-10-11",
+              "invoice": "BL6910-0001",
+              "lines": [
+                {
+                  "accountCode": "4200",
+                  "description": "ค่าบริการ",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 1000
+                }
+              ],
+              "reason": "",
+              "reasonCode": "CDNG01"
+            }
+          },
+          {
+            "action": "issueCreditNote",
+            "input": {
+              "date": "2026-10-11",
+              "invoice": "BL6910-0001",
+              "lines": [
+                {
+                  "accountCode": "4200",
+                  "description": "ค่าบริการ",
+                  "discount": 0,
+                  "qty": 1,
+                  "unitPrice": 1000
+                }
+              ],
+              "reason": "",
+              "reasonCode": "CDNS04"
+            }
+          },
+          {
+            "action": "setETaxStatus",
+            "input": {
+              "docs": [
+                "IV6910-0001",
+                "CN6910-0001",
+                "DN6910-0001"
+              ],
+              "etax": "signed"
+            }
+          }
+        ]
+      },
+      "output": [
+        {
+          "error": {
+            "code": "ADDRESS_CODE_INVALID",
+            "message": "รหัสจังหวัด/อำเภอ/ตำบลในที่อยู่ไม่ถูกต้อง — เลือกจากรายการใหม่"
+          },
+          "ok": false
+        },
+        {
+          "error": {
+            "code": "ADDRESS_CODE_INVALID",
+            "message": "รหัสจังหวัด/อำเภอ/ตำบลในที่อยู่ไม่ถูกต้อง — เลือกจากรายการใหม่"
+          },
+          "ok": false
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C001": 0
+            },
+            "docs": [],
+            "etax": [],
+            "invoices": [],
+            "journal": [],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {},
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C001": 0,
+              "C002": 0
+            },
+            "docs": [],
+            "etax": [],
+            "invoices": [],
+            "journal": [],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C002": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C001": 0,
+              "C002": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "เอบีซี ออโต้พาร์ท จำกัด",
+                  "taxId": "0105565012341"
+                },
+                "contact": "C001",
+                "correctNet": null,
+                "creditToCustomer": null,
+                "date": "2026-10-05",
+                "deferredVatRounding": null,
+                "docNo": "IV6910-0001",
+                "dueDate": "2026-10-05",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0001",
+                "kind": "tax-invoice",
+                "net": 1000000,
+                "note": null,
+                "opening": false,
+                "originalNet": null,
+                "reason": null,
+                "reasonCode": null,
+                "refDocNo": null,
+                "refReceiptNo": null,
+                "saleType": null,
+                "seller": {
+                  "taxId": "0105562077778",
+                  "vatRegistered": true
+                },
+                "total": 1070000,
+                "type": "sales",
+                "vat": 70000,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 1070000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-05",
+                "description": "ขายเชื่อ บริษัท เอบีซี ออโต้พาร์ท จำกัด",
+                "docNo": "JV6910-0001",
+                "lines": [
+                  {
+                    "accountCode": "1130",
+                    "credit": 0,
+                    "debit": 1070000,
+                    "description": "บริษัท เอบีซี ออโต้พาร์ท จำกัด"
+                  },
+                  {
+                    "accountCode": "4100",
+                    "credit": 1000000,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 70000,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "sales",
+                "sourceDocNo": "IV6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C002": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C001": 0,
+              "C002": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "สมชาย",
+                  "taxId": "3109900123453"
+                },
+                "contact": "C002",
+                "correctNet": null,
+                "creditToCustomer": null,
+                "date": "2026-10-05",
+                "deferredVatRounding": null,
+                "docNo": "IV6910-0002",
+                "dueDate": "2026-10-05",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0002",
+                "kind": "tax-invoice",
+                "net": 100000,
+                "note": null,
+                "opening": false,
+                "originalNet": null,
+                "reason": null,
+                "reasonCode": null,
+                "refDocNo": null,
+                "refReceiptNo": null,
+                "saleType": null,
+                "seller": {
+                  "taxId": "0105562077778",
+                  "vatRegistered": true
+                },
+                "total": 107000,
+                "type": "sales",
+                "vat": 7000,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 1070000,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-05",
+                "description": "ขายเชื่อ นาย สมชาย ใจดี",
+                "docNo": "JV6910-0002",
+                "lines": [
+                  {
+                    "accountCode": "1130",
+                    "credit": 0,
+                    "debit": 107000,
+                    "description": "นาย สมชาย ใจดี"
+                  },
+                  {
+                    "accountCode": "4100",
+                    "credit": 100000,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 7000,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "sales",
+                "sourceDocNo": "IV6910-0002"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C002": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C001": 0,
+              "C002": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "เอบีซี ออโต้พาร์ท จำกัด",
+                  "taxId": "0105565012341"
+                },
+                "contact": "C001",
+                "correctNet": 900000,
+                "creditToCustomer": 0,
+                "date": "2026-10-06",
+                "deferredVatRounding": null,
+                "docNo": "CN6910-0001",
+                "dueDate": "2026-10-06",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0003",
+                "kind": "credit-note",
+                "net": 100000,
+                "note": null,
+                "opening": false,
+                "originalNet": 1000000,
+                "reason": "",
+                "reasonCode": "CDNG02",
+                "refDocNo": "IV6910-0001",
+                "refReceiptNo": null,
+                "saleType": null,
+                "seller": {
+                  "taxId": "0105562077778",
+                  "vatRegistered": true
+                },
+                "total": 107000,
+                "type": "sales",
+                "vat": 7000,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 963000,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-06",
+                "description": "ลดหนี้ บริษัท เอบีซี ออโต้พาร์ท จำกัด",
+                "docNo": "JV6910-0003",
+                "lines": [
+                  {
+                    "accountCode": "4100",
+                    "credit": 0,
+                    "debit": 100000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 0,
+                    "debit": 7000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "1130",
+                    "credit": 107000,
+                    "debit": 0,
+                    "description": "บริษัท เอบีซี ออโต้พาร์ท จำกัด"
+                  }
+                ],
+                "source": "credit-note",
+                "sourceDocNo": "CN6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C002": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "error": {
+            "code": "REASON_CODE_INVALID",
+            "message": "รหัสเหตุผล CDNS01 ใช้กับใบลดหนี้ขายสินค้าไม่ได้"
+          },
+          "ok": false
+        },
+        {
+          "error": {
+            "code": "REASON_CODE_INVALID",
+            "message": "รหัสเหตุผล DBNG01 ใช้กับใบลดหนี้ขายสินค้าไม่ได้"
+          },
+          "ok": false
+        },
+        {
+          "error": {
+            "code": "REASON_REQUIRED",
+            "message": "ใบลดหนี้ต้องระบุเหตุผล"
+          },
+          "ok": false
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C001": 0,
+              "C002": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "เอบีซี ออโต้พาร์ท จำกัด",
+                  "taxId": "0105565012341"
+                },
+                "contact": "C001",
+                "correctNet": 850000,
+                "creditToCustomer": 0,
+                "date": "2026-10-07",
+                "deferredVatRounding": null,
+                "docNo": "CN6910-0002",
+                "dueDate": "2026-10-07",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0004",
+                "kind": "credit-note",
+                "net": 50000,
+                "note": null,
+                "opening": false,
+                "originalNet": 900000,
+                "reason": "ลูกค้าแจ้งสินค้าบุบ",
+                "reasonCode": "CDNG05",
+                "refDocNo": "IV6910-0001",
+                "refReceiptNo": null,
+                "saleType": null,
+                "seller": {
+                  "taxId": "0105562077778",
+                  "vatRegistered": true
+                },
+                "total": 53500,
+                "type": "sales",
+                "vat": 3500,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 909500,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-07",
+                "description": "ลดหนี้ บริษัท เอบีซี ออโต้พาร์ท จำกัด — ลูกค้าแจ้งสินค้าบุบ",
+                "docNo": "JV6910-0004",
+                "lines": [
+                  {
+                    "accountCode": "4100",
+                    "credit": 0,
+                    "debit": 50000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 0,
+                    "debit": 3500,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "1130",
+                    "credit": 53500,
+                    "debit": 0,
+                    "description": "บริษัท เอบีซี ออโต้พาร์ท จำกัด"
+                  }
+                ],
+                "source": "credit-note",
+                "sourceDocNo": "CN6910-0002"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C002": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C001": 0,
+              "C002": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "เอบีซี ออโต้พาร์ท จำกัด",
+                  "taxId": "0105565012341"
+                },
+                "contact": "C001",
+                "correctNet": 1050000,
+                "creditToCustomer": null,
+                "date": "2026-10-08",
+                "deferredVatRounding": null,
+                "docNo": "DN6910-0001",
+                "dueDate": "2026-10-08",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0005",
+                "kind": "debit-note",
+                "net": 200000,
+                "note": null,
+                "opening": false,
+                "originalNet": 850000,
+                "reason": "",
+                "reasonCode": "DBNG02",
+                "refDocNo": "IV6910-0001",
+                "refReceiptNo": null,
+                "saleType": null,
+                "seller": {
+                  "taxId": "0105562077778",
+                  "vatRegistered": true
+                },
+                "total": 214000,
+                "type": "sales",
+                "vat": 14000,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 1123500,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 107000,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-08",
+                "description": "เพิ่มหนี้ บริษัท เอบีซี ออโต้พาร์ท จำกัด",
+                "docNo": "JV6910-0005",
+                "lines": [
+                  {
+                    "accountCode": "1130",
+                    "credit": 0,
+                    "debit": 214000,
+                    "description": "บริษัท เอบีซี ออโต้พาร์ท จำกัด"
+                  },
+                  {
+                    "accountCode": "4100",
+                    "credit": 200000,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 14000,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "debit-note",
+                "sourceDocNo": "DN6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C002": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C001": 0,
+              "C002": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "สมชาย",
+                  "taxId": "3109900123453"
+                },
+                "contact": "C002",
+                "correctNet": 110000,
+                "creditToCustomer": null,
+                "date": "2026-10-08",
+                "deferredVatRounding": null,
+                "docNo": "DN6910-0002",
+                "dueDate": "2026-10-08",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0006",
+                "kind": "debit-note",
+                "net": 10000,
+                "note": null,
+                "opening": false,
+                "originalNet": 100000,
+                "reason": "ค่าขนส่งเพิ่ม",
+                "reasonCode": null,
+                "refDocNo": "IV6910-0002",
+                "refReceiptNo": null,
+                "saleType": null,
+                "seller": {
+                  "taxId": "0105562077778",
+                  "vatRegistered": true
+                },
+                "total": 10700,
+                "type": "sales",
+                "vat": 700,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 1123500,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 117700,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-08",
+                "description": "เพิ่มหนี้ นาย สมชาย ใจดี — ค่าขนส่งเพิ่ม",
+                "docNo": "JV6910-0006",
+                "lines": [
+                  {
+                    "accountCode": "1130",
+                    "credit": 0,
+                    "debit": 10700,
+                    "description": "นาย สมชาย ใจดี"
+                  },
+                  {
+                    "accountCode": "4100",
+                    "credit": 10000,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 700,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "debit-note",
+                "sourceDocNo": "DN6910-0002"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C002": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C001": 0,
+              "C002": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "เอบีซี ออโต้พาร์ท จำกัด",
+                  "taxId": "0105565012341"
+                },
+                "contact": "C001",
+                "correctNet": null,
+                "creditToCustomer": null,
+                "date": "2026-10-09",
+                "deferredVatRounding": null,
+                "docNo": "BL6910-0001",
+                "dueDate": "2026-10-09",
+                "isTaxInvoice": false,
+                "journalDocNo": "JV6910-0007",
+                "kind": "tax-invoice",
+                "net": 300000,
+                "note": null,
+                "opening": false,
+                "originalNet": null,
+                "reason": null,
+                "reasonCode": null,
+                "refDocNo": null,
+                "refReceiptNo": null,
+                "saleType": "service",
+                "seller": {
+                  "taxId": "0105562077778",
+                  "vatRegistered": true
+                },
+                "total": 321000,
+                "type": "sales",
+                "vat": 21000,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 321000,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 1123500,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 117700,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-09",
+                "description": "ขายเชื่อ บริษัท เอบีซี ออโต้พาร์ท จำกัด",
+                "docNo": "JV6910-0007",
+                "lines": [
+                  {
+                    "accountCode": "1130",
+                    "credit": 0,
+                    "debit": 321000,
+                    "description": "บริษัท เอบีซี ออโต้พาร์ท จำกัด"
+                  },
+                  {
+                    "accountCode": "4200",
+                    "credit": 300000,
+                    "debit": 0,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2151",
+                    "credit": 21000,
+                    "debit": 0,
+                    "description": null
+                  }
+                ],
+                "source": "sales",
+                "sourceDocNo": "BL6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C002": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C001": 0,
+              "C002": 0
+            },
+            "docs": [
+              {
+                "amount": 321000,
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "เอบีซี ออโต้พาร์ท จำกัด",
+                  "taxId": "0105565012341"
+                },
+                "contact": "C001",
+                "date": "2026-10-10",
+                "depositAccountCode": "1120",
+                "docNo": "RT6910-0001",
+                "invoiceDocNo": "BL6910-0001",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0008",
+                "seller": {
+                  "taxId": "0105562077778",
+                  "vatRegistered": true
+                },
+                "type": "receipt",
+                "vat": 21000,
+                "whtAmount": 0
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 321000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 1123500,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 117700,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-10",
+                "description": "รับชำระจาก บริษัท เอบีซี ออโต้พาร์ท จำกัด (BL6910-0001)",
+                "docNo": "JV6910-0008",
+                "lines": [
+                  {
+                    "accountCode": "1120",
+                    "credit": 0,
+                    "debit": 321000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "1130",
+                    "credit": 321000,
+                    "debit": 0,
+                    "description": "บริษัท เอบีซี ออโต้พาร์ท จำกัด"
+                  },
+                  {
+                    "accountCode": "2151",
+                    "credit": 0,
+                    "debit": 21000,
+                    "description": "ภาษีขายถึงกำหนดเมื่อรับชำระ"
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 21000,
+                    "debit": 0,
+                    "description": "ภาษีขายตามใบเสร็จรับเงิน/ใบกำกับภาษี"
+                  }
+                ],
+                "source": "receipt",
+                "sourceDocNo": "RT6910-0001"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C002": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "error": {
+            "code": "REASON_CODE_INVALID",
+            "message": "รหัสเหตุผล CDNG01 ใช้กับใบลดหนี้งานบริการไม่ได้"
+          },
+          "ok": false
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C001": 107000,
+              "C002": 0
+            },
+            "docs": [
+              {
+                "buyer": {
+                  "branchNo": "00000",
+                  "name": "เอบีซี ออโต้พาร์ท จำกัด",
+                  "taxId": "0105565012341"
+                },
+                "contact": "C001",
+                "correctNet": 200000,
+                "creditToCustomer": 107000,
+                "date": "2026-10-11",
+                "deferredVatRounding": null,
+                "docNo": "CN6910-0003",
+                "dueDate": "2026-10-11",
+                "isTaxInvoice": true,
+                "journalDocNo": "JV6910-0009",
+                "kind": "credit-note",
+                "net": 100000,
+                "note": null,
+                "opening": false,
+                "originalNet": 300000,
+                "reason": "",
+                "reasonCode": "CDNS04",
+                "refDocNo": "BL6910-0001",
+                "refReceiptNo": "RT6910-0001",
+                "saleType": "service",
+                "seller": {
+                  "taxId": "0105562077778",
+                  "vatRegistered": true
+                },
+                "total": 107000,
+                "type": "sales",
+                "vat": 7000,
+                "vatMode": "exclusive",
+                "vatRate": 7
+              }
+            ],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 321000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 1123500,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 117700,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [
+              {
+                "date": "2026-10-11",
+                "description": "ลดหนี้ บริษัท เอบีซี ออโต้พาร์ท จำกัด",
+                "docNo": "JV6910-0009",
+                "lines": [
+                  {
+                    "accountCode": "4200",
+                    "credit": 0,
+                    "debit": 100000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2150",
+                    "credit": 0,
+                    "debit": 7000,
+                    "description": null
+                  },
+                  {
+                    "accountCode": "2120",
+                    "credit": 107000,
+                    "debit": 0,
+                    "description": "บริษัท เอบีซี ออโต้พาร์ท จำกัด"
+                  }
+                ],
+                "source": "credit-note",
+                "sourceDocNo": "CN6910-0003"
+              }
+            ],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C002": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        },
+        {
+          "ok": true,
+          "output": {
+            "bankAccounts": [
+              {
+                "accountCode": "1111",
+                "accountName": "เงินสดย่อย",
+                "accountNo": "",
+                "bankName": "เงินสดย่อยสำนักงาน",
+                "branch": null,
+                "kind": "petty-cash",
+                "reconcileFrom": null
+              },
+              {
+                "accountCode": "1120",
+                "accountName": "เงินฝากธนาคาร",
+                "accountNo": "",
+                "bankName": "",
+                "branch": null,
+                "kind": "bank",
+                "reconcileFrom": null
+              }
+            ],
+            "bankMatches": [],
+            "bankStatements": [],
+            "customerCredit": {
+              "C001": 107000,
+              "C002": 0
+            },
+            "docs": [],
+            "etax": [
+              {
+                "at": null,
+                "docNo": "CN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "CN6910-0003",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "DN6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0001",
+                "etax": "signed",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "IV6910-0002",
+                "etax": "pending-sign",
+                "reference": null
+              },
+              {
+                "at": null,
+                "docNo": "RT6910-0001",
+                "etax": "pending-sign",
+                "reference": null
+              }
+            ],
+            "invoices": [
+              {
+                "docNo": "BL6910-0001",
+                "outstanding": 0,
+                "paidAmount": 321000,
+                "status": "paid"
+              },
+              {
+                "docNo": "IV6910-0001",
+                "outstanding": 1123500,
+                "paidAmount": 0,
+                "status": "issued"
+              },
+              {
+                "docNo": "IV6910-0002",
+                "outstanding": 117700,
+                "paidAmount": 0,
+                "status": "issued"
+              }
+            ],
+            "journal": [],
+            "lockedThrough": null,
+            "openingDate": null,
+            "purchases": [],
+            "quotations": [],
+            "result": null,
+            "supplierRefundDue": {
+              "C002": 0
+            },
+            "vatCloses": [],
+            "yearCloses": []
+          }
+        }
+      ]
+    },
+    {
       "name": "credit-note-before-payment-cancels",
       "input": {
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -5928,9 +7950,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -6195,6 +8222,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -6314,6 +8342,7 @@
                 "opening": false,
                 "originalNet": 100000,
                 "reason": "ลดราคา",
+                "reasonCode": null,
                 "refDocNo": "IV6910-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -6460,6 +8489,7 @@
                 "opening": false,
                 "originalNet": 80000,
                 "reason": "ลดราคา",
+                "reasonCode": null,
                 "refDocNo": "IV6910-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -6638,8 +8668,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -6653,9 +8685,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -7002,6 +9039,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -7239,6 +9277,7 @@
                 "opening": false,
                 "originalNet": 2000000,
                 "reason": "คืนสินค้า",
+                "reasonCode": null,
                 "refDocNo": "IV6910-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -7530,6 +9569,7 @@
                 "opening": false,
                 "originalNet": 1200000,
                 "reason": "ลดราคา",
+                "reasonCode": null,
                 "refDocNo": "IV6910-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -7729,8 +9769,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -7744,9 +9786,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -8020,6 +10067,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -8153,6 +10201,7 @@
                 "opening": false,
                 "originalNet": 93458,
                 "reason": "ส่งสินค้าเพิ่ม",
+                "reasonCode": null,
                 "refDocNo": "IV6910-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -8461,6 +10510,7 @@
                 "opening": false,
                 "originalNet": 113458,
                 "reason": "ลดราคา",
+                "reasonCode": null,
                 "refDocNo": "IV6910-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -8592,6 +10642,7 @@
                 "opening": false,
                 "originalNet": 56729,
                 "reason": "ลดราคา",
+                "reasonCode": null,
                 "refDocNo": "IV6910-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -8729,6 +10780,7 @@
                 "opening": false,
                 "originalNet": 0,
                 "reason": "เพิ่มราคา",
+                "reasonCode": null,
                 "refDocNo": "IV6910-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -8830,8 +10882,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -8845,9 +10899,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -9162,6 +11221,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -9382,6 +11442,7 @@
                 "opening": false,
                 "originalNet": 300000,
                 "reason": "ลดราคา",
+                "reasonCode": null,
                 "refDocNo": "IV6909-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -9731,6 +11792,7 @@
                 "opening": false,
                 "originalNet": 100000,
                 "reason": "ลดราคา",
+                "reasonCode": null,
                 "refDocNo": "IV6909-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -10003,6 +12065,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -10115,8 +12178,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -10130,9 +12195,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -10857,6 +12927,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -11104,6 +13175,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -11495,6 +13567,7 @@
                 "opening": false,
                 "originalNet": 200000,
                 "reason": "ลดราคา",
+                "reasonCode": null,
                 "refDocNo": "IV6910-0002",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -11655,6 +13728,7 @@
                 "opening": false,
                 "originalNet": 190000,
                 "reason": "ลดราคา",
+                "reasonCode": null,
                 "refDocNo": "IV6910-0002",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -11814,6 +13888,7 @@
                 "opening": false,
                 "originalNet": 100000,
                 "reason": "ลดราคา",
+                "reasonCode": null,
                 "refDocNo": "IV6910-0001",
                 "refReceiptNo": null,
                 "saleType": null,
@@ -12062,8 +14137,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -12077,9 +14154,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -12097,9 +14179,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -12169,9 +14256,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "00002",
               "code": "C001",
@@ -12404,6 +14496,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -12645,6 +14738,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -12897,6 +14991,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -13001,8 +15096,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -13016,9 +15113,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -13647,6 +15749,7 @@
                 "opening": true,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -13681,6 +15784,7 @@
                 "opening": true,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": "service",
@@ -13865,6 +15969,7 @@
                 "opening": true,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": null,
@@ -13899,6 +16004,7 @@
                 "opening": true,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": "service",
@@ -14311,6 +16417,7 @@
                 "opening": false,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": "service",
@@ -14686,8 +16793,10 @@
         "company": {
           "address": {
             "addressNo": "918/288",
+            "district": "อำเภอพระสมุทรเจดีย์",
             "postalCode": "10290",
-            "province": "สมุทรปราการ"
+            "province": "สมุทรปราการ",
+            "subDistrict": "ในคลองบางปลากด"
           },
           "branchNo": "00000",
           "name": "บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด",
@@ -14701,9 +16810,14 @@
             "input": {
               "address": {
                 "addressNo": "99",
+                "district": "บางนา",
+                "districtCode": "1047",
                 "postalCode": "10260",
                 "province": "กรุงเทพมหานคร",
-                "street": "บางนา-ตราด"
+                "provinceCode": "10",
+                "street": "บางนา-ตราด",
+                "subDistrict": "บางนาใต้",
+                "subDistrictCode": "104703"
               },
               "branchNo": "0",
               "code": "C001",
@@ -15149,6 +17263,7 @@
                 "opening": true,
                 "originalNet": null,
                 "reason": null,
+                "reasonCode": null,
                 "refDocNo": null,
                 "refReceiptNo": null,
                 "saleType": "service",

@@ -1,8 +1,10 @@
-import { isTaxDocument } from './sales-doc';
-import { subBaht, formatPlain } from './money';
 import { lineAmount, calcDocument } from './document-calc';
 import { resolveParty, partyDisplayName } from './snapshot';
 import { normalizeTaxId, normalizeBranch5 } from './thai-tax-id';
+import { subBaht, toSatang, fromSatang, formatPlain } from './money';
+import { salesSign, isTaxDocument, TAX_INVOICE_TITLE } from './sales-doc';
+import { resolveAddressCodes, hasCompleteAddressCodes } from './thai-address';
+import { effectiveReasonCode, adjustmentPurposeText } from './adjustment-reason';
 
 import type { Address, Company, Contact, Receipt, SalesDoc, PartySnapshot, CompanySnapshot } from './types';
 
@@ -20,17 +22,22 @@ const NS_RAM =
   'urn:etda:uncefact:data:standard:TaxInvoice_ReusableAggregateBusinessInformationEntity:2';
 
 /**
- * รหัสประเภทเอกสาร ETDA (ขมธอ.3-2560 ตารางรหัสประเภทเอกสาร): 388 ใบกำกับภาษี, 81 ใบลดหนี้, 80 ใบเพิ่มหนี้
- * ⚠️ รหัส 80 ตรวจกับตาราง ETDA ฉบับล่าสุดก่อนใช้งานจริง
+ * รหัสประเภทเอกสาร ETDA (ขมธอ.3-2560 ภาคผนวก B.2): T02 ใบแจ้งหนี้/ใบกำกับภาษี, 81 ใบลดหนี้, 80 ใบเพิ่มหนี้
+ *
+ * การเลือก (ต.ค. 2569): เอกสารขาย `tax-invoice` ของบริษัทจด VAT เป็นทั้งใบแจ้งหนี้และใบกำกับภาษี (ยอดค้างรับชำระภายหลัง)
+ * จึงใช้ T02 และพิมพ์ชื่อ "ใบแจ้งหนี้/ใบกำกับภาษี" ตรงกับ `Name` ใน XML (§8.3 ชื่อเอกสารต้องตรงกับ TypeCode)
+ * — ไม่ใช้ 388 (ใบกำกับภาษีอย่างเดียว) เพราะระบบไม่มีเอกสารที่พิมพ์ชื่อ "ใบกำกับภาษี" อย่างเดียว
+ * ใบลด/เพิ่มหนี้อ้างเอกสารเดิมด้วยรหัสของเอกสารนั้น (T02 หรือ T03 ใบเสร็จรับเงิน/ใบกำกับภาษี) ใน AdditionalReferencedDocument
  */
 export const ETAX_TYPE_CODE = {
-  'tax-invoice': '388',
+  'tax-invoice': 'T02',
   'credit-note': '81',
   'debit-note': '80',
 } as const;
 
-const ETAX_TYPE_NAME = {
-  'tax-invoice': 'ใบกำกับภาษี',
+/** ชื่อเอกสารใน XML (`ExchangedDocument/Name`) — ใบกำกับใช้ชื่อเดียวกับหัวกระดาษ (`salesDocTitle`) */
+export const ETAX_TYPE_NAME = {
+  'tax-invoice': TAX_INVOICE_TITLE,
   'credit-note': 'ใบลดหนี้',
   'debit-note': 'ใบเพิ่มหนี้',
 } as const;
@@ -48,18 +55,15 @@ export const ETAX_RECEIPT_TYPE_CODE = 'T03';
 export const ETAX_INVOICE_REF_CODE = '380';
 
 /**
- * รหัสเหตุผลการออกใบลด/เพิ่มหนี้ — "เหตุอื่น" แยกสินค้า (CDNG99 / DBNG99) และบริการ (CDNS99 / DBNS99)
- * พร้อมข้อความเหตุผลจริงใน Purpose — เอกสารงานบริการ (`saleType: 'service'`) ใช้รหัสบริการ (U11)
- * ⚠️ ตรวจรหัสกับตาราง ETDA (ขมธอ.3-2560) ก่อนใช้งานจริง
+ * รหัสเหตุผลของใบลด/เพิ่มหนี้ (ภาคผนวก B.3): รหัสที่เลือก (`reasonCode`) หรือ "เหตุอื่น" ตามประเภทการขาย
+ * (สินค้า CDNG99 / DBNG99, บริการ CDNS99 / DBNS99 — U11) — ดู `adjustment-reason.ts`
  */
-export const ETAX_PURPOSE_CODE = {
-  goods: { 'credit-note': 'CDNG99', 'debit-note': 'DBNG99' },
-  service: { 'credit-note': 'CDNS99', 'debit-note': 'DBNS99' },
-} as const;
-
-/** รหัสเหตุผลของใบลด/เพิ่มหนี้ตามประเภทการขาย (ไม่มี saleType = สินค้า) */
-export function eTaxPurposeCode(doc: { kind: 'credit-note' | 'debit-note'; saleType?: 'goods' | 'service' }): string {
-  return ETAX_PURPOSE_CODE[doc.saleType === 'service' ? 'service' : 'goods'][doc.kind];
+export function eTaxPurposeCode(doc: {
+  kind: 'credit-note' | 'debit-note';
+  saleType?: 'goods' | 'service';
+  reasonCode?: string;
+}): string {
+  return effectiveReasonCode(doc.kind, doc.saleType, doc.reasonCode);
 }
 
 export function escapeXml(value: string | number | undefined): string {
@@ -76,17 +80,23 @@ function el(tag: string, value: string | number | undefined, attrs = ''): string
   return `<ram:${tag}${attrs ? ` ${attrs}` : ''}>${escapeXml(value)}</ram:${tag}>`;
 }
 
+/**
+ * ที่อยู่ (§8.8–8.10): CityName = รหัสอำเภอ/เขต 4 หลัก, CitySubDivisionName = รหัสตำบล/แขวง 6 หลัก (TIS 1099),
+ * CountrySubDivisionID = รหัสจังหวัด 2 หลัก (code list ETDA ThaiISOCountrySubdivisionCode) — จาก `resolveAddressCodes`
+ * (รหัสที่เลือกไว้ หรือจับคู่ชื่อ) หาไม่ได้ = ไม่เขียน element นั้น (`eTaxReadiness` เตือนก่อนออก)
+ */
 function addressXml(a: Address): string {
   const line1 = [a.buildingName, a.roomNo, a.floorNo, a.village].filter(Boolean).join(' ');
+  const codes = resolveAddressCodes(a);
   return [
     '<ram:PostalTradeAddress>',
     el('PostcodeCode', a.postalCode),
     el('LineOne', line1 || undefined),
     el('StreetName', a.street),
-    el('CityName', a.district),
-    el('CitySubDivisionName', a.subDistrict),
+    el('CityName', codes.districtCode),
+    el('CitySubDivisionName', codes.subDistrictCode),
     el('CountryID', 'TH', 'schemeID="3166-1 alpha-2"'),
-    el('CountrySubDivisionID', a.province),
+    el('CountrySubDivisionID', codes.provinceCode),
     el('BuildingNumber', a.addressNo),
     '</ram:PostalTradeAddress>',
   ].join('');
@@ -170,13 +180,17 @@ export function buildETaxXml({ doc, company, buyer, referenced, referencedReceip
     : referenced && { docNo: referenced.docNo, date: referenced.date, code: ETAX_TYPE_CODE[referenced.kind] };
   const referencedXml = adjustment && ref ? referencedDocXml(ref) : '';
 
+  const saleType = doc.saleType ?? referenced?.saleType;
   const purposeXml = adjustment
-    ? `${el('Purpose', doc.reason || ETAX_TYPE_NAME[adjustment])}${el('PurposeCode', eTaxPurposeCode({ kind: adjustment, saleType: doc.saleType ?? referenced?.saleType }))}`
+    ? `${el('Purpose', adjustmentPurposeText({ ...doc, kind: adjustment, saleType }) || ETAX_TYPE_NAME[adjustment])}${el(
+        'PurposeCode',
+        eTaxPurposeCode({ kind: adjustment, saleType, reasonCode: doc.reasonCode })
+      )}`
     : '';
 
-  // ม.86/9, 86/10: มูลค่าตามใบกำกับเดิม / ผลต่าง (ก่อน VAT) — ⚠️ ตรวจลำดับ element กับ XSD ของ ETDA
-  const originalXml = adjustment ? el('OriginalInformationAmount', formatPlain(doc.originalNet ?? 0)) : '';
-  const differenceXml = adjustment ? el('DifferenceInformationAmount', formatPlain(t.net)) : '';
+  const summary = adjustment ? adjustmentSummary(doc, t) : null;
+  const originalXml = summary ? el('OriginalInformationAmount', formatPlain(summary.original)) : '';
+  const differenceXml = summary ? el('DifferenceInformationAmount', formatPlain(summary.difference)) : '';
 
   const sellerAddressName = seller.name;
 
@@ -221,17 +235,37 @@ export function buildETaxXml({ doc, company, buyer, referenced, referencedReceip
     `<ram:SpecifiedTradePaymentTerms>${el('DueDateDateTime', `${doc.dueDate}T00:00:00`)}</ram:SpecifiedTradePaymentTerms>`,
     '<ram:SpecifiedTradeSettlementHeaderMonetarySummation>',
     originalXml,
-    el('LineTotalAmount', formatPlain(t.gross)),
+    el('LineTotalAmount', formatPlain(summary ? summary.lineTotal : t.gross)),
     differenceXml,
     el('TaxBasisTotalAmount', formatPlain(t.net)),
     el('TaxTotalAmount', formatPlain(t.vat)),
-    el('GrandTotalAmount', formatPlain(t.total)),
+    el('GrandTotalAmount', formatPlain(summary ? summary.grandTotal : t.total)),
     '</ram:SpecifiedTradeSettlementHeaderMonetarySummation>',
     '</ram:ApplicableHeaderTradeSettlement>',
     lineItems,
     '</rsm:SupplyChainTradeTransaction>',
     '</rsm:TaxInvoice_CrossIndustryInvoice>',
   ].join('\n');
+}
+
+/**
+ * ยอดสรุปของใบลด/เพิ่มหนี้ตาม ขมธอ.3-2560 §7 (กฎข้อมูลของใบเพิ่มหนี้/ใบลดหนี้) และไฟล์ตัวอย่าง ETDA:
+ * - OriginalInformationAmount = มูลค่าตามใบกำกับเดิม (ก่อน VAT, หลังลด/เพิ่มหนี้ครั้งก่อน) — `doc.originalNet`
+ * - LineTotalAmount = มูลค่าที่ถูกต้องหลังเอกสารนี้ — `doc.correctNet` (ข้อมูลเก่าไม่มี = เดิม ∓ ผลต่าง)
+ * - R3 DifferenceInformationAmount = |Original − LineTotal| (ผลต่าง = มูลค่าของเอกสารนี้)
+ * - R2 GrandTotalAmount = DifferenceInformationAmount + TaxTotalAmount
+ * TaxBasisTotalAmount / ApplicableTradeTax.BasisAmount = ฐานภาษีของผลต่าง (`calcDocument(doc).net`)
+ * ⚠️ R1 (LineTotalAmount = ผลรวม BasisAmount) ขัดกับ R3 เมื่อ BasisAmount เป็นฐานของผลต่าง — ใช้ R2/R3 + ตัวอย่าง ETDA (LineTotal = มูลค่าที่ถูกต้อง)
+ * ตรวจกับ XSD/Schematron ของ RD ก่อนใช้งานจริง
+ */
+export function adjustmentSummary(
+  doc: Pick<SalesDoc, 'kind' | 'originalNet' | 'correctNet'>,
+  totals: Pick<ReturnType<typeof calcDocument>, 'net' | 'vat'>
+): { original: number; lineTotal: number; difference: number; grandTotal: number } {
+  const original = doc.originalNet ?? 0;
+  const lineTotal = doc.correctNet ?? fromSatang(toSatang(original) + salesSign(doc) * toSatang(totals.net));
+  const difference = fromSatang(Math.abs(toSatang(original) - toSatang(lineTotal)));
+  return { original, lineTotal, difference, grandTotal: fromSatang(toSatang(difference) + toSatang(totals.vat)) };
 }
 
 function referencedDocXml(ref: { docNo: string; date: string; code: string }): string {
@@ -324,12 +358,27 @@ export function buildReceiptETaxXml({ receipt, invoice, company, buyer, createdA
   ].join('\n');
 }
 
-/** ตรวจข้อมูลขั้นต่ำก่อนออก e-Tax: ผู้ซื้อที่จด VAT ต้องมีเลขผู้เสียภาษีและสาขา */
-export function eTaxReadiness(company: Company, buyer: Contact | undefined): string[] {
+/**
+ * ตรวจข้อมูลขั้นต่ำก่อนออก e-Tax: ผู้ซื้อต้องมีเลขผู้เสียภาษี และที่อยู่บริษัท/ลูกค้าต้องได้รหัสจังหวัด/อำเภอ/ตำบลครบ
+ * (XML ใช้รหัส TIS 1099 — ที่อยู่เก่าที่จับคู่ชื่อไม่ได้ต้องเลือกจากรายการใหม่)
+ * `buyerAddress` = ที่อยู่ใน snapshot ของเอกสารที่ออกแล้ว (ไม่ส่ง = ที่อยู่ปัจจุบันของลูกค้า)
+ */
+export function eTaxReadiness(
+  company: Pick<Company, 'vatRegistered' | 'address'>,
+  buyer: Pick<Contact, 'taxId' | 'address'> | undefined,
+  buyerAddress?: Address
+): string[] {
   const problems: string[] = [];
   if (!company.vatRegistered) problems.push('บริษัทยังไม่ได้ตั้งค่าเป็นผู้จดทะเบียน VAT');
+  if (!hasCompleteAddressCodes(company.address)) {
+    problems.push('ที่อยู่บริษัทยังไม่มีรหัสจังหวัด/อำเภอ/ตำบล — เลือกที่อยู่จากรายการในตั้งค่าบริษัท');
+  }
   if (!buyer) problems.push('ไม่พบข้อมูลลูกค้า');
   if (buyer && !normalizeTaxId(buyer.taxId)) problems.push('ลูกค้ายังไม่มีเลขผู้เสียภาษี');
-  if (buyer && !buyer.address?.province) problems.push('ที่อยู่ลูกค้ายังไม่ครบ (จังหวัด)');
+  const address = buyerAddress ?? buyer?.address;
+  if (buyer && !address?.province) problems.push('ที่อยู่ลูกค้ายังไม่ครบ (จังหวัด)');
+  else if (buyer && !hasCompleteAddressCodes(address)) {
+    problems.push('ที่อยู่ลูกค้ายังไม่มีรหัสจังหวัด/อำเภอ/ตำบล — แก้ผู้ติดต่อแล้วเลือกที่อยู่จากรายการ');
+  }
   return problems;
 }

@@ -2,7 +2,7 @@ import { nextDocNo } from '../numbering';
 import { ACC , DEFAULT_ACCOUNTS } from '../chart-of-accounts';
 import { bucketOf, trialBalance, profitAndLoss } from '../ledger';
 import { pp30Summary, vatReportCsv, salesVatReport, purchaseVatReport } from '../vat-report';
-import { toRdDate, shiftPeriod, docPeriodCode, filingDueDates, formatThaiDate } from '../thai-date';
+import { toRdDate, shiftPeriod, docPeriodCode, filingDueDates, formatThaiDate, FILING_EXTENSIONS, STATUTORY_DUE_DAYS } from '../thai-date';
 import { entryTotals, postReceipt, postPurchase, postCreditNote, postSalesInvoice, buildManualEntry, postPurchasePayment, UnbalancedEntryError } from '../posting';
 
 import type { Contact, SalesDoc, PurchaseDoc } from '../types';
@@ -199,7 +199,22 @@ describe('thai dates and numbering', () => {
   });
 
   it('computes filing due dates for the next month', () => {
-    expect(filingDueDates({ year: 2026, month: 12 })).toEqual({ wht: '2027-01-15', vat: '2027-01-23' });
+    // ประกาศขยายเวลาฉบับที่ 8 ครอบคลุมถึงงวด ธ.ค. 2569 (ยื่นได้ถึง 31 ม.ค. 2570)
+    expect(filingDueDates({ year: 2026, month: 12 })).toEqual({ wht: '2027-01-15', vat: '2027-01-23', dueDateSource: 'extension-8' });
+    expect(filingDueDates({ year: 2025, month: 2 })).toEqual({ wht: '2025-03-15', vat: '2025-03-23', dueDateSource: 'extension-8' });
     expect(shiftPeriod({ year: 2026, month: 1 }, -1)).toEqual({ year: 2025, month: 12 });
+  });
+
+  it('uses statutory due dates (7th / 15th) after the last announced extension, flagged for the UI to warn', () => {
+    expect(filingDueDates({ year: 2027, month: 1 })).toEqual({ wht: '2027-02-07', vat: '2027-02-15', dueDateSource: 'statutory' });
+    expect(filingDueDates({ year: 2027, month: 12 })).toEqual({ wht: '2028-01-07', vat: '2028-01-15', dueDateSource: 'statutory' });
+  });
+
+  it('reads the extension cutoff from data (a new announcement = a new row, not new logic)', () => {
+    const ext = [...FILING_EXTENSIONS, { ...FILING_EXTENSIONS[0], throughPeriod: '2027-06', reference: 'ฉบับใหม่' }];
+    expect(filingDueDates({ year: 2027, month: 6 }, ext)).toMatchObject({ wht: '2027-07-15', vat: '2027-07-23' });
+    expect(filingDueDates({ year: 2027, month: 7 }, ext).dueDateSource).toBe('statutory');
+    expect(filingDueDates({ year: 2026, month: 10 }, [])).toEqual({ wht: '2026-11-07', vat: '2026-11-15', dueDateSource: 'statutory' });
+    expect(STATUTORY_DUE_DAYS).toEqual({ wht: 7, vat: 15 });
   });
 });

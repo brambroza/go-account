@@ -2,8 +2,8 @@ import type { AccountingData } from 'src/domain';
 
 import { ACC, DATA_VERSION, validateAccountingData } from 'src/domain';
 
-import { demo, toV1, toV3, toV4, toV5 } from './fixtures';
-import { readAccountingJson, readAccountingData } from '../migrations';
+import { demo, toV1, toV3, toV4, toV5, toV7 } from './fixtures';
+import { migrateV7, readAccountingJson, readAccountingData } from '../migrations';
 
 // ----------------------------------------------------------------------
 
@@ -223,8 +223,8 @@ describe('migration v5 → v6 (Sprint B batch 4)', () => {
     expect(result.problems).toEqual([]);
     const { data } = result;
     if (!data) throw new Error('migrate failed');
-    expect(DATA_VERSION).toBe(7);
-    expect(data.version).toBe(7);
+    expect(DATA_VERSION).toBe(8);
+    expect(data.version).toBe(DATA_VERSION);
     expect(data.accounts.find((a) => a.code === ACC.pettyCash)).toMatchObject({ type: 'asset', name: 'เงินสดย่อย' });
     expect(data.bankAccounts).toEqual([
       { accountCode: ACC.pettyCash, kind: 'petty-cash', bankName: 'เงินสดย่อย', accountNo: '' },
@@ -262,5 +262,51 @@ describe('migration v5 → v6 (Sprint B batch 4)', () => {
     const rest: Record<string, unknown> = { ...original };
     delete rest.quotations;
     expect(readAccountingData(rest).data).toBeNull();
+  });
+});
+
+describe('migration v7 → v8 (ETDA address codes / reason codes / SBT)', () => {
+  const original = demo();
+  const v7 = toV7(original);
+
+  it('fills TIS 1099 codes for the company and contacts from names, numbers unchanged', () => {
+    expect(JSON.stringify([v7.company, v7.contacts])).not.toContain('provinceCode');
+    const result = readAccountingData(v7);
+    expect(result.migratedFrom).toBe(7);
+    expect(result.problems).toEqual([]);
+    const { data } = result;
+    if (!data) throw new Error('migrate failed');
+    expect(data.version).toBe(8);
+    expect(data.company.address).toMatchObject({ provinceCode: '11', districtCode: '1105', subDistrictCode: '110505' });
+    const abc = data.contacts.find((c) => c.code === 'C0001');
+    // ชื่อแขวง "บางนา" เดิมไม่มีแล้ว (แยกเป็นบางนาเหนือ/ใต้) → ได้รหัสจังหวัด/เขต ไม่ได้รหัสแขวง
+    expect(abc?.address).toMatchObject({ provinceCode: '10', districtCode: '1047', subDistrict: 'บางนา' });
+    expect(abc?.address.subDistrictCode).toBeUndefined();
+    expect(data.contacts.map((c) => c.address)).toEqual(original.contacts.map((c) => c.address));
+    // เอกสาร/รายการบัญชีไม่เปลี่ยน (snapshot ไม่แก้)
+    expect(data.sales).toEqual(original.sales);
+    expect(data.journal).toEqual(original.journal);
+  });
+
+  it('drops stored codes that do not exist and re-matches from names; unmatched stays without codes', () => {
+    const migrated = migrateV7({
+      ...(v7 as unknown as Parameters<typeof migrateV7>[0]),
+      company: { ...original.company, address: { province: 'ไม่มีจังหวัดนี้', provinceCode: '99' } },
+      contacts: [{ ...original.contacts[0], address: { province: 'นนทบุรี', district: 'อ.เมือง', subDistrictCode: '000000' } }],
+    });
+    expect(migrated.company.address).toEqual({ province: 'ไม่มีจังหวัดนี้' });
+    expect(migrated.contacts[0].address).toEqual({ province: 'นนทบุรี', district: 'อ.เมือง', provinceCode: '12', districtCode: '1201' });
+  });
+
+  it('older versions migrate all the way to v8', () => {
+    const result = readAccountingData(toV4(original));
+    expect(result.data?.version).toBe(DATA_VERSION);
+    expect(result.data?.contacts.find((c) => c.code === 'C0001')?.address.provinceCode).toBe('10');
+  });
+
+  it('rejects an incomplete v7 file', () => {
+    const { supplierRefunds, ...broken } = v7 as Record<string, unknown>;
+    expect(supplierRefunds).toEqual([]);
+    expect(readAccountingData(broken).data).toBeNull();
   });
 });

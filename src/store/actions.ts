@@ -73,6 +73,7 @@ import {
   companySnapshot,
   creditedPartsOf,
   vatClaimProblem,
+  withAddressCodes,
   customerCreditOf,
   isControlAccount,
   postSalesInvoice,
@@ -89,6 +90,7 @@ import {
   lastReceiptDateOf,
   yearCloseBalances,
   lastPaymentDateOf,
+  addressCodeProblem,
   lineAccountProblem,
   endOfPreviousMonth,
   contactDisplayName,
@@ -114,6 +116,7 @@ import {
   serviceCreditNotePlan,
   purchaseCreditedParts,
   postPurchaseCreditNote,
+  adjustmentReasonProblem,
   supplierVatClaimProblem,
   quotationConvertProblem,
   purchaseCreditAllocation,
@@ -345,10 +348,20 @@ export function issueTaxInvoice(state: AccountingData, input: SalesInput) {
   };
 }
 
-/** ตรวจร่วมของใบลดหนี้/ใบเพิ่มหนี้: วันที่ไม่ก่อนใบกำกับและไม่ก่อนการรับชำระครั้งล่าสุด, งวดเปิด, มีเหตุผล */
-function assertAdjustmentDate(state: AccountingData, invoice: SalesDoc, input: { date: string; reason: string }, label: string) {
+/**
+ * ตรวจร่วมของใบลดหนี้/ใบเพิ่มหนี้: วันที่ไม่ก่อนใบกำกับและไม่ก่อนการรับชำระครั้งล่าสุด, งวดเปิด,
+ * รหัสเหตุผล ETDA ตรงชนิด/ประเภทการขายของใบเดิม และเหตุอื่น (…99 / ไม่ระบุรหัส) ต้องมีข้อความเหตุผล
+ */
+function assertAdjustmentDate(
+  state: AccountingData,
+  invoice: SalesDoc,
+  input: { date: string; reason: string; reasonCode?: string },
+  kind: 'credit-note' | 'debit-note'
+) {
+  const label = kind === 'credit-note' ? 'ใบลดหนี้' : 'ใบเพิ่มหนี้';
   assertPostingDate(state, input.date, `วันที่${label}`);
-  if (!input.reason.trim()) throw new BusinessRuleError(`${label}ต้องระบุเหตุผล`);
+  const reasonProblem = adjustmentReasonProblem(kind, invoice.saleType, input.reasonCode, input.reason, label);
+  if (reasonProblem) throw new BusinessRuleError(reasonProblem);
   if (input.date < invoice.date) throw new BusinessRuleError(`วันที่${label}ต้องไม่ก่อนวันที่ใบกำกับเดิม`);
   // ยอดค้าง (และส่วนที่ตั้งเป็นเงินรอคืน) คิดจากการรับชำระทั้งหมด จึงห้ามลงวันที่ก่อนการรับชำระครั้งล่าสุด
   const lastReceipt = lastReceiptDateOf(state, invoice.id);
@@ -362,7 +375,10 @@ function assertAdjustmentDate(state: AccountingData, invoice: SalesDoc, input: {
 export type CreditNoteInput = {
   invoiceId: string;
   date: string;
+  /** ข้อความเหตุผล — บังคับเมื่อเป็นเหตุอื่น (…99 / ไม่ระบุรหัส) */
   reason: string;
+  /** รหัสเหตุผล ETDA (ภาคผนวก B.3) เช่น CDNG01 — ไม่ระบุ = เหตุอื่น */
+  reasonCode?: string;
   lines: DocLine[];
 };
 
@@ -377,7 +393,7 @@ export function issueCreditNote(state: AccountingData, input: CreditNoteInput) {
   if (invoice.opening) {
     throw new BusinessRuleError(`${invoice.docNo} เป็นยอดยกมาจากระบบเดิม — ออกใบลดหนี้ในระบบเดิมแล้วบันทึกเป็นรายการปรับปรุง`);
   }
-  assertAdjustmentDate(state, invoice, input, 'ใบลดหนี้');
+  assertAdjustmentDate(state, invoice, input, 'credit-note');
   assertLines(state, input.lines, 'sales');
 
   const credit = calcDocument({ ...invoice, lines: input.lines });
@@ -435,6 +451,7 @@ export function issueCreditNote(state: AccountingData, input: CreditNoteInput) {
     ...(plan?.refReceiptId ? { refReceiptId: plan.refReceiptId } : {}),
     ...(plan && toSatang(plan.deferredVatRounding) !== 0 ? { deferredVatRounding: plan.deferredVatRounding } : {}),
     reason: input.reason,
+    ...(input.reasonCode ? { reasonCode: input.reasonCode } : {}),
     originalNet,
     correctNet: subBaht(originalNet, credit.net),
     creditToCustomer,
@@ -474,7 +491,7 @@ export function issueDebitNote(state: AccountingData, input: DebitNoteInput) {
   if (invoice.saleType === 'service' && !isTaxDocument(invoice)) {
     throw new BusinessRuleError(`${invoice.docNo} เป็นใบแจ้งหนี้งานบริการ — ค่าบริการที่เพิ่มให้ออกใบแจ้งหนี้ใบใหม่ (ภาษีขายเกิดเมื่อรับชำระ)`);
   }
-  assertAdjustmentDate(state, invoice, input, 'ใบเพิ่มหนี้');
+  assertAdjustmentDate(state, invoice, input, 'debit-note');
   assertLines(state, input.lines, 'sales');
   const debit = calcDocument({ ...invoice, lines: input.lines });
   assertPositiveTotal(debit.total);
@@ -499,6 +516,7 @@ export function issueDebitNote(state: AccountingData, input: DebitNoteInput) {
     vatRate: invoice.vatRate,
     refDocId: invoice.id,
     reason: input.reason,
+    ...(input.reasonCode ? { reasonCode: input.reasonCode } : {}),
     originalNet,
     correctNet: sumBaht([originalNet, debit.net]),
     // หมายเหตุของใบเดิม (เช่นเงื่อนไขจากใบเสนอราคา) ไม่ติดไปใบลด/เพิ่มหนี้ — เอกสารนี้ใช้ `reason` (UAT U13)
@@ -877,16 +895,22 @@ export function addManualJournal(
   return { state: { ...state, journal: [...state.journal, entry], sequences: j.sequences }, entry };
 }
 
-/** เพิ่ม/แก้ผู้ติดต่อ แล้วคืนผู้ติดต่อที่บันทึก (ใช้เลือกในฟอร์มทันทีหลัง "+ เพิ่มใหม่") */
+/**
+ * เพิ่ม/แก้ผู้ติดต่อ แล้วคืนผู้ติดต่อที่บันทึก (ใช้เลือกในฟอร์มทันทีหลัง "+ เพิ่มใหม่")
+ * ที่อยู่: รหัสจังหวัด/อำเภอ/ตำบลที่ส่งมาต้องถูกต้อง แล้วเติมระดับที่ขาดจากชื่อ (`withAddressCodes`) สำหรับ XML e-Tax
+ */
 export function saveContact(state: AccountingData, contact: Omit<Contact, 'id'> & { id?: string }): { state: AccountingData; contact: Contact } {
   if (!contact.name.trim()) throw new BusinessRuleError('ต้องระบุชื่อ');
   const duplicate = state.contacts.find((c) => c.code === contact.code && c.id !== contact.id);
   if (duplicate) throw new BusinessRuleError(`รหัส ${contact.code} ซ้ำกับ ${duplicate.name}`);
+  const codeProblem = addressCodeProblem(contact.address);
+  if (codeProblem) throw new BusinessRuleError(codeProblem);
+  const address = withAddressCodes(contact.address);
   if (contact.id) {
-    const saved = contact as Contact;
+    const saved = { ...contact, address } as Contact;
     return { state: { ...state, contacts: state.contacts.map((c) => (c.id === contact.id ? saved : c)) }, contact: saved };
   }
-  const saved: Contact = { ...contact, id: uid() };
+  const saved: Contact = { ...contact, address, id: uid() };
   return { state: { ...state, contacts: [...state.contacts, saved] }, contact: saved };
 }
 
@@ -896,7 +920,7 @@ export function upsertContact(state: AccountingData, contact: Omit<Contact, 'id'
 
 export function importContacts(state: AccountingData, contacts: Omit<Contact, 'id'>[]) {
   const existing = new Set(state.contacts.map((c) => c.code));
-  const fresh = contacts.filter((c) => !existing.has(c.code)).map((c) => ({ ...c, id: uid() }));
+  const fresh = contacts.filter((c) => !existing.has(c.code)).map((c) => ({ ...c, address: withAddressCodes(c.address), id: uid() }));
   return { state: { ...state, contacts: [...state.contacts, ...fresh] }, added: fresh.length, skipped: contacts.length - fresh.length };
 }
 
@@ -918,7 +942,12 @@ export function updateCompany(state: AccountingData, company: Company): Accounti
       'ออกเอกสารในนามบริษัทแล้ว — เปลี่ยนเลขประจำตัวผู้เสียภาษี/สาขาไม่ได้ (เป็นบริษัทใหม่ ให้ล้างข้อมูลแล้วเริ่มสมุดบัญชีใหม่)'
     );
   }
-  return { ...state, company: { ...company, lockedThrough: state.company.lockedThrough } };
+  const codeProblem = addressCodeProblem(company.address);
+  if (codeProblem) throw new BusinessRuleError(codeProblem);
+  return {
+    ...state,
+    company: { ...company, address: withAddressCodes(company.address), lockedThrough: state.company.lockedThrough },
+  };
 }
 
 /**

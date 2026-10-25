@@ -29,6 +29,13 @@ export type Address = {
   district?: string;
   province?: string;
   postalCode?: string;
+  /**
+   * รหัส TIS 1099 (เลือกจากรายการ `thai-address.ts`) — XML e-Tax ใช้รหัส ไม่ใช่ชื่อ (ขมธอ.3-2560 §8.8–8.10)
+   * จังหวัด 2 หลัก / อำเภอ-เขต 4 หลัก / ตำบล-แขวง 6 หลัก; ไม่มีค่า = ที่อยู่เก่าที่มีแต่ชื่อ (จับคู่ชื่อตอนออก XML)
+   */
+  provinceCode?: string;
+  districtCode?: string;
+  subDistrictCode?: string;
 };
 
 export type Company = {
@@ -42,6 +49,11 @@ export type Company = {
   /** รหัสผู้ใช้ e-Filing — ใช้ใน header ของไฟล์ ภ.ง.ด. */
   rdUserId?: string;
   vatRegistered: boolean;
+  /**
+   * จดทะเบียนภาษีธุรกิจเฉพาะ (SBT) — header ไฟล์ ภ.ง.ด. ฟิลด์ 16 BRANCH_TYPE: จด VAT (หรือทั้งสอง) = V, SBT อย่างเดียว = S, ไม่จด = ว่าง
+   * ไม่มีค่า = ไม่ได้จด
+   */
+  sbtRegistered?: boolean;
   /** ปิดงวดถึงวันที่นี้ (รวมวันนั้น) — ห้ามลงรายการที่วันที่ ≤ ค่านี้ เลื่อนได้ทางเดียว (`lockPeriod`) */
   lockedThrough?: ISODate;
 };
@@ -166,6 +178,11 @@ export type SalesDoc = {
    */
   deferredVatRounding?: number;
   reason?: string;
+  /**
+   * ใบลดหนี้/ใบเพิ่มหนี้: รหัสเหตุผล ETDA (ขมธอ.3-2560 ภาคผนวก B.3) เช่น CDNG01 — ดู `adjustment-reason.ts`
+   * ไม่มีค่า = เหตุอื่น (…99, ข้อมูลก่อน v8) ซึ่งต้องมี `reason`
+   */
+  reasonCode?: string;
   /**
    * ใบลดหนี้/ใบเพิ่มหนี้ (ม.86/9, ม.86/10): มูลค่าตามใบกำกับเดิม ณ วันออก (หลังลด/เพิ่มหนี้ครั้งก่อน ๆ) ก่อน VAT
    * และมูลค่าที่ถูกต้องหลังเอกสารนี้ — ผลต่าง = มูลค่าของเอกสารนี้ (`calcDocument(doc).net`)
@@ -530,7 +547,7 @@ export type Quotation = {
 };
 
 /** เวอร์ชันโครงข้อมูลปัจจุบัน — เปลี่ยนเมื่อไรต้องเพิ่ม migration ใน `store/migrations.ts` */
-export const DATA_VERSION = 7;
+export const DATA_VERSION = 8;
 
 export type AccountingData = {
   version: typeof DATA_VERSION;

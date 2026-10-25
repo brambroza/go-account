@@ -146,6 +146,7 @@ const invoiceBody = (input: SalesInput) => ({
 const adjustmentBody = (input: CreditNoteInput) => ({
   date: input.date,
   reason: input.reason,
+  reasonCode: input.reasonCode,
   lines: docLines(input.lines),
 });
 
@@ -427,6 +428,7 @@ export const cmd = {
           taxId: company.taxId,
           branchNo: company.branchNo,
           vatRegistered: company.vatRegistered,
+          sbtRegistered: company.sbtRegistered ?? false,
           address: company.address,
           phone: company.phone,
           email: company.email,

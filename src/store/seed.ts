@@ -1,6 +1,6 @@
 import type { Contact, DocLine, PurchaseLine, AccountingData } from 'src/domain';
 
-import { ACC, addDays, todayISO, periodOf, shiftPeriod, DATA_VERSION, DEFAULT_ACCOUNTS } from 'src/domain';
+import { ACC, addDays, todayISO, periodOf, shiftPeriod, DATA_VERSION, DEFAULT_ACCOUNTS, withAddressCodes } from 'src/domain';
 
 import {
   payPurchase,
@@ -152,6 +152,9 @@ export function emptyData(): AccountingData {
         district: 'พระสมุทรเจดีย์',
         province: 'สมุทรปราการ',
         postalCode: '10290',
+        provinceCode: '11',
+        districtCode: '1105',
+        subDistrictCode: '110505',
       },
       email: 'account@demo.example',
       vatRegistered: true,
@@ -205,7 +208,8 @@ export function buildDemoData(today: string = todayISO()): AccountingData {
     return `${p.year}-${String(p.month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   };
 
-  let s: AccountingData = { ...emptyData(), contacts: CONTACTS };
+  // ที่อยู่ตัวอย่างพิมพ์เป็นชื่อ — เติมรหัส TIS 1099 เหมือนบันทึกผ่านฟอร์ม (`saveContact`)
+  let s: AccountingData = { ...emptyData(), contacts: CONTACTS.map((c) => ({ ...c, address: withAddressCodes(c.address) })) };
   const due = (date: string, days = 30) => addDays(date, days);
 
   // ทุนเริ่มต้น

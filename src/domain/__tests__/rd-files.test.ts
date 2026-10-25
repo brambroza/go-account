@@ -1,12 +1,13 @@
 import { ACC } from '../chart-of-accounts';
 import { whtPayeesForPeriod } from '../wht';
+import { salesDocTitle } from '../sales-doc';
 import { calcDocument } from '../document-calc';
 import { planPurchasePayment } from '../purchase';
-import { buildETaxXml, eTaxReadiness } from '../etax-xml';
 import { importContactsCsv, defaultContactTitle } from '../csv-import';
-import { whtDetailRows, buildRdWhtFile, sanitizeRdText } from '../rd-wht-file';
+import { buildETaxXml, eTaxReadiness, buildReceiptETaxXml } from '../etax-xml';
+import { rdBranchType, whtDetailRows, buildRdWhtFile, sanitizeRdText } from '../rd-wht-file';
 
-import type { Company, Contact, Payment, SalesDoc, PurchaseDoc } from '../types';
+import type { Company, Contact, Payment, Receipt, SalesDoc, PurchaseDoc } from '../types';
 
 // ----------------------------------------------------------------------
 
@@ -108,6 +109,24 @@ describe('ภ.ง.ด. Format กลาง v2.0', () => {
     expect(sanitizeRdText('x'.repeat(50), 40)).toHaveLength(40);
   });
 
+  it('strips curly quotes copied from Word/LINE like the straight quotes', () => {
+    expect(sanitizeRdText('บริษัท “เอ” จำกัด', 100)).toBe('บริษัท เอ จำกัด');
+    expect(sanitizeRdText('ร้าน‘สมใจ’', 100)).toBe('ร้าน สมใจ');
+    expect(sanitizeRdText('“”‘’', 100)).toBe('');
+  });
+
+  it('writes BRANCH_TYPE V / S / empty from VAT and SBT registration (header field 16)', () => {
+    expect(rdBranchType({ vatRegistered: true })).toBe('V');
+    expect(rdBranchType({ vatRegistered: true, sbtRegistered: true })).toBe('V');
+    expect(rdBranchType({ vatRegistered: false, sbtRegistered: true })).toBe('S');
+    expect(rdBranchType({ vatRegistered: false })).toBe('');
+    const header = (c: Company) => buildRdWhtFile({ form: 'PND53', company: c, period: october, payees: [] }).content.split('\r\n')[0].split('|');
+    expect(header(company)[15]).toBe('V');
+    expect(header({ ...company, vatRegistered: false, sbtRegistered: true })[15]).toBe('S');
+    expect(header({ ...company, vatRegistered: false })[15]).toBe('');
+    expect(header({ ...company, vatRegistered: false, sbtRegistered: true })).toHaveLength(25);
+  });
+
   it('builds a PND53 file with 25-field header and 38-field details', () => {
     // ใบเดียวจ่ายครั้งเดียว 4 ประเภทเงินได้ → 2 ลำดับ (3 + 1), บุคคลธรรมดาไม่เข้า 53, จ่ายนอกงวดไม่นับ
     const multi = purchase('1', 'v-jur', [
@@ -206,22 +225,164 @@ describe('e-Tax XML', () => {
 
   it('builds the ETDA structure with escaped text and TXID', () => {
     const xml = buildETaxXml({ doc, company, buyer, createdAt: '2026-10-24T10:00:00' });
-    expect(xml).toContain('<ram:TypeCode>388</ram:TypeCode>');
     expect(xml).toContain('<ram:ID schemeID="TXID">010556207777800000</ram:ID>');
     expect(xml).toContain('<ram:ID schemeID="TXID">010555907654500001</ram:ID>');
     expect(xml).toContain('<ram:GrandTotalAmount>82390.00</ram:GrandTotalAmount>');
     expect(xml).toContain('&lt;PX-120&gt; &amp;');
   });
 
-  it('references the original invoice on a credit note', () => {
-    const cn: SalesDoc = { ...doc, id: 's2', kind: 'credit-note', docNo: 'CN6910-0001', refDocId: 's1', reason: 'คืนสินค้า' };
-    const xml = buildETaxXml({ doc: cn, company, buyer, referenced: doc });
+  it('uses T02 "ใบแจ้งหนี้/ใบกำกับภาษี" for a tax invoice — same name as the printed title (B.2, §8.3)', () => {
+    const xml = buildETaxXml({ doc, company, buyer, createdAt: '2026-10-24T10:00:00' });
+    expect(xml).toContain('<ram:TypeCode>T02</ram:TypeCode>');
+    expect(xml).not.toContain('<ram:TypeCode>388</ram:TypeCode>');
+    expect(xml).toContain(`<ram:Name>${salesDocTitle(doc)}</ram:Name>`);
+    expect(salesDocTitle(doc)).toBe('ใบแจ้งหนี้/ใบกำกับภาษี');
+  });
+
+  it('writes TIS 1099 / ETDA codes, not names, for province, district and subdistrict (§8.8–8.10)', () => {
+    const picked: Contact = {
+      ...buyer,
+      address: {
+        addressNo: '99',
+        subDistrict: 'บางนาใต้',
+        district: 'บางนา',
+        province: 'กรุงเทพมหานคร',
+        postalCode: '10260',
+        provinceCode: '10',
+        districtCode: '1047',
+        subDistrictCode: '104703',
+      },
+    };
+    const xml = buildETaxXml({ doc, company: { ...company, address: { ...company.address, subDistrict: 'ในคลองบางปลากด' } }, buyer: picked });
+    const buyerXml = xml.slice(xml.indexOf('<ram:BuyerTradeParty>'));
+    expect(buyerXml).toContain('<ram:PostcodeCode>10260</ram:PostcodeCode>');
+    expect(buyerXml).toContain('<ram:CityName>1047</ram:CityName>');
+    expect(buyerXml).toContain('<ram:CitySubDivisionName>104703</ram:CitySubDivisionName>');
+    expect(buyerXml).toContain('<ram:CountrySubDivisionID>10</ram:CountrySubDivisionID>');
+    // ที่อยู่บริษัทมีแต่ชื่อ → จับคู่ชื่อ (สมุทรปราการ 11 / พระสมุทรเจดีย์ 1105 / ในคลองบางปลากด)
+    const sellerXml = xml.slice(xml.indexOf('<ram:SellerTradeParty>'), xml.indexOf('<ram:BuyerTradeParty>'));
+    expect(sellerXml).toContain('<ram:CityName>1105</ram:CityName>');
+    expect(sellerXml).toMatch(/<ram:CitySubDivisionName>1105\d\d<\/ram:CitySubDivisionName>/);
+    expect(sellerXml).toContain('<ram:CountrySubDivisionID>11</ram:CountrySubDivisionID>');
+    expect(xml).not.toContain('<ram:CityName>บางนา</ram:CityName>');
+    expect(xml).not.toContain('กรุงเทพมหานคร</ram:CountrySubDivisionID>');
+  });
+
+  it('omits address code elements that cannot be resolved (never writes a name)', () => {
+    const xml = buildETaxXml({ doc, company, buyer: { ...buyer, address: { province: 'ไม่มีจังหวัดนี้', district: 'x' } } });
+    const buyerXml = xml.slice(xml.indexOf('<ram:BuyerTradeParty>'));
+    expect(buyerXml).not.toContain('<ram:CityName>');
+    expect(buyerXml).not.toContain('<ram:CountrySubDivisionID>');
+  });
+
+  const cnBase: SalesDoc = { ...doc, id: 's2', kind: 'credit-note', docNo: 'CN6910-0001', refDocId: 's1', reason: 'คืนสินค้า' };
+  const amount = (xml: string, tag: string) => xml.match(new RegExp(`<ram:${tag}>([^<]*)</ram:${tag}>`))?.[1];
+
+  it('references the original invoice on a credit note with the original TypeCode (T02)', () => {
+    const xml = buildETaxXml({ doc: cnBase, company, buyer, referenced: doc });
     expect(xml).toContain('<ram:TypeCode>81</ram:TypeCode>');
     expect(xml).toContain('<ram:IssuerAssignedID>IV6910-0043</ram:IssuerAssignedID>');
+    expect(xml).toContain('<ram:ReferenceTypeCode>T02</ram:ReferenceTypeCode>');
+  });
+
+  it('references a receipt/tax invoice (T03) on a service credit note after full payment', () => {
+    const receipt: Receipt = {
+      id: 'r1',
+      docNo: 'RT6910-0001',
+      date: '2026-10-25',
+      invoiceId: 's1',
+      contactId: buyer.id,
+      amount: 107,
+      whtAmount: 0,
+      depositAccountCode: ACC.bank,
+      isTaxInvoice: true,
+      vat: 7,
+      journalId: 'j',
+    };
+    const xml = buildETaxXml({ doc: { ...cnBase, saleType: 'service' }, company, buyer, referenced: doc, referencedReceipt: receipt });
+    expect(xml).toContain('<ram:IssuerAssignedID>RT6910-0001</ram:IssuerAssignedID>');
+    expect(xml).toContain('<ram:ReferenceTypeCode>T03</ram:ReferenceTypeCode>');
+  });
+
+  it('credit note R3/R2: LineTotal = correct value, Difference = Original − LineTotal, GrandTotal = Difference + Tax', () => {
+    // ใบเดิม 77,000 ลด 1 ชิ้น 38.50 → ถูกต้อง 76,961.50
+    const lines = [{ id: 'c', description: 'คืน', qty: 1, unitPrice: 38.5, discount: 0, accountCode: ACC.sales }];
+    const cn: SalesDoc = { ...cnBase, lines, originalNet: 77_000, correctNet: 76_961.5 };
+    const xml = buildETaxXml({ doc: cn, company, buyer, referenced: doc });
+    expect(amount(xml, 'OriginalInformationAmount')).toBe('77000.00');
+    expect(amount(xml, 'LineTotalAmount')).toBe('76961.50');
+    expect(amount(xml, 'DifferenceInformationAmount')).toBe('38.50');
+    expect(amount(xml, 'TaxBasisTotalAmount')).toBe('38.50');
+    expect(amount(xml, 'TaxTotalAmount')).toBe('2.70');
+    expect(amount(xml, 'GrandTotalAmount')).toBe('41.20');
+    const order = ['OriginalInformationAmount', 'LineTotalAmount', 'DifferenceInformationAmount', 'TaxBasisTotalAmount', 'TaxTotalAmount', 'GrandTotalAmount'];
+    const positions = order.map((tag) => xml.indexOf(`<ram:${tag}>`));
+    expect([...positions].sort((a, b) => a - b)).toEqual(positions);
+  });
+
+  it('debit note R3/R2: Difference = |Original − LineTotal| (LineTotal greater than Original)', () => {
+    const lines = [{ id: 'd', description: 'เพิ่มราคา', qty: 1, unitPrice: 1_000, discount: 0, accountCode: ACC.sales }];
+    const dn: SalesDoc = { ...cnBase, kind: 'debit-note', docNo: 'DN6910-0001', lines, originalNet: 77_000, correctNet: 78_000 };
+    const xml = buildETaxXml({ doc: dn, company, buyer, referenced: doc });
+    expect(xml).toContain('<ram:TypeCode>80</ram:TypeCode>');
+    expect(amount(xml, 'LineTotalAmount')).toBe('78000.00');
+    expect(amount(xml, 'DifferenceInformationAmount')).toBe('1000.00');
+    expect(amount(xml, 'GrandTotalAmount')).toBe('1070.00');
+  });
+
+  it('legacy adjustment without correctNet derives LineTotal = Original ∓ difference', () => {
+    const lines = [{ id: 'c', description: 'คืน', qty: 2, unitPrice: 100, discount: 0, accountCode: ACC.sales }];
+    const cnXml = buildETaxXml({ doc: { ...cnBase, lines, originalNet: 1_000 }, company, buyer, referenced: doc });
+    expect(amount(cnXml, 'LineTotalAmount')).toBe('800.00');
+    expect(amount(cnXml, 'DifferenceInformationAmount')).toBe('200.00');
+    const dnXml = buildETaxXml({ doc: { ...cnBase, kind: 'debit-note', lines, originalNet: 1_000 }, company, buyer, referenced: doc });
+    expect(amount(dnXml, 'LineTotalAmount')).toBe('1200.00');
+    expect(amount(dnXml, 'GrandTotalAmount')).toBe('214.00');
+  });
+
+  it('writes the selected ETDA purpose code with its label, and free text for "other" (…99)', () => {
+    const coded = buildETaxXml({ doc: { ...cnBase, reasonCode: 'CDNG02', reason: '' }, company, buyer, referenced: doc });
+    expect(coded).toContain('<ram:Purpose>สินค้าชำรุดเสียหาย</ram:Purpose><ram:PurposeCode>CDNG02</ram:PurposeCode>');
+    const other = buildETaxXml({ doc: cnBase, company, buyer, referenced: doc });
+    expect(other).toContain('<ram:Purpose>คืนสินค้า</ram:Purpose><ram:PurposeCode>CDNG99</ram:PurposeCode>');
+    const service = buildETaxXml({ doc: { ...cnBase, saleType: 'service', reasonCode: 'CDNS04' }, company, buyer, referenced: doc });
+    expect(service).toContain('<ram:PurposeCode>CDNS04</ram:PurposeCode>');
+    const dn = buildETaxXml({ doc: { ...cnBase, kind: 'debit-note', reason: 'ค่าขนส่ง' }, company, buyer, referenced: doc });
+    expect(dn).toContain('<ram:PurposeCode>DBNG99</ram:PurposeCode>');
+  });
+
+  it('receipt/tax invoice keeps T03 and references the invoice with 380', () => {
+    const receipt: Receipt = {
+      id: 'r1',
+      docNo: 'RT6910-0001',
+      date: '2026-10-25',
+      invoiceId: 's1',
+      contactId: buyer.id,
+      amount: 107,
+      whtAmount: 0,
+      depositAccountCode: ACC.bank,
+      isTaxInvoice: true,
+      vat: 7,
+      journalId: 'j',
+    };
+    const xml = buildReceiptETaxXml({ receipt, invoice: { ...doc, saleType: 'service' }, company, buyer });
+    expect(xml).toContain('<ram:TypeCode>T03</ram:TypeCode>');
+    expect(xml).toContain('<ram:ReferenceTypeCode>380</ram:ReferenceTypeCode>');
   });
 
   it('lists missing buyer data', () => {
     expect(eTaxReadiness(company, { ...buyer, taxId: '' })).toContain('ลูกค้ายังไม่มีเลขผู้เสียภาษี');
+  });
+
+  it('warns when company or buyer address cannot be resolved to province/district/subdistrict codes', () => {
+    const complete = { addressNo: '1', subDistrict: 'บางนาใต้', district: 'บางนา', province: 'กรุงเทพมหานคร' };
+    const ok = { ...company, address: { ...company.address, subDistrict: 'ในคลองบางปลากด' } };
+    expect(eTaxReadiness(ok, { ...buyer, address: complete })).toEqual([]);
+    expect(eTaxReadiness(company, { ...buyer, address: complete }).join()).toContain('ที่อยู่บริษัทยังไม่มีรหัสจังหวัด/อำเภอ/ตำบล');
+    expect(eTaxReadiness(ok, buyer).join()).toContain('ที่อยู่ลูกค้ายังไม่มีรหัสจังหวัด/อำเภอ/ตำบล');
+    expect(eTaxReadiness(ok, { ...buyer, address: {} })).toContain('ที่อยู่ลูกค้ายังไม่ครบ (จังหวัด)');
+    // เอกสารที่ออกแล้ว: ตรวจที่อยู่ใน snapshot แทนที่อยู่ปัจจุบัน
+    expect(eTaxReadiness(ok, buyer, complete)).toEqual([]);
   });
 });
 

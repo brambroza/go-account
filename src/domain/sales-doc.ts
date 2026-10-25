@@ -29,6 +29,12 @@ export function isServiceInvoice(doc: Pick<SalesDoc, 'kind' | 'saleType' | 'isTa
   return doc.kind === 'tax-invoice' && isDeferredVatDoc(doc);
 }
 
+/**
+ * ชื่อใบกำกับภาษีของบริษัทจด VAT — ตรงกับ TypeCode T02 ของ ETDA ("ใบแจ้งหนี้/ใบกำกับภาษี", ขมธอ.3-2560 ภาคผนวก B.2)
+ * XML (`ETAX_TYPE_NAME`) ใช้ค่าเดียวกัน
+ */
+export const TAX_INVOICE_TITLE = 'ใบแจ้งหนี้/ใบกำกับภาษี';
+
 /** ชื่อเอกสารที่ต้องพิมพ์บนหัวกระดาษ */
 export function salesDocTitle(
   doc: Pick<SalesDoc, 'kind' | 'isTaxInvoice' | 'vatMode'> & Partial<Pick<SalesDoc, 'saleType' | 'vatRate' | 'opening'>>
@@ -38,7 +44,7 @@ export function salesDocTitle(
   const tax = isTaxDocument(doc);
   if (doc.kind === 'credit-note') return tax ? 'ใบลดหนี้/ใบกำกับภาษี' : 'ใบลดหนี้';
   if (doc.kind === 'debit-note') return tax ? 'ใบเพิ่มหนี้/ใบกำกับภาษี' : 'ใบเพิ่มหนี้';
-  if (tax) return 'ใบกำกับภาษี/ใบแจ้งหนี้';
+  if (tax) return TAX_INVOICE_TITLE;
   // งานบริการของบริษัทจด VAT: ใบแจ้งหนี้อย่างเดียว — ใบเสร็จรับเงิน/ใบกำกับภาษีออกตอนรับเงิน
   if (doc.saleType === 'service' && doc.vatMode !== 'none' && (doc.vatRate ?? 0) > 0) return 'ใบแจ้งหนี้';
   return 'ใบแจ้งหนี้/ใบเสร็จรับเงิน';

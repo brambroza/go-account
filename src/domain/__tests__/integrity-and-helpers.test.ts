@@ -149,7 +149,7 @@ describe('domain helpers (A13, A14)', () => {
   it('names documents by tax status', () => {
     expect(isTaxDocument({ vatMode: 'none' })).toBe(false);
     expect(isTaxDocument({ vatMode: 'exclusive' })).toBe(true);
-    expect(salesDocTitle({ kind: 'tax-invoice', vatMode: 'exclusive' })).toBe('ใบกำกับภาษี/ใบแจ้งหนี้');
+    expect(salesDocTitle({ kind: 'tax-invoice', vatMode: 'exclusive' })).toBe('ใบแจ้งหนี้/ใบกำกับภาษี');
     expect(salesDocTitle({ kind: 'credit-note', vatMode: 'exclusive', isTaxInvoice: true })).toBe('ใบลดหนี้/ใบกำกับภาษี');
     expect(salesDocTitle({ kind: 'tax-invoice', vatMode: 'none', isTaxInvoice: false, opening: true })).toBe('ยอดลูกหนี้ยกมา');
   });

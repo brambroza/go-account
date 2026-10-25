@@ -27,6 +27,9 @@ const AddressSchema = zod.object({
   district: zod.string().optional(),
   province: zod.string().optional(),
   postalCode: zod.string().optional(),
+  provinceCode: zod.string().optional(),
+  districtCode: zod.string().optional(),
+  subDistrictCode: zod.string().optional(),
 });
 
 const legalForm = zod.enum(['individual', 'juristic']);
@@ -82,6 +85,7 @@ const SalesDocSchema = zod.object({
   refReceiptId: zod.string().optional(),
   deferredVatRounding: money.optional(),
   reason: zod.string().optional(),
+  reasonCode: zod.string().optional(),
   originalNet: money.optional(),
   correctNet: money.optional(),
   creditToCustomer: money.optional(),
@@ -341,6 +345,7 @@ export const AccountingDataSchema: zod.ZodType<AccountingData, zod.ZodTypeDef, u
     email: zod.string().optional(),
     rdUserId: zod.string().optional(),
     vatRegistered: zod.boolean(),
+    sbtRegistered: zod.boolean().optional(),
     lockedThrough: isoDate.optional(),
   }),
   accounts: zod.array(

@@ -1,7 +1,7 @@
 {
   "file": "text.json",
   "generator": "go-account/scripts/export-golden.ts (yarn golden)",
-  "count": 40,
+  "count": 48,
   "vectors": [
     {
       "name": "normalizeInvoiceNo/0:\"INV-001\"",
@@ -282,6 +282,70 @@
         "value": ""
       },
       "output": "\"\""
+    },
+    {
+      "name": "sanitizeRdText/0:\"918/288 \\\"A&B\\\", #1\"",
+      "input": {
+        "maxLength": 100,
+        "value": "918/288 \"A&B\", #1"
+      },
+      "output": "918-288 A B 1"
+    },
+    {
+      "name": "sanitizeRdText/1:\"บริษัท “เอ” จำกัด\"",
+      "input": {
+        "maxLength": 100,
+        "value": "บริษัท “เอ” จำกัด"
+      },
+      "output": "บริษัท เอ จำกัด"
+    },
+    {
+      "name": "sanitizeRdText/2:\"ร้าน‘สมใจ’\"",
+      "input": {
+        "maxLength": 100,
+        "value": "ร้าน‘สมใจ’"
+      },
+      "output": "ร้าน สมใจ"
+    },
+    {
+      "name": "sanitizeRdText/3:\"“”‘’\"",
+      "input": {
+        "maxLength": 100,
+        "value": "“”‘’"
+      },
+      "output": ""
+    },
+    {
+      "name": "sanitizeRdText/4:\"a*b+c\\\\d!e$f%g#h@i\"",
+      "input": {
+        "maxLength": 100,
+        "value": "a*b+c\\d!e$f%g#h@i"
+      },
+      "output": "a b c d e f g h i"
+    },
+    {
+      "name": "sanitizeRdText/5:\"  หลาย   ช่อง\\tว่าง\\r\\n|ท่อ  \"",
+      "input": {
+        "maxLength": 100,
+        "value": "  หลาย   ช่อง\tว่าง\r\n|ท่อ  "
+      },
+      "output": "หลาย ช่อง ว่าง ท่อ"
+    },
+    {
+      "name": "sanitizeRdText/6:\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"",
+      "input": {
+        "maxLength": 40,
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "output": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name": "sanitizeRdText/7:\"\"",
+      "input": {
+        "maxLength": 10,
+        "value": ""
+      },
+      "output": ""
     }
   ]
 }

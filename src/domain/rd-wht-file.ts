@@ -17,9 +17,18 @@ import type { WhtForm, WhtItem, WhtPayee } from './wht';
 // ห้ามใช้อักขระ * + / \ ! $ % # & @ , ' "  และไม่เติมช่องว่างให้ครบความยาว
 // ----------------------------------------------------------------------
 
-const PROHIBITED = /[*+\\!$%#&@,'"]/g;
+/** อักขระต้องห้าม + เครื่องหมายคำพูดโค้ง ‘ ’ “ ” (ข้อความที่คัดลอกจาก Word/LINE — เทียบเท่า ' " ที่ห้ามใช้) */
+const PROHIBITED = /[*+\\!$%#&@,'"\u2018\u2019\u201C\u201D]/g;
 
-/** ทำความสะอาดข้อความตามกฎ Format กลาง: '/' (เช่นบ้านเลขที่ 918/288) แปลงเป็น '-' ที่เหลือตัดทิ้ง */
+/**
+ * BRANCH_TYPE (header ฟิลด์ 16): V = จด VAT (รวมจดทั้ง VAT และ SBT), S = จด SBT อย่างเดียว, ว่าง = ไม่ได้จด (Format กลาง V2.0 Header #16)
+ */
+export function rdBranchType(company: Pick<Company, 'vatRegistered' | 'sbtRegistered'>): 'V' | 'S' | '' {
+  if (company.vatRegistered) return 'V';
+  return company.sbtRegistered ? 'S' : '';
+}
+
+/** ทำความสะอาดข้อความตามกฎ Format กลาง: '/' (เช่นบ้านเลขที่ 918/288) แปลงเป็น '-' ที่เหลือแปลงเป็นช่องว่าง */
 export function sanitizeRdText(value: string | undefined, maxLength: number): string {
   return (value ?? '')
     .replace(/\//g, '-')
@@ -139,8 +148,11 @@ export function buildRdWhtFile(options: RdWhtFileOptions): RdWhtFileResult {
     '0', // LTO
     month,
     yearBE,
-    company.vatRegistered ? 'V' : '',
+    rdBranchType(company),
     formType,
+    // TOT_NUM (Header #18) "รวมจำนวนรายของใบแนบ" — ⚠️ ข้อกำหนดกำกวม: ใช้จำนวนผู้รับเงิน (ราย) ตามเดิม
+    // แต่ข้อ 16 ของ Format กลางอาจหมายถึงจำนวนแถว D (ผู้รับเงิน 1 รายที่มี 2 ใบสำคัญจ่าย = 2 แถว) — รอทดสอบกับ RD Prep
+    // (TODO ใน docs/research-etda-rd-2026-10.md ข้อ 4) แก้ทั้ง TS และ C# (RdWhtFile.cs) พร้อมกัน
     String(totals.payees),
     rdNumber(totals.amount),
     rdNumber(totals.tax),

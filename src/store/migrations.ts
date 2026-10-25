@@ -13,6 +13,7 @@ import {
   isBankKindCode,
   companySnapshot,
   DEFAULT_ACCOUNTS,
+  withAddressCodes,
   purchaseWhtGroups,
   dateOrderInversions,
   validateAccountingData,
@@ -64,6 +65,12 @@ import {
 //     กติกา: แถว ภ.ง.ด. ของการจ่ายนั้นแสดงเงินได้และภาษี 0.00 ตามที่ v1 รายงานไว้ (ไม่ตัดทิ้ง เพื่อให้ยอดเงินได้ตรงกับที่ยื่น)
 //     — การจ่ายใหม่ก็ได้แถวภาษี 0.00 แบบเดียวกัน (planPurchasePayment เก็บบรรทัดที่ฐาน > 0)
 //   - การหักลดหนี้ฐานหัก ณ ที่จ่ายเปลี่ยนเป็นรายบรรทัด (U8) — ใบลดหนี้เดิมที่ไม่มี purchaseLineId จับคู่ตามบัญชี
+//
+// v7 → v8 (ETDA/RD ต.ค. 2569 — docs/research-etda-rd-2026-10.md)
+//   - ที่อยู่บริษัทและผู้ติดต่อได้รหัส TIS 1099 (provinceCode / districtCode / subDistrictCode) จากการจับคู่ชื่อแบบ best-effort
+//     (`withAddressCodes`) — จับคู่ไม่ได้ = ไม่มีรหัส แล้ว `eTaxReadiness` เตือนให้เลือกจากรายการใหม่ก่อนออก e-Tax
+//   - snapshot ในเอกสารที่ออกแล้วไม่แก้ (เอกสารที่ออกแล้วแก้ไม่ได้) — XML จับคู่ชื่อตอนสร้างด้วยตรรกะเดียวกัน
+//   - ใบลด/เพิ่มหนี้เดิมไม่มี reasonCode (= เหตุอื่น …99 ตามเดิม), บริษัทไม่มี sbtRegistered (= ไม่ได้จด SBT) — ตัวเลขทุกรายงานเท่าเดิม
 // ----------------------------------------------------------------------
 
 /** เอกสารซื้อโครง v3 (หัก ณ ที่จ่ายระดับเอกสาร + ข้อมูลการจ่ายครั้งเดียว) */
@@ -81,8 +88,11 @@ type PurchaseV3 = Omit<PurchaseDoc, 'lines' | 'supplierInvoiceDate' | 'vatClaimP
 
 type PaymentV3 = Omit<Payment, 'whtItems'>;
 
-/** โครง v6 = ปัจจุบันที่ยังไม่มีการรับเงินคืนจากผู้ขาย */
-export type DataV6 = Omit<AccountingData, 'version' | 'supplierRefunds'> & { version: 6 };
+/** โครง v7 = ปัจจุบัน (ฟิลด์ใหม่ของ v8 เป็น optional ทั้งหมด: รหัสที่อยู่, reasonCode, sbtRegistered) */
+export type DataV7 = Omit<AccountingData, 'version'> & { version: 7 };
+
+/** โครง v6 = v7 ที่ยังไม่มีการรับเงินคืนจากผู้ขาย */
+export type DataV6 = Omit<DataV7, 'version' | 'supplierRefunds'> & { version: 6 };
 
 /** โครง v5 = v6 ที่ยังไม่มีทะเบียนธนาคาร / โอนเงิน / กระทบยอด / ใบเสนอราคา */
 export type DataV5 = Omit<DataV6, 'version' | 'bankAccounts' | 'transfers' | 'bankStatements' | 'bankMatches' | 'quotations'> & {
@@ -307,7 +317,7 @@ export function migrateV5(data: DataV5): DataV6 {
  * v6 → v7 (pure): บัญชี 1150, supplierRefunds ว่าง, เติม whtItems ภาษี 0.00 ให้ใบสำคัญจ่าย v1 ที่หัก ณ ที่จ่ายปัดเป็น 0 (U10)
  * — เฉพาะเอกสารจ่ายครั้งเดียวเต็มจำนวนที่ไม่มีใบลดหนี้ และกลุ่มหัก ณ ที่จ่ายของเอกสารทุกกลุ่มภาษีเป็น 0
  */
-export function migrateV6(data: DataV6): AccountingData {
+export function migrateV6(data: DataV6): DataV7 {
   const knownAccounts = new Set(data.accounts.map((a) => a.code));
   const purchases = new Map(data.purchases.map((p) => [p.id, p]));
   const credited = new Set(data.purchaseCredits.map((c) => c.purchaseId));
@@ -323,10 +333,23 @@ export function migrateV6(data: DataV6): AccountingData {
   });
   return {
     ...data,
-    version: DATA_VERSION,
+    version: 7,
     accounts: [...data.accounts, ...DEFAULT_ACCOUNTS.filter((a) => !knownAccounts.has(a.code))],
     payments,
     supplierRefunds: [],
+  };
+}
+
+/**
+ * v7 → v8 (pure): เติมรหัสจังหวัด/อำเภอ/ตำบลให้ที่อยู่บริษัทและผู้ติดต่อจากชื่อ (รหัสเดิมที่ไม่มีอยู่จริงถูกทิ้งแล้วจับคู่ใหม่)
+ * — snapshot ในเอกสารไม่แก้
+ */
+export function migrateV7(data: DataV7): AccountingData {
+  return {
+    ...data,
+    version: DATA_VERSION,
+    company: { ...data.company, address: withAddressCodes(data.company.address ?? {}) },
+    contacts: data.contacts.map((c) => ({ ...c, address: withAddressCodes(c.address ?? {}) })),
   };
 }
 
@@ -367,6 +390,10 @@ function looksLikeV6(value: Record<string, unknown>): value is DataV6 {
   );
 }
 
+function looksLikeV7(value: Record<string, unknown>): value is DataV7 {
+  return value.version === 7 && Array.isArray(value.supplierRefunds) && looksLikeV6({ ...value, version: 6 });
+}
+
 function looksLikeV5(value: Record<string, unknown>): value is DataV5 {
   return (
     value.version === 5 &&
@@ -398,7 +425,7 @@ export function readAccountingData(raw: unknown): LoadResult {
   if (raw.version === 1) {
     if (!looksLikeV1(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 1 ไม่ครบ (ขาดรายการบางส่วน)'] };
     try {
-      candidate = migrateV6(migrateV5(migrateV4(migrateV3(migrateV1(raw)))));
+      candidate = migrateV7(migrateV6(migrateV5(migrateV4(migrateV3(migrateV1(raw))))));
       migratedFrom = 1;
     } catch (error) {
       return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน 1 ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
@@ -408,7 +435,7 @@ export function readAccountingData(raw: unknown): LoadResult {
     const from = raw.version;
     if (!looksLikeV3(raw)) return { data: null, problems: [`ข้อมูลเวอร์ชัน ${from} ไม่ครบ (ขาดรายการบางส่วน)`] };
     try {
-      candidate = migrateV6(migrateV5(migrateV4(migrateV3({ ...raw, version: 3 }))));
+      candidate = migrateV7(migrateV6(migrateV5(migrateV4(migrateV3({ ...raw, version: 3 })))));
       migratedFrom = from;
     } catch (error) {
       return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน ${from} ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
@@ -416,19 +443,23 @@ export function readAccountingData(raw: unknown): LoadResult {
   } else if (raw.version === 4) {
     if (!looksLikeV4(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 4 ไม่ครบ (ขาดรายการบางส่วน)'] };
     try {
-      candidate = migrateV6(migrateV5(migrateV4(raw)));
+      candidate = migrateV7(migrateV6(migrateV5(migrateV4(raw))));
       migratedFrom = 4;
     } catch (error) {
       return { data: null, problems: [`ย้ายข้อมูลเวอร์ชัน 4 ไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`] };
     }
   } else if (raw.version === 5) {
     if (!looksLikeV5(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 5 ไม่ครบ (ขาดรายการบางส่วน)'] };
-    candidate = migrateV6(migrateV5(raw));
+    candidate = migrateV7(migrateV6(migrateV5(raw)));
     migratedFrom = 5;
   } else if (raw.version === 6) {
     if (!looksLikeV6(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 6 ไม่ครบ (ขาดรายการบางส่วน)'] };
-    candidate = migrateV6(raw);
+    candidate = migrateV7(migrateV6(raw));
     migratedFrom = 6;
+  } else if (raw.version === 7) {
+    if (!looksLikeV7(raw)) return { data: null, problems: ['ข้อมูลเวอร์ชัน 7 ไม่ครบ (ขาดรายการบางส่วน)'] };
+    candidate = migrateV7(raw);
+    migratedFrom = 7;
   } else if (raw.version !== DATA_VERSION) {
     return { data: null, problems: [`ไม่รองรับข้อมูลเวอร์ชัน ${String(raw.version)}`] };
   }
