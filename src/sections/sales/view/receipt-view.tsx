@@ -62,7 +62,7 @@ export function ReceiptView() {
   const buyer = contacts.get(receipt.contactId);
   const title = receiptTitle(receipt);
   const isTax = !!receipt.isTaxInvoice;
-  const etaxProblems = eTaxReadiness(data.company, buyer);
+  const etaxProblems = eTaxReadiness(receipt.seller ?? data.company, buyer, receipt.buyer?.address);
   const entry = data.journal.find((j) => j.id === receipt.journalId);
 
   const downloadXml = async () => {

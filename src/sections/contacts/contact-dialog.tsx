@@ -30,7 +30,7 @@ import {
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
 
-import { RHFAmountField, preventEnterSubmit } from 'src/sections/shared';
+import { RHFAmountField, ThaiAddressFields, preventEnterSubmit } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
@@ -70,6 +70,9 @@ function toForm(c: Contact | null | undefined, nextCode: string, defaults: { kin
       district: c?.address.district ?? '',
       province: c?.address.province ?? '',
       postalCode: c?.address.postalCode ?? '',
+      provinceCode: c?.address.provinceCode ?? '',
+      districtCode: c?.address.districtCode ?? '',
+      subDistrictCode: c?.address.subDistrictCode ?? '',
     },
   };
 }
@@ -208,10 +211,7 @@ export function ContactDialog({ open, onClose, contact, defaultKind, defaultName
             <Field.Text name="address.village" label="อาคาร / หมู่บ้าน" size="small" />
             <Field.Text name="address.soi" label="ซอย" size="small" />
             <Field.Text name="address.street" label="ถนน" size="small" />
-            <Field.Text name="address.subDistrict" label="ตำบล / แขวง" size="small" />
-            <Field.Text name="address.district" label="อำเภอ / เขต" size="small" />
-            <Field.Text name="address.province" label="จังหวัด" size="small" />
-            <Field.Text name="address.postalCode" label="รหัสไปรษณีย์" size="small" inputProps={{ inputMode: 'numeric', maxLength: 5 }} />
+            <ThaiAddressFields name="address" />
             <RHFAmountField name="creditDays" label="เครดิต (วัน)" decimals={0} />
           </Box>
         </DialogContent>

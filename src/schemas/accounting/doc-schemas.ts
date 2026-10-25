@@ -1,6 +1,15 @@
 import { z as zod } from 'zod';
 
-import { toSatang, todayISO, endOfMonth, monthKeyOf, isValidISODate, isValidThaiTaxId, endOfPreviousMonth } from 'src/domain';
+import {
+  toSatang,
+  todayISO,
+  endOfMonth,
+  monthKeyOf,
+  isValidISODate,
+  isValidThaiTaxId,
+  isOtherReasonCode,
+  endOfPreviousMonth,
+} from 'src/domain';
 
 // ----------------------------------------------------------------------
 // ทุก field ในฟอร์มต้องอยู่ใน schema — field ที่ไม่ได้ประกาศจะถูก resolver ตัดทิ้งตอน submit
@@ -41,11 +50,18 @@ export const SalesInvoiceSchema = zod
 
 export type SalesInvoiceSchemaType = zod.input<typeof SalesInvoiceSchema>;
 
-export const CreditNoteSchema = zod.object({
-  date: isoDate('วันที่ใบลดหนี้'),
-  reason: zod.string().trim().min(1, { message: 'ระบุเหตุผลการลดหนี้ (พิมพ์บนเอกสาร)' }),
-  lines: zod.array(DocLineSchema).min(1, { message: 'ต้องมีอย่างน้อย 1 รายการ' }),
-});
+/** ใบลด/เพิ่มหนี้: รหัสเหตุผล ETDA (B.3) — ข้อความเหตุผลบังคับเฉพาะ "เหตุอื่น" (…99) */
+export const CreditNoteSchema = zod
+  .object({
+    date: isoDate('วันที่ใบลดหนี้'),
+    reasonCode: zod.string().optional(),
+    reason: zod.string(),
+    lines: zod.array(DocLineSchema).min(1, { message: 'ต้องมีอย่างน้อย 1 รายการ' }),
+  })
+  .refine((v) => !isOtherReasonCode(v.reasonCode) || v.reason.trim().length > 0, {
+    message: 'ระบุเหตุผล (พิมพ์บนเอกสาร) เมื่อเลือกเหตุอื่น',
+    path: ['reason'],
+  });
 
 export type CreditNoteSchemaType = zod.input<typeof CreditNoteSchema>;
 
@@ -136,6 +152,9 @@ export const ContactSchema = zod
       district: zod.string().optional(),
       province: zod.string().optional(),
       postalCode: zod.string().optional(),
+      provinceCode: zod.string().optional(),
+      districtCode: zod.string().optional(),
+      subDistrictCode: zod.string().optional(),
     }),
   })
   .refine((v) => !v.taxId || isValidThaiTaxId(v.taxId), {
@@ -154,6 +173,7 @@ export const CompanySchema = zod.object({
   taxId: zod.string().refine((v) => isValidThaiTaxId(v), { message: 'เลขผู้เสียภาษี 13 หลักไม่ถูกต้อง' }),
   branchNo: zod.string().regex(/^\d{1,5}$/, { message: 'สาขาเป็นตัวเลข 5 หลัก (00000 = สำนักงานใหญ่)' }),
   vatRegistered: zod.boolean(),
+  sbtRegistered: zod.boolean().optional(),
   rdUserId: zod.string().max(20, { message: 'ไม่เกิน 20 ตัวอักษร' }).optional(),
   email: zod.string().email({ message: 'รูปแบบอีเมลไม่ถูกต้อง' }).or(zod.literal('')).optional(),
   phone: zod.string().optional(),
@@ -167,6 +187,9 @@ export const CompanySchema = zod.object({
     district: zod.string().optional(),
     province: zod.string().optional(),
     postalCode: zod.string().optional(),
+    provinceCode: zod.string().optional(),
+    districtCode: zod.string().optional(),
+    subDistrictCode: zod.string().optional(),
   }),
 });
 

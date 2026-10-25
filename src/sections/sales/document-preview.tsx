@@ -23,6 +23,7 @@ import {
   formatThaiDate,
   companySnapshot,
   partyDisplayName,
+  adjustmentReasonDisplay,
 } from 'src/domain';
 
 import { Scrollbar } from 'src/components/scrollbar';
@@ -113,11 +114,13 @@ export function DocumentPreview({ doc, company, contact, referenced, referencedR
               </Typography>
             ) : (
               <Typography variant="body2">
-                {isTaxDocument(referenced) ? 'ใบกำกับภาษี' : 'ใบแจ้งหนี้'}เลขที่ {referenced.docNo} ลงวันที่{' '}
+                {isTaxDocument(referenced) ? salesDocTitle(referenced) : 'ใบแจ้งหนี้'}เลขที่ {referenced.docNo} ลงวันที่{' '}
                 {formatThaiDate(referenced.date)}
               </Typography>
             )}
-            <Typography variant="body2">เหตุผล: {doc.reason}</Typography>
+            <Typography variant="body2">
+              เหตุผล: {adjustmentReasonDisplay({ kind: doc.kind === 'debit-note' ? 'debit-note' : 'credit-note', reasonCode: doc.reasonCode, reason: doc.reason })}
+            </Typography>
           </Box>
         )}
       </Stack>

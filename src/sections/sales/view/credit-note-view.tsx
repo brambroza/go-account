@@ -37,8 +37,12 @@ import {
   isTaxDocument,
   salesDocTitle,
   formatThaiDate,
+  otherReasonCode,
+  isOtherReasonCode,
   creditNoteWhtNote,
+  adjustmentReasonLabel,
   serviceCreditNotePlan,
+  adjustmentReasonOptions,
 } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
@@ -58,12 +62,6 @@ import {
 } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
-
-/** เหตุผลตาม ม.82/10 (ลดหนี้) และ ม.82/9 (เพิ่มหนี้) — พิมพ์บนเอกสาร */
-const REASONS = {
-  credit: ['ลูกค้าคืนสินค้าชำรุด', 'สินค้าไม่ตรงตามที่ตกลง', 'ลดราคาหลังออกใบกำกับ', 'คำนวณราคาผิด (สูงไป)', 'ยกเลิกการขายทั้งใบ'],
-  debit: ['เพิ่มราคาสินค้า/บริการตามที่ตกลง', 'ส่งสินค้า/ให้บริการเกินจำนวนที่ตกลง', 'คำนวณราคาผิด (ต่ำไป)'],
-};
 
 type Props = {
   /** credit = ใบลดหนี้ (ม.86/10), debit = ใบเพิ่มหนี้ (ม.86/9) */
@@ -88,10 +86,14 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
   const outstanding = invoice ? outstandingOf(data, invoice) : 0;
   const creditable = invoice ? creditableOf(data, invoice) : 0;
 
+  const adjustmentKind = isDebit ? 'debit-note' : 'credit-note';
+  // รหัสเหตุผล ETDA (B.3) ตามประเภทการขายของใบเดิม — ค่าเริ่มต้น "เหตุอื่น" (…99) ที่ต้องกรอกข้อความ
+  const reasonOptions = adjustmentReasonOptions(adjustmentKind, invoice?.saleType);
   const methods = useForm<CreditNoteSchemaType>({
     resolver: zodResolver(CreditNoteSchema),
     defaultValues: {
       date: todayISO(),
+      reasonCode: otherReasonCode(adjustmentKind, invoice?.saleType),
       reason: '',
       lines: isDebit
         ? [newLine(invoice?.lines[0]?.accountCode ?? '')]
@@ -99,7 +101,8 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
     },
   });
 
-  const [lines, date] = useWatch({ control: methods.control, name: ['lines', 'date'] });
+  const [lines, date, reasonCode] = useWatch({ control: methods.control, name: ['lines', 'date', 'reasonCode'] });
+  const otherReason = isOtherReasonCode(reasonCode);
   const totals = useMemo(
     () => (invoice ? calcDocument({ ...invoice, lines: lines ?? [] }) : calcDocument({ lines: [], vatMode: 'none', vatRate: 0 })),
     [invoice, lines]
@@ -157,6 +160,7 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
         invoiceId: invoice.id,
         date: values.date.slice(0, 10),
         reason: values.reason.trim(),
+        reasonCode: values.reasonCode || undefined,
         lines: values.lines,
       };
       const r = await run(isDebit ? cmd.issueDebitNote(input) : cmd.issueCreditNote(input));
@@ -192,13 +196,19 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
               />
               <Box sx={{ p: 3, display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: '1fr 2fr' } }}>
                 <Field.DatePicker name="date" label={`วันที่${docTitle}`} />
-                <Field.Select name="reason" label="เหตุผล (พิมพ์บนเอกสาร)" size="small">
-                  {REASONS[mode].map((r) => (
-                    <MenuItem key={r} value={r}>
-                      {r}
+                <Field.Select name="reasonCode" label="รหัสเหตุผล (e-Tax)" size="small">
+                  {reasonOptions.map((r) => (
+                    <MenuItem key={r.code} value={r.code}>
+                      {r.code} {r.label}
                     </MenuItem>
                   ))}
                 </Field.Select>
+                <Field.Text
+                  name="reason"
+                  size="small"
+                  label={otherReason ? 'เหตุผล (พิมพ์บนเอกสาร)' : 'รายละเอียดเพิ่มเติม (ไม่บังคับ)'}
+                  sx={{ gridColumn: { sm: 'span 2' } }}
+                />
                 <LockedDateAlert date={date} sx={{ gridColumn: { sm: 'span 2' } }} />
               </Box>
             </Card>
@@ -306,7 +316,12 @@ export function CreditNoteView({ mode = 'credit' }: Props) {
                 { label: 'ชนิดเอกสาร', value: `${docTitle} อ้างถึง ${refReceipt ? `${refReceipt.docNo} (${invoice.docNo})` : invoice.docNo}` },
                 { label: 'ลูกค้า', value: contacts.name(invoice.contactId) },
                 { label: `วันที่${docTitle}`, value: formatThaiDate((date ?? '').slice(0, 10)) },
-                { label: 'เหตุผล', value: methods.getValues('reason') || '-' },
+                {
+                  label: 'เหตุผล',
+                  value:
+                    [otherReason ? '' : adjustmentReasonLabel(reasonCode), methods.getValues('reason').trim()].filter(Boolean).join(' — ') ||
+                    '-',
+                },
                 { label: 'มูลค่าตามใบกำกับเดิม', value: originalNet },
                 { label: 'มูลค่าที่ถูกต้องตามจริง', value: correctNet },
                 { label: `ผลต่าง (มูลค่าที่${change})`, value: totals.net },

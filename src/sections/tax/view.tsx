@@ -41,7 +41,7 @@ import { Iconify } from 'src/components/iconify';
 import { CustomTabs } from 'src/components/custom-tabs';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-import { Money } from 'src/sections/shared';
+import { Money, StatutoryDueDateAlert } from 'src/sections/shared';
 import { toPp30, toVatRows, useServerReport } from 'src/sections/shared/server-reports';
 
 import { WhtTab } from './wht-tab';
@@ -136,6 +136,8 @@ export function TaxView() {
           ? `ปิดงวดถึงวันที่ ${formatThaiDate(lock)} — รายการที่ลงวันที่ถึงวันนี้แก้หรือเพิ่มไม่ได้`
           : 'ยังไม่ได้ปิดงวด — หลังยื่นแบบของเดือนแล้วให้ปิดงวด เพื่อกันการลงรายการย้อนหลังเข้างวดที่ยื่นแล้ว'}
       </Alert>
+
+      <StatutoryDueDateAlert source={due.dueDateSource} sx={{ mb: 3 }} />
 
       {serverError && (
         <Alert severity="error" variant="outlined" sx={{ mb: 3 }}>

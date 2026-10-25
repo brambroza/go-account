@@ -29,7 +29,7 @@ import {
 
 import { Iconify } from 'src/components/iconify';
 
-import { Money } from 'src/sections/shared';
+import { Money, StatutoryDueDateAlert } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
@@ -215,6 +215,7 @@ export function DashboardView() {
           <Card>
             <CardHeader title="กำหนดยื่นภาษี (e-Filing)" />
             <Stack spacing={2} sx={{ p: 3 }}>
+              <StatutoryDueDateAlert source={[prevDue, due].find((d) => d.dueDateSource === 'statutory')?.dueDateSource} />
               {deadlines.map((d) => (
                 <Stack key={`${d.form}-${d.date}`} direction="row" spacing={2} alignItems="center">
                   <Box sx={{ width: 56, py: 0.75, borderRadius: 1.25, textAlign: 'center', bgcolor: 'background.neutral' }}>

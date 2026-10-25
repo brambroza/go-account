@@ -29,7 +29,7 @@ import { Iconify } from 'src/components/iconify';
 import { Form, Field } from 'src/components/hook-form';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-import { preventEnterSubmit } from 'src/sections/shared';
+import { ThaiAddressFields, preventEnterSubmit } from 'src/sections/shared';
 
 import { downloadBackup } from './backup';
 import { RestoreDialog } from './restore-dialog';
@@ -53,6 +53,7 @@ export function SettingsView() {
       taxId: c.taxId,
       branchNo: c.branchNo,
       vatRegistered: c.vatRegistered,
+      sbtRegistered: c.sbtRegistered ?? false,
       rdUserId: c.rdUserId ?? '',
       email: c.email ?? '',
       phone: c.phone ?? '',
@@ -66,6 +67,9 @@ export function SettingsView() {
         district: c.address.district ?? '',
         province: c.address.province ?? '',
         postalCode: c.address.postalCode ?? '',
+        provinceCode: c.address.provinceCode ?? '',
+        districtCode: c.address.districtCode ?? '',
+        subDistrictCode: c.address.subDistrictCode ?? '',
       },
     },
   });
@@ -79,6 +83,7 @@ export function SettingsView() {
           taxId: normalizeTaxId(v.taxId),
           branchNo: normalizeBranch5(v.branchNo),
           vatRegistered: v.vatRegistered,
+          sbtRegistered: v.sbtRegistered || undefined,
           rdUserId: clean(v.rdUserId),
           email: clean(v.email),
           phone: clean(v.phone),
@@ -136,6 +141,11 @@ export function SettingsView() {
                   <Field.Text name="taxId" label="เลขประจำตัวผู้เสียภาษี 13 หลัก" size="small" />
                   <Field.Text name="branchNo" label="สาขา (00000 = สำนักงานใหญ่)" size="small" />
                   <Field.Switch name="vatRegistered" label="จดทะเบียนภาษีมูลค่าเพิ่ม" />
+                  <Field.Switch
+                    name="sbtRegistered"
+                    label="จดทะเบียนภาษีธุรกิจเฉพาะ (SBT)"
+                    helperText="ไฟล์ ภ.ง.ด. ช่อง BRANCH_TYPE: จด VAT = V, จด SBT อย่างเดียว = S"
+                  />
                   <Field.Text
                     name="rdUserId"
                     label="รหัสผู้ใช้ e-Filing"
@@ -154,10 +164,7 @@ export function SettingsView() {
                   <Field.Text name="address.village" label="อาคาร / หมู่บ้าน" size="small" />
                   <Field.Text name="address.soi" label="ซอย" size="small" />
                   <Field.Text name="address.street" label="ถนน" size="small" />
-                  <Field.Text name="address.subDistrict" label="ตำบล / แขวง" size="small" />
-                  <Field.Text name="address.district" label="อำเภอ / เขต" size="small" />
-                  <Field.Text name="address.province" label="จังหวัด" size="small" />
-                  <Field.Text name="address.postalCode" label="รหัสไปรษณีย์" size="small" />
+                  <ThaiAddressFields name="address" />
                 </Box>
                 {isOwner ? (
                   <Stack alignItems="flex-end" sx={{ mt: 3 }}>

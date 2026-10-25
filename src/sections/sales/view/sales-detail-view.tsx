@@ -34,6 +34,7 @@ import {
   formatThaiDate,
   customerCreditOf,
   isServiceInvoice,
+  adjustmentReasonDisplay,
 } from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
@@ -99,7 +100,8 @@ export function SalesDetailView() {
   const isTax = isTaxDocument(doc);
   const title = salesDocTitle(doc);
   const overdue = isInvoice && outstanding > 0 && doc.dueDate < todayISO();
-  const etaxProblems = eTaxReadiness(data.company, buyer);
+  // เอกสารที่ออกแล้ว: XML ใช้ snapshot ผู้ขาย/ผู้ซื้อ ณ วันออก
+  const etaxProblems = eTaxReadiness(doc.seller ?? data.company, buyer, doc.buyer?.address);
   const showETax = isTax && doc.etax !== 'not-required';
   const service = isServiceInvoice(doc);
   const deferredVat = service ? deferredVatOf(data, doc) : 0;
@@ -300,7 +302,8 @@ export function SalesDetailView() {
                           {c.docNo}
                         </Typography>
                         <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                          {formatThaiDate(c.date)} · {c.reason}
+                          {formatThaiDate(c.date)} ·{' '}
+                          {adjustmentReasonDisplay({ kind: c.kind === 'debit-note' ? 'debit-note' : 'credit-note', reasonCode: c.reasonCode, reason: c.reason })}
                         </Typography>
                       </div>
                       <Money value={calcDocument(c).total * salesSign(c)} signed />

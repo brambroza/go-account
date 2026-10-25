@@ -7,6 +7,7 @@ import {
   PurchaseSchema,
   TransferSchema,
   CloseYearSchema,
+  CreditNoteSchema,
   makeRefundSchema,
   makeReceiptSchema,
   SalesInvoiceSchema,
@@ -78,6 +79,26 @@ describe('form schemas', () => {
     const company = { name: 'บ', taxId: '1101700230708', branchNo: '00000', vatRegistered: true, address: {} };
     expect(CompanySchema.safeParse(company).success).toBe(true);
     expect(CompanySchema.safeParse({ ...company, branchNo: 'HQ' }).success).toBe(false);
+  });
+
+  it('keeps TIS 1099 address codes and the SBT flag (fields not in the schema are dropped on submit)', () => {
+    const codes = { province: 'กรุงเทพมหานคร', provinceCode: '10', districtCode: '1047', subDistrictCode: '104703', postalCode: '10260' };
+    const contact = { code: 'C1', kind: 'customer', legalForm: 'juristic', title: '', name: 'A', creditDays: 0, address: codes };
+    const parsed = ContactSchema.safeParse(contact);
+    expect(parsed.success && parsed.data.address).toEqual(codes);
+    const company = { name: 'บ', taxId: '1101700230708', branchNo: '00000', vatRegistered: false, sbtRegistered: true, address: codes };
+    const c = CompanySchema.safeParse(company);
+    expect(c.success && c.data).toMatchObject({ sbtRegistered: true, address: codes });
+  });
+
+  it('requires credit/debit note reason text only for the "other" (…99) ETDA code', () => {
+    const base = { date: '2026-10-24', lines: [line] };
+    expect(CreditNoteSchema.safeParse({ ...base, reasonCode: 'CDNG02', reason: '' }).success).toBe(true);
+    expect(CreditNoteSchema.safeParse({ ...base, reasonCode: 'CDNG99', reason: ' ' }).success).toBe(false);
+    expect(CreditNoteSchema.safeParse({ ...base, reason: '' }).success).toBe(false);
+    expect(CreditNoteSchema.safeParse({ ...base, reasonCode: 'DBNS99', reason: 'ค่าขนส่ง' }).success).toBe(true);
+    const parsed = CreditNoteSchema.safeParse({ ...base, reasonCode: 'CDNG05', reason: 'กล่องบุบ' });
+    expect(parsed.success && parsed.data.reasonCode).toBe('CDNG05');
   });
 });
 
