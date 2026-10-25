@@ -11,6 +11,8 @@ import { MobileDateTimePicker } from '@mui/x-date-pickers/MobileDateTimePicker';
 
 import { formatStr } from 'src/utils/format-time';
 
+import { PICKER_DATE_FORMAT } from 'src/locales/buddhist-era';
+
 // ----------------------------------------------------------------------
 
 type RHFDatePickerProps = DatePickerProps<Dayjs> & {
@@ -29,7 +31,8 @@ export function RHFDatePicker({ name, slotProps, ...other }: RHFDatePickerProps)
           {...field}
           value={dayjs(field.value)}
           onChange={(newValue) => field.onChange(dayjs(newValue).format('YYYY-MM-DDTHH:mm:ss.SSS'))}
-          format={formatStr.split.date}
+          // ปี พ.ศ. (24/10/2569) — ค่าที่ส่งเข้าฟอร์มยังเป็น ISO ค.ศ.
+          format={PICKER_DATE_FORMAT}
           slotProps={{
             textField: {
               fullWidth: true,

@@ -2,7 +2,7 @@ import { nextDocNo } from '../numbering';
 import { ACC , DEFAULT_ACCOUNTS } from '../chart-of-accounts';
 import { bucketOf, trialBalance, profitAndLoss } from '../ledger';
 import { pp30Summary, vatReportCsv, salesVatReport, purchaseVatReport } from '../vat-report';
-import { toRdDate, shiftPeriod, docPeriodCode, filingDueDates, formatThaiDate } from '../thai-date';
+import { toRdDate, shiftPeriod, docPeriodCode, filingDueDates, formatThaiDate, FILING_EXTENSIONS, STATUTORY_DUE_DAYS } from '../thai-date';
 import { entryTotals, postReceipt, postPurchase, postCreditNote, postSalesInvoice, buildManualEntry, postPurchasePayment, UnbalancedEntryError } from '../posting';
 
 import type { Contact, SalesDoc, PurchaseDoc } from '../types';
@@ -65,15 +65,25 @@ const purchase: PurchaseDoc = {
   supplierInvoiceNo: 'INV-7788',
   date: '2026-10-18',
   contactId: 'v1',
-  lines: [{ id: 'l1', description: 'ค่าขนส่ง', qty: 1, unitPrice: 20000, discount: 0, accountCode: ACC.freight }],
+  supplierInvoiceDate: '2026-09-30',
+  vatClaimPeriod: '2026-10',
+  lines: [
+    {
+      id: 'l1',
+      description: 'ค่าขนส่ง',
+      qty: 1,
+      unitPrice: 20000,
+      discount: 0,
+      accountCode: ACC.freight,
+      whtIncomeType: 'ค่าขนส่ง',
+      whtRate: 1,
+    },
+  ],
   vatMode: 'exclusive',
   vatRate: 7,
   claimVat: true,
-  whtRate: 1,
-  whtIncomeType: 'ค่าขนส่ง',
   whtCondition: '1',
   paid: true,
-  paidDate: '2026-10-28',
   journalId: 'j3',
   createdAt: '2026-10-18T00:00:00Z',
 };
@@ -117,9 +127,12 @@ describe('posting engine', () => {
   it('posts purchase and payment with withholding payable', () => {
     const p = postPurchase(purchase, { id: 'j3', docNo: 'JV6910-0003' }, 'ขนส่งด่วน');
     expect(entryTotals(p.lines).debit).toBe(21400);
-    const pay = postPurchasePayment(purchase, { id: 'j5', docNo: 'JV6910-0005' }, 'ขนส่งด่วน', ACC.bank, '2026-10-28');
+    const pv = { id: 'pv1', docNo: 'PV6910-0001', date: '2026-10-28', amount: 21400, whtAmount: 200, accountCode: ACC.bank };
+    const pay = postPurchasePayment(pv, { id: 'j5', docNo: 'JV6910-0005' }, 'ขนส่งด่วน', purchase.docNo);
+    expect(pay.lines.find((l) => l.accountCode === ACC.payable)?.debit).toBe(21400);
     expect(pay.lines.find((l) => l.accountCode === ACC.bank)?.credit).toBe(21200);
     expect(pay.lines.find((l) => l.accountCode === ACC.whtPayable)?.credit).toBe(200);
+    expect([pay.date, pay.sourceId, pay.sourceDocNo]).toEqual(['2026-10-28', 'pv1', 'PV6910-0001']);
   });
 
   it('adds non-claimable VAT to the expense', () => {
@@ -143,7 +156,9 @@ describe('reports', () => {
     const sales = salesVatReport([invoice, creditNote], [customer], october);
     expect(sales.map((r) => r.vat)).toEqual([17570, -70]);
     const purchases = purchaseVatReport([purchase], [vendor], october);
-    expect(purchases[0].docNo).toBe('INV-7788');
+    // B3: เข้าเดือนที่ใช้สิทธิ แสดงวันที่ตามใบกำกับผู้ขาย + เลขที่ภายใน
+    expect(purchases[0]).toMatchObject({ docNo: 'INV-7788', date: '2026-09-30', refDocNo: 'PI6910-0001', recordedDate: '2026-10-18' });
+    expect(purchaseVatReport([purchase], [vendor], { year: 2026, month: 9 })).toEqual([]);
     const s = pp30Summary(sales, purchases);
     expect(s.outputVat).toBe(17500);
     expect(s.inputVat).toBe(1400);
@@ -184,7 +199,22 @@ describe('thai dates and numbering', () => {
   });
 
   it('computes filing due dates for the next month', () => {
-    expect(filingDueDates({ year: 2026, month: 12 })).toEqual({ wht: '2027-01-15', vat: '2027-01-23' });
+    // ประกาศขยายเวลาฉบับที่ 8 ครอบคลุมถึงงวด ธ.ค. 2569 (ยื่นได้ถึง 31 ม.ค. 2570)
+    expect(filingDueDates({ year: 2026, month: 12 })).toEqual({ wht: '2027-01-15', vat: '2027-01-23', dueDateSource: 'extension-8' });
+    expect(filingDueDates({ year: 2025, month: 2 })).toEqual({ wht: '2025-03-15', vat: '2025-03-23', dueDateSource: 'extension-8' });
     expect(shiftPeriod({ year: 2026, month: 1 }, -1)).toEqual({ year: 2025, month: 12 });
+  });
+
+  it('uses statutory due dates (7th / 15th) after the last announced extension, flagged for the UI to warn', () => {
+    expect(filingDueDates({ year: 2027, month: 1 })).toEqual({ wht: '2027-02-07', vat: '2027-02-15', dueDateSource: 'statutory' });
+    expect(filingDueDates({ year: 2027, month: 12 })).toEqual({ wht: '2028-01-07', vat: '2028-01-15', dueDateSource: 'statutory' });
+  });
+
+  it('reads the extension cutoff from data (a new announcement = a new row, not new logic)', () => {
+    const ext = [...FILING_EXTENSIONS, { ...FILING_EXTENSIONS[0], throughPeriod: '2027-06', reference: 'ฉบับใหม่' }];
+    expect(filingDueDates({ year: 2027, month: 6 }, ext)).toMatchObject({ wht: '2027-07-15', vat: '2027-07-23' });
+    expect(filingDueDates({ year: 2027, month: 7 }, ext).dueDateSource).toBe('statutory');
+    expect(filingDueDates({ year: 2026, month: 10 }, [])).toEqual({ wht: '2026-11-07', vat: '2026-11-15', dueDateSource: 'statutory' });
+    expect(STATUTORY_DUE_DAYS).toEqual({ wht: 7, vat: 15 });
   });
 });

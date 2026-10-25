@@ -39,6 +39,19 @@ function parts(date: ISODate) {
   return { y, m, d };
 }
 
+/** ช่วงปี ค.ศ. ที่ยอมรับ — ปีนอกช่วงนี้มักเป็น พ.ศ. ที่กรอกผิดช่อง (เช่น 2569-10-24) */
+export const MIN_YEAR = 2000;
+export const MAX_YEAR = 2100;
+
+/** ตรวจว่าเป็นวันที่ ISO `YYYY-MM-DD` (ค.ศ.) ที่มีอยู่จริงและอยู่ในช่วงปีที่สมเหตุสมผล */
+export function isValidISODate(value: unknown): value is ISODate {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const { y, m, d } = parts(value);
+  if (y < MIN_YEAR || y > MAX_YEAR) return false;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCFullYear() === y && dt.getUTCMonth() === m - 1 && dt.getUTCDate() === d;
+}
+
 export function toBE(yearAD: number): number {
   return yearAD + 543;
 }
@@ -107,18 +120,94 @@ export function diffDays(from: ISODate, to: ISODate): number {
   );
 }
 
+/** วันสุดท้ายของเดือนก่อนหน้า `today` เช่น 2026-10-24 → 2026-09-30 (เพดานวันปิดงวด) */
+export function endOfPreviousMonth(today: ISODate): ISODate {
+  return addDays(`${today.slice(0, 7)}-01`, -1);
+}
+
 export function todayISO(): ISODate {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
 }
 
+/** ที่มาของกำหนดยื่น: วันตามกฎหมาย (ประมวลรัษฎากร) หรือวันที่ขยายตามประกาศสำหรับการยื่นทางอินเทอร์เน็ต */
+export type FilingDueDateSource = 'statutory' | 'extension-8';
+
+/** ช่วงที่ประกาศขยายเวลายื่นทางอินเทอร์เน็ตมีผล — งวดภาษีถึง `throughPeriod` (`YYYY-MM`) ได้วันที่ขยาย */
+export type FilingExtension = {
+  source: Exclude<FilingDueDateSource, 'statutory'>;
+  throughPeriod: string;
+  /** ภ.ง.ด.1/2/3/53/54 */
+  whtDay: number;
+  /** ภ.พ.30 */
+  vatDay: number;
+  reference: string;
+};
+
+/** วันตามกฎหมาย (ยื่นแบบกระดาษ): หัก ณ ที่จ่ายภายในวันที่ 7 (ม.52, ม.59), ภ.พ.30 ภายในวันที่ 15 (ม.83) ของเดือนถัดไป */
+export const STATUTORY_DUE_DAYS = { wht: 7, vat: 15 } as const;
+
 /**
- * กำหนดยื่นแบบของงวด (ยื่นทางอินเทอร์เน็ต): ภ.ง.ด. วันที่ 15 และ ภ.พ.30 วันที่ 23 ของเดือนถัดไป
- * เป็นค่าที่ใช้อยู่ ณ ปี 2568 — การขยายเวลายื่นออนไลน์ประกาศเป็นรายปี ต้องทบทวนทุกปี
+ * ประกาศขยายเวลายื่นแบบทางอินเทอร์เน็ต (ข้อมูล ไม่ใช่ตรรกะ — มีประกาศใหม่ให้เพิ่มแถว) เรียงตาม `throughPeriod`
+ * ฉบับที่ 8: ยื่นทางอินเทอร์เน็ตได้ถึง 31 ม.ค. 2570 = งวดภาษีถึง ธ.ค. 2569 (2026-12) — แหล่ง: คู่มือขอคืน VAT ของกรมสรรพากร 2025
+ * (https://www.rd.go.th/fileadmin/user_upload/lorkhor/newspr/2025/vat_refund.pdf) ⚠️ ยังไม่ได้อ่านจากราชกิจจานุเบกษาโดยตรง
  */
-export function filingDueDates(period: Period): { wht: ISODate; vat: ISODate } {
+export const FILING_EXTENSIONS: readonly FilingExtension[] = [
+  {
+    source: 'extension-8',
+    throughPeriod: '2026-12',
+    whtDay: 15,
+    vatDay: 23,
+    reference: 'ประกาศกระทรวงการคลังเรื่องขยายเวลาการยื่นแบบทางอินเทอร์เน็ต (ฉบับที่ 8) ถึง 31 ม.ค. 2570',
+  },
+];
+
+/**
+ * กำหนดยื่นแบบของงวด (ยื่นทางอินเทอร์เน็ต): งวดที่ประกาศขยายเวลาครอบคลุม = วันที่ขยาย (ภ.ง.ด. 15 / ภ.พ.30 23)
+ * งวดหลังประกาศฉบับล่าสุด = วันตามกฎหมาย (7 / 15) พร้อม `dueDateSource: 'statutory'` ให้หน้าจอเตือนตรวจประกาศใหม่
+ */
+export function filingDueDates(
+  period: Period,
+  extensions: readonly FilingExtension[] = FILING_EXTENSIONS
+): { wht: ISODate; vat: ISODate; dueDateSource: FilingDueDateSource } {
   const next = shiftPeriod(period, 1);
   const ym = `${next.year}-${String(next.month).padStart(2, '0')}`;
-  return { wht: `${ym}-15`, vat: `${ym}-23` };
+  const key = `${period.year}-${String(period.month).padStart(2, '0')}`;
+  const ext = extensions.find((e) => key <= e.throughPeriod);
+  const day = (d: number) => `${ym}-${String(d).padStart(2, '0')}`;
+  if (ext) return { wht: day(ext.whtDay), vat: day(ext.vatDay), dueDateSource: ext.source };
+  return { wht: day(STATUTORY_DUE_DAYS.wht), vat: day(STATUTORY_DUE_DAYS.vat), dueDateSource: 'statutory' };
+}
+
+// ---------------- เดือนภาษี `YYYY-MM` ----------------
+
+/** `2026-10-24` → `2026-10` */
+export function monthKeyOf(date: ISODate): string {
+  return date.slice(0, 7);
+}
+
+/** `{ year: 2026, month: 10 }` → `2026-10` */
+export function periodKey(period: Period): string {
+  return `${period.year}-${String(period.month).padStart(2, '0')}`;
+}
+
+/** `2026-10` → `{ year: 2026, month: 10 }` */
+export function periodFromKey(key: string): Period {
+  return { year: Number(key.slice(0, 4)), month: Number(key.slice(5, 7)) };
+}
+
+/** รูปแบบเดือนภาษี `YYYY-MM` (ค.ศ.) ที่ถูกต้อง */
+export function isMonthKey(value: unknown): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}$/.test(value) && isValidISODate(`${value}-01`);
+}
+
+/** เลื่อนเดือน `2026-10` + 3 → `2027-01` */
+export function shiftMonthKey(key: string, delta: number): string {
+  return periodKey(shiftPeriod(periodFromKey(key), delta));
+}
+
+/** วันสิ้นเดือน `2026-02` → `2026-02-28` */
+export function endOfMonth(key: string): ISODate {
+  return addDays(`${shiftMonthKey(key, 1)}-01`, -1);
 }

@@ -1,0 +1,16 @@
+.git
+.github
+.claude
+.vscode
+.idea
+node_modules
+dist
+dist-preview
+coverage
+*.log
+.env
+.env.*
+!.env.example
+Dockerfile
+docs
+golden

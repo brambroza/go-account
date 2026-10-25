@@ -17,8 +17,9 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
-import { todayISO, calcDocument, formatThaiDate } from 'src/domain';
+import { CanWrite } from 'src/auth';
 import { outstandingOf, useAccounting, useContactLookup } from 'src/store';
+import { todayISO, salesSign, calcDocument, isTaxDocument, salesDocTitle, formatThaiDate } from 'src/domain';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -41,7 +42,7 @@ const TABS: { value: Filter; label: string }[] = [
   { value: 'open', label: 'รอรับชำระ' },
   { value: 'overdue', label: 'เกินกำหนด' },
   { value: 'paid', label: 'รับชำระแล้ว' },
-  { value: 'credit', label: 'ใบลดหนี้' },
+  { value: 'credit', label: 'ใบลด/เพิ่มหนี้' },
 ];
 
 const TABLE_HEAD = [
@@ -55,6 +56,7 @@ const TABLE_HEAD = [
   { id: 'etax', label: 'e-Tax' },
 ];
 
+/** ทะเบียนเอกสารขาย — ชื่อเอกสารตามสถานะ VAT ของเอกสาร (`salesDocTitle`) */
 export function SalesListView() {
   const router = useRouter();
   const { data } = useAccounting();
@@ -63,6 +65,7 @@ export function SalesListView() {
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const today = todayISO();
+  const { vatRegistered } = data.company;
 
   const rows = useMemo(
     () =>
@@ -74,7 +77,7 @@ export function SalesListView() {
           date: doc.date,
           dueDate: doc.dueDate,
           contact: contacts.name(doc.contactId),
-          total: calcDocument(doc).total * (doc.kind === 'credit-note' ? -1 : 1),
+          total: calcDocument(doc).total * salesSign(doc),
           outstanding,
           overdue: doc.kind === 'tax-invoice' && outstanding > 0 && doc.dueDate < today,
         };
@@ -88,7 +91,7 @@ export function SalesListView() {
       open: rows.filter((r) => r.outstanding > 0).length,
       overdue: rows.filter((r) => r.overdue).length,
       paid: rows.filter((r) => r.doc.status === 'paid').length,
-      credit: rows.filter((r) => r.doc.kind === 'credit-note').length,
+      credit: rows.filter((r) => r.doc.kind !== 'tax-invoice').length,
     }),
     [rows]
   );
@@ -101,7 +104,7 @@ export function SalesListView() {
         if (filter === 'open') return r.outstanding > 0;
         if (filter === 'overdue') return r.overdue;
         if (filter === 'paid') return r.doc.status === 'paid';
-        if (filter === 'credit') return r.doc.kind === 'credit-note';
+        if (filter === 'credit') return r.doc.kind !== 'tax-invoice';
         return true;
       })
       .filter((r) => !q || `${r.docNo} ${r.contact}`.toLowerCase().includes(q))
@@ -117,17 +120,14 @@ export function SalesListView() {
   return (
     <>
       <CustomBreadcrumbs
-        heading="ขาย / ใบกำกับภาษี"
+        heading={vatRegistered ? 'ขาย / ใบกำกับภาษี' : 'ขาย / ใบแจ้งหนี้'}
         links={[{ name: 'หน้าแรก', href: paths.dashboard }, { name: 'ขาย' }]}
         action={
-          <Button
-            component={RouterLink}
-            href={paths.sales.new}
-            variant="contained"
-            startIcon={<Iconify icon="mingcute:add-line" />}
-          >
-            ออกใบกำกับภาษี
-          </Button>
+          <CanWrite>
+            <Button component={RouterLink} href={paths.sales.new} variant="contained" startIcon={<Iconify icon="mingcute:add-line" />}>
+              {vatRegistered ? 'ออกใบกำกับภาษี' : 'ออกใบแจ้งหนี้'}
+            </Button>
+          </CanWrite>
         }
         sx={{ mb: { xs: 3, md: 4 } }}
       />
@@ -199,11 +199,9 @@ export function SalesListView() {
                     <Typography variant="subtitle2" component={RouterLink} href={paths.sales.view(r.doc.id)} sx={{ color: 'inherit' }}>
                       {r.docNo}
                     </Typography>
-                    {r.doc.kind === 'credit-note' && (
-                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                        ใบลดหนี้
-                      </Typography>
-                    )}
+                    <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                      {salesDocTitle(r.doc)}
+                    </Typography>
                   </TableCell>
                   <TableCell>{formatThaiDate(r.date)}</TableCell>
                   <TableCell sx={{ maxWidth: 260 }}>
@@ -224,7 +222,7 @@ export function SalesListView() {
                     {r.doc.kind === 'tax-invoice' ? <SalesStatusLabel status={r.doc.status} overdue={r.overdue} /> : null}
                   </TableCell>
                   <TableCell>
-                    <ETaxLabel status={r.doc.etax} />
+                    {isTaxDocument(r.doc) ? <ETaxLabel status={r.doc.etax} /> : '-'}
                   </TableCell>
                 </TableRow>
               ))}

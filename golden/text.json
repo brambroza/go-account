@@ -1,0 +1,351 @@
+{
+  "file": "text.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 48,
+  "vectors": [
+    {
+      "name": "normalizeInvoiceNo/0:\"INV-001\"",
+      "input": {
+        "value": "INV-001"
+      },
+      "output": "INV1"
+    },
+    {
+      "name": "normalizeInvoiceNo/1:\"ＩＮＶ－００１\"",
+      "input": {
+        "value": "ＩＮＶ－００１"
+      },
+      "output": "INV1"
+    },
+    {
+      "name": "normalizeInvoiceNo/2:\"INV　001\"",
+      "input": {
+        "value": "INV　001"
+      },
+      "output": "INV1"
+    },
+    {
+      "name": "normalizeInvoiceNo/3:\"INV-①②③\"",
+      "input": {
+        "value": "INV-①②③"
+      },
+      "output": "INV123"
+    },
+    {
+      "name": "normalizeInvoiceNo/4:\"㈱สยาม-12\"",
+      "input": {
+        "value": "㈱สยาม-12"
+      },
+      "output": "สยาม12"
+    },
+    {
+      "name": "normalizeInvoiceNo/5:\"ﬁle-0099\"",
+      "input": {
+        "value": "ﬁle-0099"
+      },
+      "output": "FILE99"
+    },
+    {
+      "name": "normalizeInvoiceNo/6:\"Ⅻ-5\"",
+      "input": {
+        "value": "Ⅻ-5"
+      },
+      "output": "XII5"
+    },
+    {
+      "name": "normalizeInvoiceNo/7:\"½-2\"",
+      "input": {
+        "value": "½-2"
+      },
+      "output": "122"
+    },
+    {
+      "name": "normalizeInvoiceNo/8:\"No.²³\"",
+      "input": {
+        "value": "No.²³"
+      },
+      "output": "NO23"
+    },
+    {
+      "name": "normalizeInvoiceNo/9:\"№ 7\"",
+      "input": {
+        "value": "№ 7"
+      },
+      "output": "NO7"
+    },
+    {
+      "name": "normalizeInvoiceNo/10:\"ｶﾀｶﾅ-1\"",
+      "input": {
+        "value": "ｶﾀｶﾅ-1"
+      },
+      "output": "1"
+    },
+    {
+      "name": "normalizeInvoiceNo/11:\"straße-01\"",
+      "input": {
+        "value": "straße-01"
+      },
+      "output": "STRASSE1"
+    },
+    {
+      "name": "normalizeInvoiceNo/12:\"ǰob-1\"",
+      "input": {
+        "value": "ǰob-1"
+      },
+      "output": "JOB1"
+    },
+    {
+      "name": "normalizeInvoiceNo/13:\"ﬀ-0\"",
+      "input": {
+        "value": "ﬀ-0"
+      },
+      "output": "FF0"
+    },
+    {
+      "name": "normalizeInvoiceNo/14:\"İstanbul-1\"",
+      "input": {
+        "value": "İstanbul-1"
+      },
+      "output": "STANBUL1"
+    },
+    {
+      "name": "normalizeInvoiceNo/15:\"ıi-1\"",
+      "input": {
+        "value": "ıi-1"
+      },
+      "output": "II1"
+    },
+    {
+      "name": "normalizeInvoiceNo/16:\"INV-๐๑๒\"",
+      "input": {
+        "value": "INV-๐๑๒"
+      },
+      "output": "INV12"
+    },
+    {
+      "name": "normalizeInvoiceNo/17:\"ใบกำกับ ๑/๒๕๖๙\"",
+      "input": {
+        "value": "ใบกำกับ ๑/๒๕๖๙"
+      },
+      "output": "ใบกํากับ12569"
+    },
+    {
+      "name": "normalizeInvoiceNo/18:\"A​B-0010\"",
+      "input": {
+        "value": "A​B-0010"
+      },
+      "output": "AB10"
+    },
+    {
+      "name": "normalizeInvoiceNo/19:\"Ａ－ＢＣ／００１\"",
+      "input": {
+        "value": "Ａ－ＢＣ／００１"
+      },
+      "output": "ABC1"
+    },
+    {
+      "name": "normalizeInvoiceNo/20:\"ⓐⓑ-①⓪\"",
+      "input": {
+        "value": "ⓐⓑ-①⓪"
+      },
+      "output": "AB10"
+    },
+    {
+      "name": "normalizeInvoiceNo/21:\"\"",
+      "input": {
+        "value": ""
+      },
+      "output": ""
+    },
+    {
+      "name": "csvCell/0:\"ปกติ\"",
+      "input": {
+        "value": "ปกติ"
+      },
+      "output": "\"ปกติ\""
+    },
+    {
+      "name": "csvCell/1:\"=SUM(A1)\"",
+      "input": {
+        "value": "=SUM(A1)"
+      },
+      "output": "\"'=SUM(A1)\""
+    },
+    {
+      "name": "csvCell/2:\"+66\"",
+      "input": {
+        "value": "+66"
+      },
+      "output": "\"'+66\""
+    },
+    {
+      "name": "csvCell/3:\"-5\"",
+      "input": {
+        "value": "-5"
+      },
+      "output": "\"'-5\""
+    },
+    {
+      "name": "csvCell/4:\"@x\"",
+      "input": {
+        "value": "@x"
+      },
+      "output": "\"'@x\""
+    },
+    {
+      "name": "csvCell/5:\"\\t=1\"",
+      "input": {
+        "value": "\t=1"
+      },
+      "output": "\"'\t=1\""
+    },
+    {
+      "name": "csvCell/6:\"\\r=1\"",
+      "input": {
+        "value": "\r=1"
+      },
+      "output": "\"'\r=1\""
+    },
+    {
+      "name": "csvCell/7:\" =1\"",
+      "input": {
+        "value": " =1"
+      },
+      "output": "\"' =1\""
+    },
+    {
+      "name": "csvCell/8:\" =1\"",
+      "input": {
+        "value": " =1"
+      },
+      "output": "\"' =1\""
+    },
+    {
+      "name": "csvCell/9:\"​+1\"",
+      "input": {
+        "value": "​+1"
+      },
+      "output": "\"'​+1\""
+    },
+    {
+      "name": "csvCell/10:\"＝HYPERLINK(\\\"x\\\")\"",
+      "input": {
+        "value": "＝HYPERLINK(\"x\")"
+      },
+      "output": "\"'＝HYPERLINK(\"\"x\"\")\""
+    },
+    {
+      "name": "csvCell/11:\"﹦1\"",
+      "input": {
+        "value": "﹦1"
+      },
+      "output": "\"'﹦1\""
+    },
+    {
+      "name": "csvCell/12:\"＋1\"",
+      "input": {
+        "value": "＋1"
+      },
+      "output": "\"'＋1\""
+    },
+    {
+      "name": "csvCell/13:\"－1\"",
+      "input": {
+        "value": "－1"
+      },
+      "output": "\"'－1\""
+    },
+    {
+      "name": "csvCell/14:\"＠x\"",
+      "input": {
+        "value": "＠x"
+      },
+      "output": "\"'＠x\""
+    },
+    {
+      "name": "csvCell/15:\"มี \\\"อัญประกาศ\\\"\"",
+      "input": {
+        "value": "มี \"อัญประกาศ\""
+      },
+      "output": "\"มี \"\"อัญประกาศ\"\"\""
+    },
+    {
+      "name": "csvCell/16:\"ﬁ\"",
+      "input": {
+        "value": "ﬁ"
+      },
+      "output": "\"ﬁ\""
+    },
+    {
+      "name": "csvCell/17:\"\"",
+      "input": {
+        "value": ""
+      },
+      "output": "\"\""
+    },
+    {
+      "name": "sanitizeRdText/0:\"918/288 \\\"A&B\\\", #1\"",
+      "input": {
+        "maxLength": 100,
+        "value": "918/288 \"A&B\", #1"
+      },
+      "output": "918-288 A B 1"
+    },
+    {
+      "name": "sanitizeRdText/1:\"บริษัท “เอ” จำกัด\"",
+      "input": {
+        "maxLength": 100,
+        "value": "บริษัท “เอ” จำกัด"
+      },
+      "output": "บริษัท เอ จำกัด"
+    },
+    {
+      "name": "sanitizeRdText/2:\"ร้าน‘สมใจ’\"",
+      "input": {
+        "maxLength": 100,
+        "value": "ร้าน‘สมใจ’"
+      },
+      "output": "ร้าน สมใจ"
+    },
+    {
+      "name": "sanitizeRdText/3:\"“”‘’\"",
+      "input": {
+        "maxLength": 100,
+        "value": "“”‘’"
+      },
+      "output": ""
+    },
+    {
+      "name": "sanitizeRdText/4:\"a*b+c\\\\d!e$f%g#h@i\"",
+      "input": {
+        "maxLength": 100,
+        "value": "a*b+c\\d!e$f%g#h@i"
+      },
+      "output": "a b c d e f g h i"
+    },
+    {
+      "name": "sanitizeRdText/5:\"  หลาย   ช่อง\\tว่าง\\r\\n|ท่อ  \"",
+      "input": {
+        "maxLength": 100,
+        "value": "  หลาย   ช่อง\tว่าง\r\n|ท่อ  "
+      },
+      "output": "หลาย ช่อง ว่าง ท่อ"
+    },
+    {
+      "name": "sanitizeRdText/6:\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"",
+      "input": {
+        "maxLength": 40,
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      "output": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    {
+      "name": "sanitizeRdText/7:\"\"",
+      "input": {
+        "maxLength": 10,
+        "value": ""
+      },
+      "output": ""
+    }
+  ]
+}

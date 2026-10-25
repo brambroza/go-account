@@ -1,15 +1,18 @@
-import type { Contact, DocLine, AccountingData } from 'src/domain';
+import type { Contact, DocLine, PurchaseLine, AccountingData } from 'src/domain';
 
-import { ACC, addDays, todayISO, periodOf, shiftPeriod, DEFAULT_ACCOUNTS } from 'src/domain';
+import { ACC, addDays, todayISO, periodOf, shiftPeriod, DATA_VERSION, DEFAULT_ACCOUNTS, withAddressCodes } from 'src/domain';
 
 import {
   payPurchase,
   setETaxStatus,
+  saveQuotation,
   recordPurchase,
   receivePayment,
   issueCreditNote,
   issueTaxInvoice,
   addManualJournal,
+  updateBankAccount,
+  setQuotationStatus,
 } from './actions';
 
 // ----------------------------------------------------------------------
@@ -124,9 +127,20 @@ function line(description: string, qty: number, unitPrice: number, accountCode: 
   return { id: `seed-l${lineSeq}`, description, qty, unitPrice, discount: 0, accountCode };
 }
 
+/** บรรทัดเอกสารซื้อ — `wht` = [ประเภทเงินได้, อัตรา] (ไม่ส่ง = สินค้า ไม่หัก) */
+function pline(description: string, qty: number, unitPrice: number, accountCode: string, wht?: [string, number]): PurchaseLine {
+  return { ...line(description, qty, unitPrice, accountCode), whtIncomeType: wht?.[0] ?? '', whtRate: wht?.[1] ?? 0 };
+}
+
+/** ทะเบียนบัญชีเงินตั้งต้น: เงินฝากธนาคาร 1120 (ยังไม่ระบุธนาคาร) และเงินสดย่อย 1111 */
+export const DEFAULT_BANK_ACCOUNTS: AccountingData['bankAccounts'] = [
+  { accountCode: ACC.pettyCash, kind: 'petty-cash', bankName: 'เงินสดย่อยสำนักงาน', accountNo: '' },
+  { accountCode: ACC.bank, kind: 'bank', bankName: '', accountNo: '' },
+];
+
 export function emptyData(): AccountingData {
   return {
-    version: 1,
+    version: DATA_VERSION,
     company: {
       name: 'บริษัท สาธิต แมนูแฟคเจอริ่ง จำกัด',
       taxId: '0105562077778',
@@ -138,6 +152,9 @@ export function emptyData(): AccountingData {
         district: 'พระสมุทรเจดีย์',
         province: 'สมุทรปราการ',
         postalCode: '10290',
+        provinceCode: '11',
+        districtCode: '1105',
+        subDistrictCode: '110505',
       },
       email: 'account@demo.example',
       vatRegistered: true,
@@ -147,8 +164,38 @@ export function emptyData(): AccountingData {
     sales: [],
     receipts: [],
     purchases: [],
+    payments: [],
+    refunds: [],
+    vatCloses: [],
+    purchaseCredits: [],
+    supplierRefunds: [],
+    yearCloses: [],
+    bankAccounts: DEFAULT_BANK_ACCOUNTS,
+    transfers: [],
+    bankStatements: [],
+    bankMatches: [],
+    quotations: [],
     journal: [],
     sequences: {},
+  };
+}
+
+/**
+ * ข้อมูลว่างของบริษัทเดิม — คงข้อมูลบริษัท (ไม่รวมการปิดงวด) ผังบัญชี และผู้ติดต่อ ไว้ยกยอดมาจากระบบเดิม
+ * (ไม่มีเอกสาร/รายการบัญชี ตัวนับเลขที่เริ่มใหม่)
+ */
+export function blankCompanyData(from: AccountingData): AccountingData {
+  return {
+    ...emptyData(),
+    company: { ...from.company, lockedThrough: undefined },
+    accounts: from.accounts,
+    contacts: from.contacts,
+    // ทะเบียนบัญชีธนาคารคงไว้ (ผูกกับผังบัญชี) แต่เริ่มกระทบยอดใหม่
+    bankAccounts: from.bankAccounts.map((b) => {
+      const copy = { ...b };
+      delete copy.reconcileFrom;
+      return copy;
+    }),
   };
 }
 
@@ -161,7 +208,8 @@ export function buildDemoData(today: string = todayISO()): AccountingData {
     return `${p.year}-${String(p.month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   };
 
-  let s: AccountingData = { ...emptyData(), contacts: CONTACTS };
+  // ที่อยู่ตัวอย่างพิมพ์เป็นชื่อ — เติมรหัส TIS 1099 เหมือนบันทึกผ่านฟอร์ม (`saveContact`)
+  let s: AccountingData = { ...emptyData(), contacts: CONTACTS.map((c) => ({ ...c, address: withAddressCodes(c.address) })) };
   const due = (date: string, days = 30) => addDays(date, days);
 
   // ทุนเริ่มต้น
@@ -201,43 +249,42 @@ export function buildDemoData(today: string = todayISO()): AccountingData {
     depositAccountCode: ACC.bank,
   }).state;
 
-  s = recordPurchase(s, {
-    supplierInvoiceNo: 'TP-2025-1180',
-    date: ym(-1, 5),
-    contactId: 'v-resin',
-    vatMode: 'exclusive',
-    claimVat: true,
-    whtRate: 0,
-    whtIncomeType: '',
-    whtCondition: '1',
-    lines: [line('เม็ดพลาสติก PP เกรดฉีด', 4000, 52, ACC.cogs)],
-    payNow: { date: ym(-1, 20), accountCode: ACC.bank },
-  }).state;
-  s = recordPurchase(s, {
-    supplierInvoiceNo: 'EX-0931',
-    date: ym(-1, 15),
-    contactId: 'v-express',
-    vatMode: 'exclusive',
-    claimVat: true,
-    whtRate: 1,
-    whtIncomeType: 'ค่าขนส่ง',
-    whtCondition: '1',
-    lines: [line('ค่าขนส่งสินค้าไปลูกค้า', 1, 18000, ACC.freight)],
-    payNow: { date: ym(-1, 25), accountCode: ACC.bank },
-  }).state;
+  // บันทึก (PI) และจ่ายชำระ (PV) เรียงตามวันที่ — เลขที่ทั้งสองชุดต้องเรียงตามวันที่
   s = recordPurchase(s, {
     supplierInvoiceNo: '',
     date: ym(-1, 1),
     contactId: 'v-somsri',
     vatMode: 'none',
     claimVat: false,
-    whtRate: 5,
-    whtIncomeType: 'ค่าเช่าอาคาร',
     whtCondition: '1',
-    lines: [line('ค่าเช่าโกดังเก็บสินค้า', 1, 30000, ACC.rent)],
+    lines: [pline('ค่าเช่าโกดังเก็บสินค้า', 1, 30000, ACC.rent, ['ค่าเช่าอาคาร', 5])],
     payNow: { date: ym(-1, 5), accountCode: ACC.bank },
   }).state;
 
+  s = recordPurchase(s, {
+    supplierInvoiceNo: 'TP-2025-1180',
+    supplierInvoiceDate: ym(-1, 5),
+    vatClaimPeriod: ym(-1, 5).slice(0, 7),
+    date: ym(-1, 5),
+    contactId: 'v-resin',
+    vatMode: 'exclusive',
+    claimVat: true,
+    whtCondition: '1',
+    lines: [pline('เม็ดพลาสติก PP เกรดฉีด', 4000, 52, ACC.cogs)],
+    payNow: { date: ym(-1, 20), accountCode: ACC.bank },
+  }).state;
+  s = recordPurchase(s, {
+    supplierInvoiceNo: 'EX-0931',
+    supplierInvoiceDate: ym(-1, 15),
+    vatClaimPeriod: ym(-1, 15).slice(0, 7),
+    date: ym(-1, 15),
+    contactId: 'v-express',
+    vatMode: 'exclusive',
+    claimVat: true,
+    whtCondition: '1',
+    lines: [pline('ค่าขนส่งสินค้าไปลูกค้า', 1, 18000, ACC.freight, ['ค่าขนส่ง', 1])],
+    payNow: { date: ym(-1, 25), accountCode: ACC.bank },
+  }).state;
   // ---------------- เดือนนี้ ----------------
   r = issueTaxInvoice(s, {
     date: ym(0, 3),
@@ -290,30 +337,42 @@ export function buildDemoData(today: string = todayISO()): AccountingData {
     lines: [line('ชิ้นส่วนพลาสติกฉีด รุ่น PX-120 (คืน)', 100, 38)],
   }).state;
 
+  // บันทึก (PI) และจ่ายชำระ (PV/WT) เรียงตามวันที่
+  s = recordPurchase(s, {
+    supplierInvoiceNo: '',
+    date: ym(0, 1),
+    contactId: 'v-somsri',
+    vatMode: 'none',
+    claimVat: false,
+    whtCondition: '1',
+    lines: [pline('ค่าเช่าโกดังเก็บสินค้า', 1, 30000, ACC.rent, ['ค่าเช่าอาคาร', 5])],
+    payNow: { date: ym(0, 5), accountCode: ACC.bank },
+  }).state;
+
   s = recordPurchase(s, {
     supplierInvoiceNo: 'TP-2025-1302',
+    supplierInvoiceDate: ym(0, 6),
+    vatClaimPeriod: ym(0, 6).slice(0, 7),
     date: ym(0, 6),
     contactId: 'v-resin',
     vatMode: 'exclusive',
     claimVat: true,
-    whtRate: 0,
-    whtIncomeType: '',
     whtCondition: '1',
-    lines: [line('เม็ดพลาสติก PP เกรดฉีด', 6000, 52, ACC.cogs)],
+    lines: [pline('เม็ดพลาสติก PP เกรดฉีด', 6000, 52, ACC.cogs)],
   }).state; // ยังไม่จ่าย
 
-  s = recordPurchase(s, {
+  const express = recordPurchase(s, {
     supplierInvoiceNo: 'EX-1017',
+    supplierInvoiceDate: ym(0, 10),
+    vatClaimPeriod: ym(0, 10).slice(0, 7),
     date: ym(0, 10),
     contactId: 'v-express',
     vatMode: 'exclusive',
     claimVat: true,
-    whtRate: 1,
-    whtIncomeType: 'ค่าขนส่ง',
     whtCondition: '1',
-    lines: [line('ค่าขนส่งสินค้าไปลูกค้า', 1, 22000, ACC.freight)],
-    payNow: { date: ym(0, 18), accountCode: ACC.bank },
-  }).state;
+    lines: [pline('ค่าขนส่งสินค้าไปลูกค้า', 1, 22000, ACC.freight, ['ค่าขนส่ง', 1])],
+  });
+  s = express.state;
 
   const somchai = recordPurchase(s, {
     supplierInvoiceNo: '',
@@ -321,36 +380,42 @@ export function buildDemoData(today: string = todayISO()): AccountingData {
     contactId: 'v-somchai',
     vatMode: 'none',
     claimVat: false,
-    whtRate: 3,
-    whtIncomeType: 'ค่าบริการซ่อมเครื่องฉีด',
     whtCondition: '1',
-    lines: [line('ค่าซ่อมบำรุงเครื่องฉีดพลาสติก', 1, 15000, ACC.misc)],
+    lines: [pline('ค่าซ่อมบำรุงเครื่องฉีดพลาสติก', 1, 15000, ACC.misc, ['ค่าบริการซ่อมเครื่องฉีด', 3])],
   });
   s = somchai.state;
   s = payPurchase(s, { purchaseId: somchai.doc.id, date: ym(0, 16), accountCode: ACC.bank }).state;
-
-  s = recordPurchase(s, {
-    supplierInvoiceNo: '',
-    date: ym(0, 1),
-    contactId: 'v-somsri',
-    vatMode: 'none',
-    claimVat: false,
-    whtRate: 5,
-    whtIncomeType: 'ค่าเช่าอาคาร',
-    whtCondition: '1',
-    lines: [line('ค่าเช่าโกดังเก็บสินค้า', 1, 30000, ACC.rent)],
-    payNow: { date: ym(0, 5), accountCode: ACC.bank },
-  }).state;
+  s = payPurchase(s, { purchaseId: express.doc.id, date: ym(0, 18), accountCode: ACC.bank }).state;
 
   // สถานะ e-Tax: เอกสารเดือนก่อน ๆ นำส่งแล้ว เดือนนี้ลงนามแล้วบางส่วน
   const before = s.sales.filter((d) => d.date < ym(0, 1)).map((d) => d.id);
-  s = setETaxStatus(s, before, 'uploaded');
+  s = setETaxStatus(setETaxStatus(s, before, 'signed'), before, 'uploaded');
   const thisMonth = s.sales.filter((d) => d.date >= ym(0, 1));
   s = setETaxStatus(
     s,
     thisMonth.slice(0, 2).map((d) => d.id),
     'signed'
   );
+
+  // ทะเบียนธนาคาร + ใบเสนอราคา (ไม่ลงบัญชี — ตัวเลขทุกรายงานของข้อมูลตัวอย่างเท่าเดิม)
+  s = updateBankAccount(s, ACC.bank, { bankName: 'ธนาคารกสิกรไทย', accountNo: '123-4-56789-0', branch: 'บางนา' });
+  const qt = saveQuotation(s, {
+    date: ym(0, 2),
+    validDays: 30,
+    contactId: 'c-nakhon',
+    vatMode: 'exclusive',
+    lines: [line('ชิ้นส่วนพลาสติก รุ่น NK-9 (เสนอราคา)', 3000, 48.5), line('ค่าทำแม่พิมพ์', 1, 45000, ACC.service)],
+    note: 'ราคานี้รวมค่าขนส่งในเขตกรุงเทพฯ และปริมณฑล',
+  });
+  s = setQuotationStatus(qt.state, qt.quotation.id, 'sent');
+  s = saveQuotation(s, {
+    date: ym(0, 1),
+    validDays: 15,
+    contactId: 'c-thairung',
+    vatMode: 'exclusive',
+    saleType: 'service',
+    lines: [line('ค่าบริการฉีดขึ้นรูปตามแบบลูกค้า (รอบถัดไป)', 1, 92000, ACC.service)],
+  }).state;
 
   return s;
 }

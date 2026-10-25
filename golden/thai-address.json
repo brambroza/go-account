@@ -1,0 +1,1882 @@
+{
+  "file": "thai-address.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 80,
+  "vectors": [
+    {
+      "name": "constants/dataset",
+      "input": {},
+      "output": {
+        "bytes": 405368,
+        "districts": 928,
+        "provinces": 77,
+        "sha256": "1294b4dde49c341cb4e4976cfe75bef7425b5d8bfad666992045c1ef81e012b7",
+        "subDistricts": 7436
+      }
+    },
+    {
+      "name": "thaiProvinces/all",
+      "input": {},
+      "output": [
+        {
+          "code": "10",
+          "name": "กรุงเทพมหานคร"
+        },
+        {
+          "code": "11",
+          "name": "สมุทรปราการ"
+        },
+        {
+          "code": "12",
+          "name": "นนทบุรี"
+        },
+        {
+          "code": "13",
+          "name": "ปทุมธานี"
+        },
+        {
+          "code": "14",
+          "name": "พระนครศรีอยุธยา"
+        },
+        {
+          "code": "15",
+          "name": "อ่างทอง"
+        },
+        {
+          "code": "16",
+          "name": "ลพบุรี"
+        },
+        {
+          "code": "17",
+          "name": "สิงห์บุรี"
+        },
+        {
+          "code": "18",
+          "name": "ชัยนาท"
+        },
+        {
+          "code": "19",
+          "name": "สระบุรี"
+        },
+        {
+          "code": "20",
+          "name": "ชลบุรี"
+        },
+        {
+          "code": "21",
+          "name": "ระยอง"
+        },
+        {
+          "code": "22",
+          "name": "จันทบุรี"
+        },
+        {
+          "code": "23",
+          "name": "ตราด"
+        },
+        {
+          "code": "24",
+          "name": "ฉะเชิงเทรา"
+        },
+        {
+          "code": "25",
+          "name": "ปราจีนบุรี"
+        },
+        {
+          "code": "26",
+          "name": "นครนายก"
+        },
+        {
+          "code": "27",
+          "name": "สระแก้ว"
+        },
+        {
+          "code": "30",
+          "name": "นครราชสีมา"
+        },
+        {
+          "code": "31",
+          "name": "บุรีรัมย์"
+        },
+        {
+          "code": "32",
+          "name": "สุรินทร์"
+        },
+        {
+          "code": "33",
+          "name": "ศรีสะเกษ"
+        },
+        {
+          "code": "34",
+          "name": "อุบลราชธานี"
+        },
+        {
+          "code": "35",
+          "name": "ยโสธร"
+        },
+        {
+          "code": "36",
+          "name": "ชัยภูมิ"
+        },
+        {
+          "code": "37",
+          "name": "อำนาจเจริญ"
+        },
+        {
+          "code": "38",
+          "name": "บึงกาฬ"
+        },
+        {
+          "code": "39",
+          "name": "หนองบัวลำภู"
+        },
+        {
+          "code": "40",
+          "name": "ขอนแก่น"
+        },
+        {
+          "code": "41",
+          "name": "อุดรธานี"
+        },
+        {
+          "code": "42",
+          "name": "เลย"
+        },
+        {
+          "code": "43",
+          "name": "หนองคาย"
+        },
+        {
+          "code": "44",
+          "name": "มหาสารคาม"
+        },
+        {
+          "code": "45",
+          "name": "ร้อยเอ็ด"
+        },
+        {
+          "code": "46",
+          "name": "กาฬสินธุ์"
+        },
+        {
+          "code": "47",
+          "name": "สกลนคร"
+        },
+        {
+          "code": "48",
+          "name": "นครพนม"
+        },
+        {
+          "code": "49",
+          "name": "มุกดาหาร"
+        },
+        {
+          "code": "50",
+          "name": "เชียงใหม่"
+        },
+        {
+          "code": "51",
+          "name": "ลำพูน"
+        },
+        {
+          "code": "52",
+          "name": "ลำปาง"
+        },
+        {
+          "code": "53",
+          "name": "อุตรดิตถ์"
+        },
+        {
+          "code": "54",
+          "name": "แพร่"
+        },
+        {
+          "code": "55",
+          "name": "น่าน"
+        },
+        {
+          "code": "56",
+          "name": "พะเยา"
+        },
+        {
+          "code": "57",
+          "name": "เชียงราย"
+        },
+        {
+          "code": "58",
+          "name": "แม่ฮ่องสอน"
+        },
+        {
+          "code": "60",
+          "name": "นครสวรรค์"
+        },
+        {
+          "code": "61",
+          "name": "อุทัยธานี"
+        },
+        {
+          "code": "62",
+          "name": "กำแพงเพชร"
+        },
+        {
+          "code": "63",
+          "name": "ตาก"
+        },
+        {
+          "code": "64",
+          "name": "สุโขทัย"
+        },
+        {
+          "code": "65",
+          "name": "พิษณุโลก"
+        },
+        {
+          "code": "66",
+          "name": "พิจิตร"
+        },
+        {
+          "code": "67",
+          "name": "เพชรบูรณ์"
+        },
+        {
+          "code": "70",
+          "name": "ราชบุรี"
+        },
+        {
+          "code": "71",
+          "name": "กาญจนบุรี"
+        },
+        {
+          "code": "72",
+          "name": "สุพรรณบุรี"
+        },
+        {
+          "code": "73",
+          "name": "นครปฐม"
+        },
+        {
+          "code": "74",
+          "name": "สมุทรสาคร"
+        },
+        {
+          "code": "75",
+          "name": "สมุทรสงคราม"
+        },
+        {
+          "code": "76",
+          "name": "เพชรบุรี"
+        },
+        {
+          "code": "77",
+          "name": "ประจวบคีรีขันธ์"
+        },
+        {
+          "code": "80",
+          "name": "นครศรีธรรมราช"
+        },
+        {
+          "code": "81",
+          "name": "กระบี่"
+        },
+        {
+          "code": "82",
+          "name": "พังงา"
+        },
+        {
+          "code": "83",
+          "name": "ภูเก็ต"
+        },
+        {
+          "code": "84",
+          "name": "สุราษฎร์ธานี"
+        },
+        {
+          "code": "85",
+          "name": "ระนอง"
+        },
+        {
+          "code": "86",
+          "name": "ชุมพร"
+        },
+        {
+          "code": "90",
+          "name": "สงขลา"
+        },
+        {
+          "code": "91",
+          "name": "สตูล"
+        },
+        {
+          "code": "92",
+          "name": "ตรัง"
+        },
+        {
+          "code": "93",
+          "name": "พัทลุง"
+        },
+        {
+          "code": "94",
+          "name": "ปัตตานี"
+        },
+        {
+          "code": "95",
+          "name": "ยะลา"
+        },
+        {
+          "code": "96",
+          "name": "นราธิวาส"
+        }
+      ]
+    },
+    {
+      "name": "thaiDistricts/10",
+      "input": {
+        "provinceCode": "10"
+      },
+      "output": [
+        {
+          "code": "1001",
+          "name": "พระนคร",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1002",
+          "name": "ดุสิต",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1003",
+          "name": "หนองจอก",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1004",
+          "name": "บางรัก",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1005",
+          "name": "บางเขน",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1006",
+          "name": "บางกะปิ",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1007",
+          "name": "ปทุมวัน",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1008",
+          "name": "ป้อมปราบศัตรูพ่าย",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1009",
+          "name": "พระโขนง",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1010",
+          "name": "มีนบุรี",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1011",
+          "name": "ลาดกระบัง",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1012",
+          "name": "ยานนาวา",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1013",
+          "name": "สัมพันธวงศ์",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1014",
+          "name": "พญาไท",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1015",
+          "name": "ธนบุรี",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1016",
+          "name": "บางกอกใหญ่",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1017",
+          "name": "ห้วยขวาง",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1018",
+          "name": "คลองสาน",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1019",
+          "name": "ตลิ่งชัน",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1020",
+          "name": "บางกอกน้อย",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1021",
+          "name": "บางขุนเทียน",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1022",
+          "name": "ภาษีเจริญ",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1023",
+          "name": "หนองแขม",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1024",
+          "name": "ราษฎร์บูรณะ",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1025",
+          "name": "บางพลัด",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1026",
+          "name": "ดินแดง",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1027",
+          "name": "บึงกุ่ม",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1028",
+          "name": "สาทร",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1029",
+          "name": "บางซื่อ",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1030",
+          "name": "จตุจักร",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1031",
+          "name": "บางคอแหลม",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1032",
+          "name": "ประเวศ",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1033",
+          "name": "คลองเตย",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1034",
+          "name": "สวนหลวง",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1035",
+          "name": "จอมทอง",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1036",
+          "name": "ดอนเมือง",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1037",
+          "name": "ราชเทวี",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1038",
+          "name": "ลาดพร้าว",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1039",
+          "name": "วัฒนา",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1040",
+          "name": "บางแค",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1041",
+          "name": "หลักสี่",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1042",
+          "name": "สายไหม",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1043",
+          "name": "คันนายาว",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1044",
+          "name": "สะพานสูง",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1045",
+          "name": "วังทองหลาง",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1046",
+          "name": "คลองสามวา",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1047",
+          "name": "บางนา",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1048",
+          "name": "ทวีวัฒนา",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1049",
+          "name": "ทุ่งครุ",
+          "provinceCode": "10"
+        },
+        {
+          "code": "1050",
+          "name": "บางบอน",
+          "provinceCode": "10"
+        }
+      ]
+    },
+    {
+      "name": "thaiDistricts/11",
+      "input": {
+        "provinceCode": "11"
+      },
+      "output": [
+        {
+          "code": "1101",
+          "name": "เมืองสมุทรปราการ",
+          "provinceCode": "11"
+        },
+        {
+          "code": "1102",
+          "name": "บางบ่อ",
+          "provinceCode": "11"
+        },
+        {
+          "code": "1103",
+          "name": "บางพลี",
+          "provinceCode": "11"
+        },
+        {
+          "code": "1104",
+          "name": "พระประแดง",
+          "provinceCode": "11"
+        },
+        {
+          "code": "1105",
+          "name": "พระสมุทรเจดีย์",
+          "provinceCode": "11"
+        },
+        {
+          "code": "1106",
+          "name": "บางเสาธง",
+          "provinceCode": "11"
+        }
+      ]
+    },
+    {
+      "name": "thaiDistricts/50",
+      "input": {
+        "provinceCode": "50"
+      },
+      "output": [
+        {
+          "code": "5001",
+          "name": "เมืองเชียงใหม่",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5002",
+          "name": "จอมทอง",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5003",
+          "name": "แม่แจ่ม",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5004",
+          "name": "เชียงดาว",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5005",
+          "name": "ดอยสะเก็ด",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5006",
+          "name": "แม่แตง",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5007",
+          "name": "แม่ริม",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5008",
+          "name": "สะเมิง",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5009",
+          "name": "ฝาง",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5010",
+          "name": "แม่อาย",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5011",
+          "name": "พร้าว",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5012",
+          "name": "สันป่าตอง",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5013",
+          "name": "สันกำแพง",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5014",
+          "name": "สันทราย",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5015",
+          "name": "หางดง",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5016",
+          "name": "ฮอด",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5017",
+          "name": "ดอยเต่า",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5018",
+          "name": "อมก๋อย",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5019",
+          "name": "สารภี",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5020",
+          "name": "เวียงแหง",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5021",
+          "name": "ไชยปราการ",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5022",
+          "name": "แม่วาง",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5023",
+          "name": "แม่ออน",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5024",
+          "name": "ดอยหล่อ",
+          "provinceCode": "50"
+        },
+        {
+          "code": "5025",
+          "name": "กัลยาณิวัฒนา",
+          "provinceCode": "50"
+        }
+      ]
+    },
+    {
+      "name": "thaiDistricts/38",
+      "input": {
+        "provinceCode": "38"
+      },
+      "output": [
+        {
+          "code": "3801",
+          "name": "เมืองบึงกาฬ",
+          "provinceCode": "38"
+        },
+        {
+          "code": "3802",
+          "name": "พรเจริญ",
+          "provinceCode": "38"
+        },
+        {
+          "code": "3803",
+          "name": "โซ่พิสัย",
+          "provinceCode": "38"
+        },
+        {
+          "code": "3804",
+          "name": "เซกา",
+          "provinceCode": "38"
+        },
+        {
+          "code": "3805",
+          "name": "ปากคาด",
+          "provinceCode": "38"
+        },
+        {
+          "code": "3806",
+          "name": "บึงโขงหลง",
+          "provinceCode": "38"
+        },
+        {
+          "code": "3807",
+          "name": "ศรีวิไล",
+          "provinceCode": "38"
+        },
+        {
+          "code": "3808",
+          "name": "บุ่งคล้า",
+          "provinceCode": "38"
+        }
+      ]
+    },
+    {
+      "name": "thaiDistricts/99",
+      "input": {
+        "provinceCode": "99"
+      },
+      "output": []
+    },
+    {
+      "name": "thaiDistricts/",
+      "input": {
+        "provinceCode": ""
+      },
+      "output": []
+    },
+    {
+      "name": "thaiSubDistricts/1001",
+      "input": {
+        "districtCode": "1001"
+      },
+      "output": [
+        {
+          "code": "100101",
+          "districtCode": "1001",
+          "name": "พระบรมมหาราชวัง",
+          "postalCode": "10200"
+        },
+        {
+          "code": "100102",
+          "districtCode": "1001",
+          "name": "วังบูรพาภิรมย์",
+          "postalCode": "10200"
+        },
+        {
+          "code": "100103",
+          "districtCode": "1001",
+          "name": "วัดราชบพิธ",
+          "postalCode": "10200"
+        },
+        {
+          "code": "100104",
+          "districtCode": "1001",
+          "name": "สำราญราษฎร์",
+          "postalCode": "10200"
+        },
+        {
+          "code": "100105",
+          "districtCode": "1001",
+          "name": "ศาลเจ้าพ่อเสือ",
+          "postalCode": "10200"
+        },
+        {
+          "code": "100106",
+          "districtCode": "1001",
+          "name": "เสาชิงช้า",
+          "postalCode": "10200"
+        },
+        {
+          "code": "100107",
+          "districtCode": "1001",
+          "name": "บวรนิเวศ",
+          "postalCode": "10200"
+        },
+        {
+          "code": "100108",
+          "districtCode": "1001",
+          "name": "ตลาดยอด",
+          "postalCode": "10200"
+        },
+        {
+          "code": "100109",
+          "districtCode": "1001",
+          "name": "ชนะสงคราม",
+          "postalCode": "10200"
+        },
+        {
+          "code": "100110",
+          "districtCode": "1001",
+          "name": "บ้านพานถม",
+          "postalCode": "10200"
+        },
+        {
+          "code": "100111",
+          "districtCode": "1001",
+          "name": "บางขุนพรหม",
+          "postalCode": "10200"
+        },
+        {
+          "code": "100112",
+          "districtCode": "1001",
+          "name": "วัดสามพระยา",
+          "postalCode": "10200"
+        }
+      ]
+    },
+    {
+      "name": "thaiSubDistricts/1047",
+      "input": {
+        "districtCode": "1047"
+      },
+      "output": [
+        {
+          "code": "104702",
+          "districtCode": "1047",
+          "name": "บางนาเหนือ",
+          "postalCode": "10260"
+        },
+        {
+          "code": "104703",
+          "districtCode": "1047",
+          "name": "บางนาใต้",
+          "postalCode": "10260"
+        }
+      ]
+    },
+    {
+      "name": "thaiSubDistricts/1105",
+      "input": {
+        "districtCode": "1105"
+      },
+      "output": [
+        {
+          "code": "110501",
+          "districtCode": "1105",
+          "name": "นาเกลือ",
+          "postalCode": "10290"
+        },
+        {
+          "code": "110502",
+          "districtCode": "1105",
+          "name": "บ้านคลองสวน",
+          "postalCode": "10290"
+        },
+        {
+          "code": "110503",
+          "districtCode": "1105",
+          "name": "แหลมฟ้าผ่า",
+          "postalCode": "10290"
+        },
+        {
+          "code": "110504",
+          "districtCode": "1105",
+          "name": "ปากคลองบางปลากด",
+          "postalCode": "10290"
+        },
+        {
+          "code": "110505",
+          "districtCode": "1105",
+          "name": "ในคลองบางปลากด",
+          "postalCode": "10290"
+        }
+      ]
+    },
+    {
+      "name": "thaiSubDistricts/5001",
+      "input": {
+        "districtCode": "5001"
+      },
+      "output": [
+        {
+          "code": "500101",
+          "districtCode": "5001",
+          "name": "ศรีภูมิ",
+          "postalCode": "50200"
+        },
+        {
+          "code": "500102",
+          "districtCode": "5001",
+          "name": "พระสิงห์",
+          "postalCode": "50200"
+        },
+        {
+          "code": "500103",
+          "districtCode": "5001",
+          "name": "หายยา",
+          "postalCode": "50100"
+        },
+        {
+          "code": "500104",
+          "districtCode": "5001",
+          "name": "ช้างม่อย",
+          "postalCode": "50300"
+        },
+        {
+          "code": "500105",
+          "districtCode": "5001",
+          "name": "ช้างคลาน",
+          "postalCode": "50100"
+        },
+        {
+          "code": "500106",
+          "districtCode": "5001",
+          "name": "วัดเกต",
+          "postalCode": "50000"
+        },
+        {
+          "code": "500107",
+          "districtCode": "5001",
+          "name": "ช้างเผือก",
+          "postalCode": "50300"
+        },
+        {
+          "code": "500108",
+          "districtCode": "5001",
+          "name": "สุเทพ",
+          "postalCode": "50200"
+        },
+        {
+          "code": "500109",
+          "districtCode": "5001",
+          "name": "แม่เหียะ",
+          "postalCode": "50100"
+        },
+        {
+          "code": "500110",
+          "districtCode": "5001",
+          "name": "ป่าแดด",
+          "postalCode": "50100"
+        },
+        {
+          "code": "500111",
+          "districtCode": "5001",
+          "name": "หนองหอย",
+          "postalCode": "50000"
+        },
+        {
+          "code": "500112",
+          "districtCode": "5001",
+          "name": "ท่าศาลา",
+          "postalCode": "50000"
+        },
+        {
+          "code": "500113",
+          "districtCode": "5001",
+          "name": "หนองป่าครั่ง",
+          "postalCode": "50000"
+        },
+        {
+          "code": "500114",
+          "districtCode": "5001",
+          "name": "ฟ้าฮ่าม",
+          "postalCode": "50000"
+        },
+        {
+          "code": "500115",
+          "districtCode": "5001",
+          "name": "ป่าตัน",
+          "postalCode": "50300"
+        },
+        {
+          "code": "500116",
+          "districtCode": "5001",
+          "name": "สันผีเสื้อ",
+          "postalCode": "50300"
+        }
+      ]
+    },
+    {
+      "name": "thaiSubDistricts/9999",
+      "input": {
+        "districtCode": "9999"
+      },
+      "output": []
+    },
+    {
+      "name": "findSubDistrict/100101",
+      "input": {
+        "code": "100101"
+      },
+      "output": {
+        "code": "100101",
+        "districtCode": "1001",
+        "name": "พระบรมมหาราชวัง",
+        "postalCode": "10200"
+      }
+    },
+    {
+      "name": "findSubDistrict/850406",
+      "input": {
+        "code": "850406"
+      },
+      "output": {
+        "code": "850406",
+        "districtCode": "8504",
+        "name": "จ.ป.ร.",
+        "postalCode": "85110"
+      }
+    },
+    {
+      "name": "findSubDistrict/960101",
+      "input": {
+        "code": "960101"
+      },
+      "output": {
+        "code": "960101",
+        "districtCode": "9601",
+        "name": "บางนาค",
+        "postalCode": "96000"
+      }
+    },
+    {
+      "name": "findSubDistrict/000000",
+      "input": {
+        "code": "000000"
+      },
+      "output": null
+    },
+    {
+      "name": "normalizePlaceName/0:province:\" จังหวัด เชียงใหม่ \"",
+      "input": {
+        "level": "province",
+        "name": " จังหวัด เชียงใหม่ "
+      },
+      "output": "เชียงใหม่"
+    },
+    {
+      "name": "normalizePlaceName/1:province:\"จ.ระยอง\"",
+      "input": {
+        "level": "province",
+        "name": "จ.ระยอง"
+      },
+      "output": "ระยอง"
+    },
+    {
+      "name": "normalizePlaceName/2:province:\"กทม.\"",
+      "input": {
+        "level": "province",
+        "name": "กทม."
+      },
+      "output": "กทม."
+    },
+    {
+      "name": "normalizePlaceName/3:district:\"อำเภอเมืองระยอง\"",
+      "input": {
+        "level": "district",
+        "name": "อำเภอเมืองระยอง"
+      },
+      "output": "เมืองระยอง"
+    },
+    {
+      "name": "normalizePlaceName/4:district:\"อําเภอเมืองระยอง\"",
+      "input": {
+        "level": "district",
+        "name": "อําเภอเมืองระยอง"
+      },
+      "output": "เมืองระยอง"
+    },
+    {
+      "name": "normalizePlaceName/5:district:\"เขตบางนา\"",
+      "input": {
+        "level": "district",
+        "name": "เขตบางนา"
+      },
+      "output": "บางนา"
+    },
+    {
+      "name": "normalizePlaceName/6:district:\"อ. บางพลี\"",
+      "input": {
+        "level": "district",
+        "name": "อ. บางพลี"
+      },
+      "output": "บางพลี"
+    },
+    {
+      "name": "normalizePlaceName/7:district:\"กิ่งอำเภอเกาะช้าง\"",
+      "input": {
+        "level": "district",
+        "name": "กิ่งอำเภอเกาะช้าง"
+      },
+      "output": "เกาะช้าง"
+    },
+    {
+      "name": "normalizePlaceName/8:district:\"เขต\"",
+      "input": {
+        "level": "district",
+        "name": "เขต"
+      },
+      "output": "เขต"
+    },
+    {
+      "name": "normalizePlaceName/9:subDistrict:\"แขวงบางนาใต้\"",
+      "input": {
+        "level": "subDistrict",
+        "name": "แขวงบางนาใต้"
+      },
+      "output": "บางนาใต้"
+    },
+    {
+      "name": "normalizePlaceName/10:subDistrict:\"ต.บางกระสอ\"",
+      "input": {
+        "level": "subDistrict",
+        "name": "ต.บางกระสอ"
+      },
+      "output": "บางกระสอ"
+    },
+    {
+      "name": "normalizePlaceName/11:subDistrict:\"จ.ป.ร.\"",
+      "input": {
+        "level": "subDistrict",
+        "name": "จ.ป.ร."
+      },
+      "output": "จ.ป.ร."
+    },
+    {
+      "name": "normalizePlaceName/12:subDistrict:\"ตำบล บ้านเลน\"",
+      "input": {
+        "level": "subDistrict",
+        "name": "ตำบล บ้านเลน"
+      },
+      "output": "บ้านเลน"
+    },
+    {
+      "name": "normalizePlaceName/13:subDistrict:\"\"",
+      "input": {
+        "level": "subDistrict",
+        "name": ""
+      },
+      "output": ""
+    },
+    {
+      "name": "resolveAddressCodes/0",
+      "input": {
+        "address": {
+          "subDistrictCode": "104703"
+        }
+      },
+      "output": {
+        "districtCode": "1047",
+        "provinceCode": "10",
+        "subDistrictCode": "104703"
+      }
+    },
+    {
+      "name": "withAddressCodes/0",
+      "input": {
+        "address": {
+          "subDistrictCode": "104703"
+        }
+      },
+      "output": {
+        "districtCode": "1047",
+        "provinceCode": "10",
+        "subDistrictCode": "104703"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/1",
+      "input": {
+        "address": {
+          "district": "ผิด",
+          "districtCode": "1047",
+          "province": "ผิด",
+          "provinceCode": "10",
+          "subDistrict": "ผิด",
+          "subDistrictCode": "104703"
+        }
+      },
+      "output": {
+        "districtCode": "1047",
+        "provinceCode": "10",
+        "subDistrictCode": "104703"
+      }
+    },
+    {
+      "name": "withAddressCodes/1",
+      "input": {
+        "address": {
+          "district": "ผิด",
+          "districtCode": "1047",
+          "province": "ผิด",
+          "provinceCode": "10",
+          "subDistrict": "ผิด",
+          "subDistrictCode": "104703"
+        }
+      },
+      "output": {
+        "district": "ผิด",
+        "districtCode": "1047",
+        "province": "ผิด",
+        "provinceCode": "10",
+        "subDistrict": "ผิด",
+        "subDistrictCode": "104703"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/2",
+      "input": {
+        "address": {
+          "districtCode": "1047",
+          "subDistrict": "แขวงบางนาเหนือ"
+        }
+      },
+      "output": {
+        "districtCode": "1047",
+        "provinceCode": "10",
+        "subDistrictCode": "104702"
+      }
+    },
+    {
+      "name": "withAddressCodes/2",
+      "input": {
+        "address": {
+          "districtCode": "1047",
+          "subDistrict": "แขวงบางนาเหนือ"
+        }
+      },
+      "output": {
+        "districtCode": "1047",
+        "provinceCode": "10",
+        "subDistrict": "แขวงบางนาเหนือ",
+        "subDistrictCode": "104702"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/3",
+      "input": {
+        "address": {
+          "district": "พระสมุทรเจดีย์",
+          "provinceCode": "11",
+          "subDistrict": "ในคลองบางปลากด"
+        }
+      },
+      "output": {
+        "districtCode": "1105",
+        "provinceCode": "11",
+        "subDistrictCode": "110505"
+      }
+    },
+    {
+      "name": "withAddressCodes/3",
+      "input": {
+        "address": {
+          "district": "พระสมุทรเจดีย์",
+          "provinceCode": "11",
+          "subDistrict": "ในคลองบางปลากด"
+        }
+      },
+      "output": {
+        "district": "พระสมุทรเจดีย์",
+        "districtCode": "1105",
+        "provinceCode": "11",
+        "subDistrict": "ในคลองบางปลากด",
+        "subDistrictCode": "110505"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/4",
+      "input": {
+        "address": {
+          "district": "อำเภอพระสมุทรเจดีย์",
+          "province": "สมุทรปราการ",
+          "subDistrict": "ในคลองบางปลากด"
+        }
+      },
+      "output": {
+        "districtCode": "1105",
+        "provinceCode": "11",
+        "subDistrictCode": "110505"
+      }
+    },
+    {
+      "name": "withAddressCodes/4",
+      "input": {
+        "address": {
+          "district": "อำเภอพระสมุทรเจดีย์",
+          "province": "สมุทรปราการ",
+          "subDistrict": "ในคลองบางปลากด"
+        }
+      },
+      "output": {
+        "district": "อำเภอพระสมุทรเจดีย์",
+        "districtCode": "1105",
+        "province": "สมุทรปราการ",
+        "provinceCode": "11",
+        "subDistrict": "ในคลองบางปลากด",
+        "subDistrictCode": "110505"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/5",
+      "input": {
+        "address": {
+          "district": "เขตพระนคร",
+          "province": "กทม.",
+          "subDistrict": "แขวงพระบรมมหาราชวัง"
+        }
+      },
+      "output": {
+        "districtCode": "1001",
+        "provinceCode": "10",
+        "subDistrictCode": "100101"
+      }
+    },
+    {
+      "name": "withAddressCodes/5",
+      "input": {
+        "address": {
+          "district": "เขตพระนคร",
+          "province": "กทม.",
+          "subDistrict": "แขวงพระบรมมหาราชวัง"
+        }
+      },
+      "output": {
+        "district": "เขตพระนคร",
+        "districtCode": "1001",
+        "province": "กทม.",
+        "provinceCode": "10",
+        "subDistrict": "แขวงพระบรมมหาราชวัง",
+        "subDistrictCode": "100101"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/6",
+      "input": {
+        "address": {
+          "province": "กรุงเทพฯ"
+        }
+      },
+      "output": {
+        "provinceCode": "10"
+      }
+    },
+    {
+      "name": "withAddressCodes/6",
+      "input": {
+        "address": {
+          "province": "กรุงเทพฯ"
+        }
+      },
+      "output": {
+        "province": "กรุงเทพฯ",
+        "provinceCode": "10"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/7",
+      "input": {
+        "address": {
+          "district": "อ.เมือง",
+          "province": "นนทบุรี",
+          "subDistrict": "ต. บางกระสอ"
+        }
+      },
+      "output": {
+        "districtCode": "1201",
+        "provinceCode": "12",
+        "subDistrictCode": "120104"
+      }
+    },
+    {
+      "name": "withAddressCodes/7",
+      "input": {
+        "address": {
+          "district": "อ.เมือง",
+          "province": "นนทบุรี",
+          "subDistrict": "ต. บางกระสอ"
+        }
+      },
+      "output": {
+        "district": "อ.เมือง",
+        "districtCode": "1201",
+        "province": "นนทบุรี",
+        "provinceCode": "12",
+        "subDistrict": "ต. บางกระสอ",
+        "subDistrictCode": "120104"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/8",
+      "input": {
+        "address": {
+          "district": "เมือง",
+          "province": "จ.นนทบุรี",
+          "subDistrict": "บางกระสอ"
+        }
+      },
+      "output": {
+        "districtCode": "1201",
+        "provinceCode": "12",
+        "subDistrictCode": "120104"
+      }
+    },
+    {
+      "name": "withAddressCodes/8",
+      "input": {
+        "address": {
+          "district": "เมือง",
+          "province": "จ.นนทบุรี",
+          "subDistrict": "บางกระสอ"
+        }
+      },
+      "output": {
+        "district": "เมือง",
+        "districtCode": "1201",
+        "province": "จ.นนทบุรี",
+        "provinceCode": "12",
+        "subDistrict": "บางกระสอ",
+        "subDistrictCode": "120104"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/9",
+      "input": {
+        "address": {
+          "district": "บางพลี",
+          "province": "สมุทรปราการ",
+          "subDistrict": "ในคลองบางปลากด"
+        }
+      },
+      "output": {
+        "districtCode": "1103",
+        "provinceCode": "11"
+      }
+    },
+    {
+      "name": "withAddressCodes/9",
+      "input": {
+        "address": {
+          "district": "บางพลี",
+          "province": "สมุทรปราการ",
+          "subDistrict": "ในคลองบางปลากด"
+        }
+      },
+      "output": {
+        "district": "บางพลี",
+        "districtCode": "1103",
+        "province": "สมุทรปราการ",
+        "provinceCode": "11",
+        "subDistrict": "ในคลองบางปลากด"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/10",
+      "input": {
+        "address": {
+          "district": "บางนา",
+          "province": "กรุงเทพมหานคร",
+          "subDistrict": "บางนา"
+        }
+      },
+      "output": {
+        "districtCode": "1047",
+        "provinceCode": "10"
+      }
+    },
+    {
+      "name": "withAddressCodes/10",
+      "input": {
+        "address": {
+          "district": "บางนา",
+          "province": "กรุงเทพมหานคร",
+          "subDistrict": "บางนา"
+        }
+      },
+      "output": {
+        "district": "บางนา",
+        "districtCode": "1047",
+        "province": "กรุงเทพมหานคร",
+        "provinceCode": "10",
+        "subDistrict": "บางนา"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/11",
+      "input": {
+        "address": {
+          "district": "เมืองระยอง",
+          "province": "ระยอง",
+          "subDistrict": "มาบตาพุด",
+          "subDistrictCode": "999999"
+        }
+      },
+      "output": {
+        "districtCode": "2101",
+        "provinceCode": "21",
+        "subDistrictCode": "210114"
+      }
+    },
+    {
+      "name": "withAddressCodes/11",
+      "input": {
+        "address": {
+          "district": "เมืองระยอง",
+          "province": "ระยอง",
+          "subDistrict": "มาบตาพุด",
+          "subDistrictCode": "999999"
+        }
+      },
+      "output": {
+        "district": "เมืองระยอง",
+        "districtCode": "2101",
+        "province": "ระยอง",
+        "provinceCode": "21",
+        "subDistrict": "มาบตาพุด",
+        "subDistrictCode": "210114"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/12",
+      "input": {
+        "address": {
+          "districtCode": "9999",
+          "provinceCode": "21"
+        }
+      },
+      "output": {
+        "provinceCode": "21"
+      }
+    },
+    {
+      "name": "withAddressCodes/12",
+      "input": {
+        "address": {
+          "districtCode": "9999",
+          "provinceCode": "21"
+        }
+      },
+      "output": {
+        "provinceCode": "21"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/13",
+      "input": {
+        "address": {
+          "province": "เชียงใหม่",
+          "provinceCode": "99"
+        }
+      },
+      "output": {
+        "provinceCode": "50"
+      }
+    },
+    {
+      "name": "withAddressCodes/13",
+      "input": {
+        "address": {
+          "province": "เชียงใหม่",
+          "provinceCode": "99"
+        }
+      },
+      "output": {
+        "province": "เชียงใหม่",
+        "provinceCode": "50"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/14",
+      "input": {
+        "address": {
+          "district": "เมือง",
+          "province": "ไม่มีจังหวัดนี้"
+        }
+      },
+      "output": {}
+    },
+    {
+      "name": "withAddressCodes/14",
+      "input": {
+        "address": {
+          "district": "เมือง",
+          "province": "ไม่มีจังหวัดนี้"
+        }
+      },
+      "output": {
+        "district": "เมือง",
+        "province": "ไม่มีจังหวัดนี้"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/15",
+      "input": {
+        "address": {
+          "district": "เมืองบึงกาฬ",
+          "province": "บึงกาฬ"
+        }
+      },
+      "output": {
+        "districtCode": "3801",
+        "provinceCode": "38"
+      }
+    },
+    {
+      "name": "withAddressCodes/15",
+      "input": {
+        "address": {
+          "district": "เมืองบึงกาฬ",
+          "province": "บึงกาฬ"
+        }
+      },
+      "output": {
+        "district": "เมืองบึงกาฬ",
+        "districtCode": "3801",
+        "province": "บึงกาฬ",
+        "provinceCode": "38"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/16",
+      "input": {
+        "address": {
+          "district": "อ.เมือง",
+          "province": "นครศรีธรรมราช",
+          "subDistrict": "ในเมือง"
+        }
+      },
+      "output": {
+        "districtCode": "8001",
+        "provinceCode": "80",
+        "subDistrictCode": "800101"
+      }
+    },
+    {
+      "name": "withAddressCodes/16",
+      "input": {
+        "address": {
+          "district": "อ.เมือง",
+          "province": "นครศรีธรรมราช",
+          "subDistrict": "ในเมือง"
+        }
+      },
+      "output": {
+        "district": "อ.เมือง",
+        "districtCode": "8001",
+        "province": "นครศรีธรรมราช",
+        "provinceCode": "80",
+        "subDistrict": "ในเมือง",
+        "subDistrictCode": "800101"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/17",
+      "input": {
+        "address": {
+          "district": "อําเภอเมืองระยอง",
+          "province": "ระยอง"
+        }
+      },
+      "output": {
+        "districtCode": "2101",
+        "provinceCode": "21"
+      }
+    },
+    {
+      "name": "withAddressCodes/17",
+      "input": {
+        "address": {
+          "district": "อําเภอเมืองระยอง",
+          "province": "ระยอง"
+        }
+      },
+      "output": {
+        "district": "อําเภอเมืองระยอง",
+        "districtCode": "2101",
+        "province": "ระยอง",
+        "provinceCode": "21"
+      }
+    },
+    {
+      "name": "resolveAddressCodes/18",
+      "input": {
+        "address": {}
+      },
+      "output": {}
+    },
+    {
+      "name": "withAddressCodes/18",
+      "input": {
+        "address": {}
+      },
+      "output": {}
+    },
+    {
+      "name": "addressCodeProblem/0",
+      "input": {
+        "address": {}
+      },
+      "output": null
+    },
+    {
+      "name": "addressCodeProblem/1",
+      "input": {
+        "address": {
+          "districtCode": "1047",
+          "provinceCode": "10",
+          "subDistrictCode": "104703"
+        }
+      },
+      "output": null
+    },
+    {
+      "name": "addressCodeProblem/2",
+      "input": {
+        "address": {
+          "subDistrictCode": "104703"
+        }
+      },
+      "output": null
+    },
+    {
+      "name": "addressCodeProblem/3",
+      "input": {
+        "address": {
+          "districtCode": "1047"
+        }
+      },
+      "output": null
+    },
+    {
+      "name": "addressCodeProblem/4",
+      "input": {
+        "address": {
+          "provinceCode": "99"
+        }
+      },
+      "output": "รหัสจังหวัด/อำเภอ/ตำบลในที่อยู่ไม่ถูกต้อง — เลือกจากรายการใหม่"
+    },
+    {
+      "name": "addressCodeProblem/5",
+      "input": {
+        "address": {
+          "districtCode": "1099"
+        }
+      },
+      "output": "รหัสจังหวัด/อำเภอ/ตำบลในที่อยู่ไม่ถูกต้อง — เลือกจากรายการใหม่"
+    },
+    {
+      "name": "addressCodeProblem/6",
+      "input": {
+        "address": {
+          "subDistrictCode": "999999"
+        }
+      },
+      "output": "รหัสจังหวัด/อำเภอ/ตำบลในที่อยู่ไม่ถูกต้อง — เลือกจากรายการใหม่"
+    },
+    {
+      "name": "addressCodeProblem/7",
+      "input": {
+        "address": {
+          "districtCode": "1047",
+          "provinceCode": "11"
+        }
+      },
+      "output": "รหัสจังหวัด/อำเภอ/ตำบลในที่อยู่ไม่ถูกต้อง — เลือกจากรายการใหม่"
+    },
+    {
+      "name": "addressCodeProblem/8",
+      "input": {
+        "address": {
+          "provinceCode": "11",
+          "subDistrictCode": "104703"
+        }
+      },
+      "output": "รหัสจังหวัด/อำเภอ/ตำบลในที่อยู่ไม่ถูกต้อง — เลือกจากรายการใหม่"
+    },
+    {
+      "name": "addressCodeProblem/9",
+      "input": {
+        "address": {
+          "districtCode": "1001",
+          "subDistrictCode": "104703"
+        }
+      },
+      "output": "รหัสจังหวัด/อำเภอ/ตำบลในที่อยู่ไม่ถูกต้อง — เลือกจากรายการใหม่"
+    },
+    {
+      "name": "addressCodeProblem/10",
+      "input": {
+        "address": {
+          "provinceCode": ""
+        }
+      },
+      "output": "รหัสจังหวัด/อำเภอ/ตำบลในที่อยู่ไม่ถูกต้อง — เลือกจากรายการใหม่"
+    }
+  ]
+}

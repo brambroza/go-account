@@ -17,7 +17,8 @@
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "icons": "node scripts/build-icons.mjs",
-    "build:preview": "tsc && VITE_ROUTER=memory vite build --base=./ --outDir dist-preview"
+    "build:preview": "tsc && VITE_ROUTER=memory vite build --base=./ --outDir dist-preview",
+    "golden": "jest --coverage=false --roots \"<rootDir>/scripts\" --testMatch \"**/scripts/export-golden.ts\""
   },
   "dependencies": {
     "@emotion/cache": "^11.11.0",

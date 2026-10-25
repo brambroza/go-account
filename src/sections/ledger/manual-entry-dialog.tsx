@@ -1,5 +1,6 @@
 import type { JournalLine } from 'src/domain';
 
+import dayjs from 'dayjs';
 import { useState } from 'react';
 import { NumericFormat } from 'react-number-format';
 
@@ -14,14 +15,16 @@ import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
+import { cmd, useAccounting } from 'src/store';
 import { sumBaht, todayISO, toSatang } from 'src/domain';
-import { useAccounting, addManualJournal } from 'src/store';
+import { PICKER_DATE_FORMAT } from 'src/locales/buddhist-era';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
-import { Money } from 'src/sections/shared';
+import { Money, LockedDateAlert } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
@@ -29,8 +32,9 @@ const empty = (): JournalLine => ({ accountCode: '', debit: 0, credit: 0 });
 
 type Props = { open: boolean; onClose: () => void };
 
+/** รายการปรับปรุง (JV) คีย์มือ — เดบิตต้องเท่าเครดิต, ห้ามลงบัญชีคุม (ตรวจที่ action) */
 export function ManualEntryDialog({ open, onClose }: Props) {
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const [date, setDate] = useState(todayISO());
   const [description, setDescription] = useState('');
   const [lines, setLines] = useState<JournalLine[]>([empty(), empty()]);
@@ -43,10 +47,10 @@ export function ManualEntryDialog({ open, onClose }: Props) {
   const update = (i: number, patch: Partial<JournalLine>) =>
     setLines((prev) => prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
 
-  const submit = () => {
+  const submit = async () => {
     try {
-      const r = run((s) =>
-        addManualJournal(s, {
+      const r = await run(
+        cmd.addManualJournal({
           date,
           description: description.trim(),
           lines: lines.filter((l) => l.accountCode && (l.debit || l.credit)),
@@ -67,13 +71,12 @@ export function ManualEntryDialog({ open, onClose }: Props) {
       <DialogContent>
         <Stack spacing={2} sx={{ pt: 1 }}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField
-              type="date"
-              size="small"
+            <DatePicker
               label="วันที่"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
+              value={dayjs(date)}
+              onChange={(v) => setDate(v && v.isValid() ? v.format('YYYY-MM-DD') : '')}
+              format={PICKER_DATE_FORMAT}
+              slotProps={{ textField: { size: 'small', sx: { minWidth: 180 } } }}
             />
             <TextField
               size="small"
@@ -84,6 +87,7 @@ export function ManualEntryDialog({ open, onClose }: Props) {
               placeholder="เช่น ปรับปรุงค่าเสื่อมราคาประจำเดือน"
             />
           </Stack>
+          <LockedDateAlert date={date} />
 
           {lines.map((l, i) => (
             <Stack key={i} direction="row" spacing={1} alignItems="center">
@@ -156,7 +160,7 @@ export function ManualEntryDialog({ open, onClose }: Props) {
         <Button variant="outlined" color="inherit" onClick={onClose}>
           ยกเลิก
         </Button>
-        <Button variant="contained" onClick={submit} disabled={!valid}>
+        <Button variant="contained" onClick={submit} disabled={!valid || busy}>
           บันทึก
         </Button>
       </DialogActions>

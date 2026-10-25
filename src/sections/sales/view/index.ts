@@ -1,3 +1,5 @@
+export * from './receipt-view';
+
 export * from './sales-new-view';
 
 export * from './sales-list-view';

@@ -1,7 +1,9 @@
+import type { QuotationVariance } from 'src/domain';
+import type { Theme, SxProps } from '@mui/material/styles';
 import type { SalesInvoiceSchemaType } from 'src/schemas/accounting/doc-schemas';
 
-import { useMemo, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import Box from '@mui/material/Box';
@@ -15,39 +17,109 @@ import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 
 import { paths } from 'src/routes/paths';
-import { useRouter } from 'src/routes/hooks';
+import { useRouter, useSearchParams } from 'src/routes/hooks';
+
+import { useBoolean } from 'src/hooks/use-boolean';
 
 import { SalesInvoiceSchema } from 'src/schemas/accounting/doc-schemas';
-import { useAccounting, issueTaxInvoice, useAccountLookup, useContactLookup } from 'src/store';
-import { ACC, addDays, todayISO, formatTaxId, branchLabel, calcDocument, eTaxReadiness } from 'src/domain';
+import { cmd, uid, useAccounting, useAccountLookup, useContactLookup } from 'src/store';
+import {
+  ACC,
+  addDays,
+  VAT_RATE,
+  todayISO,
+  toSatang,
+  periodOf,
+  formatTaxId,
+  branchLabel,
+  periodLabel,
+  calcDocument,
+  eTaxReadiness,
+  salesDocTitle,
+  formatThaiDate,
+  isValidISODate,
+  buyerTaxIdWarning,
+  quotationVariance,
+  quotationToSalesDraft,
+  quotationConvertProblem,
+} from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
+import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-import { newLine, TotalsSummary, DocLinesEditor } from 'src/sections/shared';
+import { ContactAutocomplete } from 'src/sections/shared/contact-autocomplete';
+import {
+  newLine,
+  TotalsSummary,
+  ConfirmSummary,
+  DocLinesEditor,
+  formKeyHandler,
+  LockedDateAlert,
+} from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
+/** ข้อความความต่างจากใบเสนอราคา (ยอดรวม, วิธีคิด VAT, รายบรรทัด) */
+function describeQuotationVariance(v: QuotationVariance): string[] {
+  const baht = (n: number) => n.toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const items: string[] = [];
+  if (toSatang(v.totalDiff) !== 0) {
+    items.push(`ยอดรวม ${baht(v.quotedTotal)} → ${baht(v.draftTotal)} (${v.totalDiff > 0 ? '+' : ''}${baht(v.totalDiff)} บาท)`);
+  }
+  if (v.vatModeChanged) items.push('เปลี่ยนวิธีคิด VAT จากใบเสนอราคา');
+  v.lines.forEach((l) => {
+    const name = `รายการที่ ${l.index + 1}${l.description ? ` (${l.description})` : ''}`;
+    if (l.kind === 'added') items.push(`${name}: เพิ่มใหม่ ${baht(l.draft ?? 0)}`);
+    else if (l.kind === 'removed') items.push(`${name}: ตัดออก (เสนอ ${baht(l.quoted ?? 0)})`);
+    else items.push(`${name}: ${baht(l.quoted ?? 0)} → ${baht(l.draft ?? 0)}`);
+  });
+  return items;
+}
+
+function QuotationVarianceAlert({ docNo, items, sx }: { docNo: string; items: string[]; sx?: SxProps<Theme> }) {
+  return (
+    <Alert severity="warning" variant="outlined" sx={sx}>
+      ต่างจากใบเสนอราคา {docNo} — ตรวจว่าตกลงกับลูกค้าแล้ว (ออกได้)
+      <Box component="ul" sx={{ m: 0, mt: 0.5, pl: 2.5 }}>
+        {items.slice(0, 6).map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+        {items.length > 6 && <li>และอีก {items.length - 6} รายการ</li>}
+      </Box>
+    </Alert>
+  );
+}
+
+/** ฟอร์มออกใบกำกับภาษี (บริษัทจด VAT) หรือใบแจ้งหนี้ (ไม่จด VAT) — ยืนยันสรุปยอดก่อนออกเลขที่ */
 export function SalesNewView() {
   const router = useRouter();
-  const { data, run } = useAccounting();
+  const { data, run, busy } = useAccounting();
   const contacts = useContactLookup();
   const accounts = useAccountLookup();
-  const {vatRegistered} = data.company;
+  const { vatRegistered } = data.company;
+  const vatRate = vatRegistered ? VAT_RATE : 0;
+  const confirm = useBoolean();
+  const [pending, setPending] = useState<SalesInvoiceSchemaType | null>(null);
 
-  const customers = useMemo(() => data.contacts.filter((c) => c.kind !== 'vendor'), [data.contacts]);
   const today = todayISO();
+  // แปลงจากใบเสนอราคา (?quotation=<id>): คัดลอกลูกค้า ประเภทการขาย VAT หมายเหตุ และทุกบรรทัด — แก้ได้ก่อนออก
+  const params = useSearchParams();
+  const quotation = data.quotations.find((q) => q.id === params.get('quotation'));
+  const quotationProblem = quotation ? quotationConvertProblem(quotation, today) : null;
+  const [fromQuotation] = useState(() => (quotation && !quotationProblem ? quotationToSalesDraft(quotation, uid) : null));
 
   const methods = useForm<SalesInvoiceSchemaType>({
     resolver: zodResolver(SalesInvoiceSchema),
     defaultValues: {
-      contactId: '',
+      contactId: fromQuotation?.contactId ?? '',
+      saleType: fromQuotation?.saleType ?? 'goods',
       date: today,
       dueDate: addDays(today, 30),
-      vatMode: vatRegistered ? 'exclusive' : 'none',
-      note: '',
-      lines: [newLine(ACC.sales)],
+      vatMode: vatRegistered ? (fromQuotation?.vatMode ?? 'exclusive') : 'none',
+      note: fromQuotation?.note ?? '',
+      lines: fromQuotation?.lines ?? [newLine(ACC.sales)],
     },
   });
 
@@ -58,44 +130,82 @@ export function SalesNewView() {
     formState: { isSubmitting },
   } = methods;
 
-  const [contactId, date, vatMode, lines] = useWatch({ control, name: ['contactId', 'date', 'vatMode', 'lines'] });
+  const [contactId, date, vatMode, lines, saleType] = useWatch({
+    control,
+    name: ['contactId', 'date', 'vatMode', 'lines', 'saleType'],
+  });
+  const isService = saleType === 'service';
+  // งานบริการของบริษัทจด VAT: ใบแจ้งหนี้ (ไม่ใช่ใบกำกับภาษี) — ภาษีขายเกิดเมื่อรับชำระ
+  const isTaxInvoice = vatRegistered && !isService;
   const customer = contacts.get(contactId);
 
-  // วันครบกำหนดตามเครดิตเทอมของลูกค้า
+  // วันครบกำหนดตามเครดิตเทอมของลูกค้า — คำนวณเฉพาะเมื่อวันที่ครบและถูกต้อง
+  // (ระหว่างพิมพ์ด้วยคีย์บอร์ดค่าจะเป็น "Invalid Date" / ปีไม่ครบ ห้ามคำนวณ ไม่อย่างนั้นหน้าแตกและข้อมูลที่กรอกหาย)
   useEffect(() => {
-    if (customer && date) setValue('dueDate', addDays(date.slice(0, 10), customer.creditDays));
+    const iso = date?.slice(0, 10);
+    if (customer && isValidISODate(iso)) setValue('dueDate', addDays(iso, customer.creditDays));
   }, [customer, date, setValue]);
 
   const totals = useMemo(
-    () => calcDocument({ lines: lines ?? [], vatMode: vatMode ?? 'none', vatRate: vatRegistered ? 7 : 0 }),
-    [lines, vatMode, vatRegistered]
+    () => calcDocument({ lines: lines ?? [], vatMode: vatMode ?? 'none', vatRate }),
+    [lines, vatMode, vatRate]
   );
+  const docTitle = salesDocTitle({
+    kind: 'tax-invoice',
+    isTaxInvoice,
+    vatMode: vatMode ?? 'none',
+    saleType: isService ? 'service' : undefined,
+    vatRate,
+  });
+  const docShortTitle = isTaxInvoice ? 'ใบกำกับภาษี' : 'ใบแจ้งหนี้';
+
+  // D3: ออกจากใบเสนอราคา — เตือน (ไม่บล็อก) เมื่อยอด/รายการต่างจากที่เสนอ
+  const variance = useMemo(
+    () => (fromQuotation && quotation ? quotationVariance(quotation, { lines: lines ?? [], vatMode: vatMode ?? 'none' }) : null),
+    [fromQuotation, quotation, lines, vatMode]
+  );
+  const varianceItems = variance?.hasDifference ? describeQuotationVariance(variance) : [];
+  const showVat = vatRegistered && vatMode !== 'none';
 
   const readiness = customer && vatRegistered ? eTaxReadiness(data.company, customer) : [];
+  // ม.86/4: ใบกำกับเต็มรูปให้ลูกค้าที่ไม่มีเลขผู้เสียภาษี — เตือนอย่างเดียว (ลูกค้าบุคคลทั่วไปออกได้)
+  // งานบริการ: ใบเสร็จรับเงิน/ใบกำกับภาษีออกตอนรับเงิน จึงเตือนตั้งแต่ตอนนี้ด้วย
+  const buyerWarning = buyerTaxIdWarning(vatRegistered, customer);
+  const pendingBuyerWarning = pending ? buyerTaxIdWarning(vatRegistered, contacts.get(pending.contactId)) : null;
 
+  // ผ่าน validation แล้วเปิดสรุปให้ยืนยันก่อน — ออกแล้วแก้ไม่ได้
   const onSubmit = handleSubmit((values) => {
+    setPending(values);
+    confirm.onTrue();
+  });
+
+  const issue = async () => {
+    const values = pending;
+    if (!values) return;
     try {
-      const result = run((s) =>
-        issueTaxInvoice(s, {
-          contactId: values.contactId,
-          date: values.date.slice(0, 10),
-          dueDate: values.dueDate.slice(0, 10),
-          vatMode: values.vatMode,
-          note: values.note,
-          lines: values.lines.map((l) => ({ ...l, description: l.description.trim() })),
-        })
-      );
-      toast.success(`ออกใบกำกับภาษี ${result.doc.docNo} แล้ว`);
+      const input = {
+        saleType: values.saleType,
+        contactId: values.contactId,
+        date: values.date.slice(0, 10),
+        dueDate: values.dueDate.slice(0, 10),
+        vatMode: values.vatMode,
+        note: values.note,
+        lines: values.lines.map((l) => ({ ...l, description: l.description.trim() })),
+      };
+      const result = await run(fromQuotation && quotation ? cmd.issueFromQuotation(quotation.id, input) : cmd.issueTaxInvoice(input));
+      confirm.onFalse();
+      toast.success(`ออก${salesDocTitle(result.doc)} ${result.doc.docNo} แล้ว`);
       router.push(paths.sales.view(result.doc.id));
     } catch (error) {
+      confirm.onFalse();
       toast.error(error instanceof Error ? error.message : 'บันทึกไม่สำเร็จ');
     }
-  });
+  };
 
   return (
     <>
       <CustomBreadcrumbs
-        heading="ออกใบกำกับภาษี / ใบแจ้งหนี้"
+        heading={vatRegistered ? 'ออกใบกำกับภาษี / ใบแจ้งหนี้' : 'ออกใบแจ้งหนี้ / ใบเสร็จรับเงิน'}
         links={[
           { name: 'หน้าแรก', href: paths.dashboard },
           { name: 'ขาย', href: paths.sales.root },
@@ -104,9 +214,17 @@ export function SalesNewView() {
         sx={{ mb: { xs: 3, md: 4 } }}
       />
 
+      {quotation && (
+        <Alert severity={quotationProblem ? 'error' : 'info'} variant="outlined" sx={{ mb: 3 }}>
+          {quotationProblem
+            ? `${quotationProblem} — ออกเอกสารขายใหม่โดยไม่อ้างใบเสนอราคา`
+            : `คัดลอกรายการจากใบเสนอราคา ${quotation.docNo} แล้ว — ตรวจ/แก้ก่อนออก ออกแล้วใบเสนอราคาจะถูกล็อกเป็น "ออกเอกสารขายแล้ว" (ลูกค้าต้องตรงกับใบเสนอราคา)`}
+        </Alert>
+      )}
+
       <Form methods={methods} onSubmit={onSubmit}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} lg={8}>
+        <Grid container spacing={3} onKeyDown={formKeyHandler(onSubmit)}>
+          <Grid item xs={12} xl={8}>
             <Card>
               <CardHeader title="ลูกค้าและวันที่" />
               <Box
@@ -117,15 +235,34 @@ export function SalesNewView() {
                   gridTemplateColumns: { xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)' },
                 }}
               >
-                <Field.Select name="contactId" label="ลูกค้า" size="small" sx={{ gridColumn: { sm: 'span 2' } }}>
-                  {customers.map((c) => (
-                    <MenuItem key={c.id} value={c.id}>
-                      {c.code} · {contacts.name(c.id)}
-                    </MenuItem>
-                  ))}
-                </Field.Select>
+                <Box sx={{ gridColumn: { sm: 'span 2' } }}>
+                  <Field.RadioGroup
+                    row
+                    name="saleType"
+                    label="ประเภทการขาย"
+                    options={[
+                      { value: 'goods', label: vatRegistered ? 'ขายสินค้า (ออกใบกำกับภาษีทันที)' : 'ขายสินค้า' },
+                      { value: 'service', label: vatRegistered ? 'งานบริการ (ใบแจ้งหนี้ก่อน ใบกำกับภาษีตอนรับเงิน)' : 'งานบริการ' },
+                    ]}
+                  />
+                </Box>
+                {isService && vatRegistered && (
+                  <Alert severity="info" variant="outlined" sx={{ gridColumn: { sm: 'span 2' } }}>
+                    งานบริการ (ม.78/1): ภาษีขายเกิดเมื่อได้รับชำระ — ระบบออก “ใบแจ้งหนี้” ตอนนี้ (ยังไม่เข้ารายงานภาษีขาย)
+                    และออก “ใบเสร็จรับเงิน/ใบกำกับภาษี” ทุกครั้งที่รับเงินตามยอดที่รับ ภาษีเข้าเดือนที่รับเงิน
+                  </Alert>
+                )}
 
-                {customer && (
+                <ContactAutocomplete
+                  name="contactId"
+                  label="ลูกค้า"
+                  side="customer"
+                  autoFocus
+                  disabled={!!fromQuotation}
+                  sx={{ gridColumn: { sm: 'span 2' } }}
+                />
+
+                {customer && vatRegistered && (
                   <Alert
                     severity={readiness.length ? 'warning' : 'success'}
                     variant="outlined"
@@ -143,12 +280,18 @@ export function SalesNewView() {
                     )}
                   </Alert>
                 )}
+                {buyerWarning && (
+                  <Alert severity="warning" variant="outlined" sx={{ gridColumn: { sm: 'span 2' } }}>
+                    {buyerWarning}
+                  </Alert>
+                )}
 
                 <Field.DatePicker name="date" label="วันที่เอกสาร" />
                 <Field.DatePicker name="dueDate" label="วันครบกำหนด" />
+                <LockedDateAlert date={date} sx={{ gridColumn: { sm: 'span 2' } }} />
 
                 <Field.Select name="vatMode" label="ภาษีมูลค่าเพิ่ม" size="small" disabled={!vatRegistered}>
-                  <MenuItem value="exclusive">ราคาไม่รวม VAT (บวก 7%)</MenuItem>
+                  <MenuItem value="exclusive">ราคาไม่รวม VAT (บวก {VAT_RATE}%)</MenuItem>
                   <MenuItem value="inclusive">ราคารวม VAT แล้ว</MenuItem>
                   <MenuItem value="none">ไม่มี VAT</MenuItem>
                 </Field.Select>
@@ -160,24 +303,27 @@ export function SalesNewView() {
               <CardHeader title="รายการ" />
               <Box sx={{ p: 3 }}>
                 <DocLinesEditor
-                  accounts={accounts.byType('revenue')}
-                  defaultAccountCode={ACC.sales}
+                  accounts={accounts.forLines('sales')}
+                  defaultAccountCode={isService ? ACC.service : ACC.sales}
                   accountLabel="บัญชีรายได้"
                 />
               </Box>
             </Card>
           </Grid>
 
-          <Grid item xs={12} lg={4}>
-            <Card sx={{ p: 3, position: { lg: 'sticky' }, top: { lg: 96 } }}>
+          <Grid item xs={12} xl={4}>
+            <Card sx={{ p: 3, position: { xl: 'sticky' }, top: { xl: 96 } }}>
               <Typography variant="h6" sx={{ mb: 2 }}>
                 สรุปยอด
               </Typography>
-              <TotalsSummary totals={totals} vatRate={7} showVat={vatMode !== 'none'} />
+              <TotalsSummary totals={totals} vatRate={vatRate} showVat={showVat} />
+              {varianceItems.length > 0 && quotation && (
+                <QuotationVarianceAlert docNo={quotation.docNo} items={varianceItems} sx={{ mt: 2 }} />
+              )}
 
               <Stack spacing={1} sx={{ mt: 3 }}>
                 <LoadingButton type="submit" variant="contained" size="large" loading={isSubmitting}>
-                  ออกใบกำกับภาษี
+                  ออก{docShortTitle}
                 </LoadingButton>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   ออกแล้วระบบจะออกเลขที่ต่อเนื่อง ลงบัญชีให้อัตโนมัติ และแก้ไขไม่ได้ — ถ้าผิดต้องออกใบลดหนี้
@@ -187,6 +333,50 @@ export function SalesNewView() {
           </Grid>
         </Grid>
       </Form>
+
+      <ConfirmDialog
+        open={confirm.value}
+        onClose={confirm.onFalse}
+        title={`ยืนยันออก${docTitle}`}
+        content={
+          pending && (
+            <Stack spacing={2}>
+            <ConfirmSummary
+              rows={[
+                { label: 'ชนิดเอกสาร', value: docTitle },
+                { label: 'จากใบเสนอราคา', value: quotation?.docNo ?? '', hidden: !fromQuotation },
+                { label: 'ลูกค้า', value: contacts.name(pending.contactId) },
+                { label: 'วันที่เอกสาร', value: formatThaiDate(pending.date.slice(0, 10)) },
+                { label: 'ครบกำหนด', value: formatThaiDate(pending.dueDate.slice(0, 10)) },
+                { label: 'มูลค่าก่อนภาษี', value: totals.net },
+                { label: `ภาษีขาย ${vatRate}%`, value: totals.vat, hidden: !showVat },
+                { label: 'รวมทั้งสิ้น', value: totals.total, strong: true },
+                {
+                  label: 'งวดภาษี',
+                  value: isService
+                    ? 'ภาษีขายเข้าเดือนที่รับเงิน (ออกใบเสร็จรับเงิน/ใบกำกับภาษีตอนรับชำระ)'
+                    : `ภาษีขายเดือน${periodLabel(periodOf(pending.date.slice(0, 10)))}`,
+                  hidden: !showVat,
+                },
+              ]}
+              note={
+                <>
+                  {pendingBuyerWarning && <strong>{pendingBuyerWarning} · </strong>}
+                  ออกแล้วระบบจะออกเลขที่ต่อเนื่องและลงบัญชีทันที แก้ไขหรือลบไม่ได้ — ถ้าผิดต้องออกใบลดหนี้/ใบเพิ่มหนี้
+                </>
+              }
+              severity={pendingBuyerWarning ? 'warning' : undefined}
+            />
+            {varianceItems.length > 0 && quotation && <QuotationVarianceAlert docNo={quotation.docNo} items={varianceItems} />}
+            </Stack>
+          )
+        }
+        action={
+          <LoadingButton variant="contained" onClick={issue} loading={busy}>
+            ยืนยันออกเอกสาร
+          </LoadingButton>
+        }
+      />
     </>
   );
 }

@@ -6,8 +6,10 @@ import Switch from '@mui/material/Switch';
 import TablePagination from '@mui/material/TablePagination';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
-import { useTranslate } from 'src/locales';
 // ----------------------------------------------------------------------
+// GO Account ใช้ภาษาไทยทั้งระบบ — ป้ายของ pagination ไม่พึ่งภาษาของ i18n (เดิมขึ้นภาษาอังกฤษ, UAT U13)
+
+const ITEM_ARIA_LABEL = { first: 'หน้าแรก', last: 'หน้าสุดท้าย', next: 'หน้าถัดไป', previous: 'หน้าก่อนหน้า' } as const;
 
 export type TablePaginationCustomProps = TablePaginationProps & {
   dense?: boolean;
@@ -19,11 +21,9 @@ export function TablePaginationCustom({
   sx,
   dense,
   onChangeDense,
-  rowsPerPageOptions = [5, 10, 25, 50, { label: 'All', value: -1 }],
+  rowsPerPageOptions = [5, 10, 25, 50, { label: 'ทั้งหมด', value: -1 }],
   ...other
 }: TablePaginationCustomProps) {
- const { t: tt } = useTranslate('translation');
-
   return (
     <Box sx={{ position: 'relative', ...sx }}>
       <TablePagination
@@ -31,12 +31,16 @@ export function TablePaginationCustom({
         component="div"
         {...other}
         sx={{ borderTopColor: 'transparent' }}
-        labelRowsPerPage={tt('txtrowperpage')}
+        labelRowsPerPage="แถวต่อหน้า:"
+        labelDisplayedRows={({ from, to, count }) =>
+          `${from.toLocaleString('th-TH')}–${to.toLocaleString('th-TH')} จาก ${count !== -1 ? count.toLocaleString('th-TH') : `มากกว่า ${to.toLocaleString('th-TH')}`}`
+        }
+        getItemAriaLabel={(type) => ITEM_ARIA_LABEL[type]}
       />
 
       {onChangeDense && (
         <FormControlLabel
-          label="Dense"
+          label="แสดงแบบกระชับ"
           control={<Switch name="dense" checked={dense} onChange={onChangeDense} />}
           sx={{
             pl: 2,

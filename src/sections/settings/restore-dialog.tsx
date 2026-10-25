@@ -1,0 +1,206 @@
+import type { LoadResult } from 'src/store';
+
+import { useState, useEffect } from 'react';
+
+import Table from '@mui/material/Table';
+import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
+import Button from '@mui/material/Button';
+import TableRow from '@mui/material/TableRow';
+import Checkbox from '@mui/material/Checkbox';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableHead from '@mui/material/TableHead';
+import Typography from '@mui/material/Typography';
+import FormControlLabel from '@mui/material/FormControlLabel';
+
+import { useAccounting, blankCompanyData } from 'src/store';
+import { formatThaiDate, restoreRegressions } from 'src/domain';
+
+import { toast } from 'src/components/snackbar';
+import { Iconify } from 'src/components/iconify';
+import { ConfirmDialog } from 'src/components/custom-dialog';
+
+import { backupCounts, downloadBackup } from './backup';
+
+// ----------------------------------------------------------------------
+
+type Props = {
+  onClose: () => void;
+  /** ผลการอ่านไฟล์ (`readBackup`) — null = ปิด dialog */
+  file: { name: string; result: LoadResult } | null;
+};
+
+/**
+ * ตรวจไฟล์สำรองก่อนกู้คืน: เทียบจำนวนรายการไฟล์กับข้อมูลปัจจุบัน, แจ้งการย้ายเวอร์ชัน, แสดงปัญหา
+ * มีปัญหาข้อใดข้อหนึ่ง = กู้คืนไม่ได้ (ไม่มีทางข้ามใน UI)
+ * รวมถึงไฟล์ของบริษัทเดียวกันที่เก่ากว่าข้อมูลปัจจุบัน (วันปิดงวด/ตัวนับเลขที่ถอยหลัง → เลขที่ซ้ำ)
+ */
+export function RestoreDialog({ file, onClose }: Props) {
+  const { data, replace, resetEmpty } = useAccounting();
+  const [acceptWipe, setAcceptWipe] = useState(false);
+  const result = file?.result;
+  const problems = result
+    ? [...(result.data ? restoreRegressions(data, result.data) : []), ...result.problems]
+    : [];
+  const blocked = !result?.data || problems.length > 0;
+  // ไฟล์ของบริษัทอื่น: ทางเดียวคือล้างข้อมูลปัจจุบันก่อน — เสนอทำให้ในขั้นตอนเดียว (สำรองไฟล์ให้ก่อน)
+  // เฉพาะเมื่อปัญหาเดียวคือ "บริษัทอื่น" และไฟล์ผ่านการตรวจเมื่อเทียบกับข้อมูลที่ล้างแล้ว
+  const otherCompany =
+    !!result?.data &&
+    result.problems.length === 0 &&
+    problems.length > 0 &&
+    problems.every((p) => p.includes('บริษัทอื่น')) &&
+    restoreRegressions(blankCompanyData(data), result.data).length === 0;
+
+  useEffect(() => {
+    setAcceptWipe(false);
+  }, [file]);
+
+  const wipeAndRestore = () => {
+    if (!result?.data || !otherCompany || !acceptWipe) return;
+    try {
+      downloadBackup(data, '-before-restore');
+    } catch (error) {
+      toast.error(`ดาวน์โหลดไฟล์สำรองไม่สำเร็จ จึงยังไม่ล้างข้อมูล: ${error instanceof Error ? error.message : ''}`);
+      return;
+    }
+    try {
+      resetEmpty();
+      replace(result.data);
+      toast.success('สำรองข้อมูลเดิม ล้างข้อมูล และกู้คืนไฟล์แล้ว');
+      onClose();
+    } catch (error) {
+      toast.error(`กู้คืนไม่สำเร็จ (ข้อมูลเดิมอยู่ในไฟล์สำรองที่ดาวน์โหลด): ${error instanceof Error ? error.message : ''}`);
+    }
+  };
+  const current = backupCounts(data);
+  const incoming = result?.data ? backupCounts(result.data) : [];
+
+  const restore = () => {
+    if (!result?.data || blocked) return;
+    try {
+      replace(result.data);
+      toast.success('กู้คืนข้อมูลแล้ว');
+      onClose();
+    } catch (error) {
+      toast.error(`กู้คืนไม่สำเร็จ: ${error instanceof Error ? error.message : ''}`);
+    }
+  };
+
+  return (
+    <ConfirmDialog
+      open={!!file}
+      onClose={onClose}
+      maxWidth="sm"
+      title="กู้คืนจากไฟล์สำรอง"
+      content={
+        result && (
+          <Stack spacing={2}>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              ไฟล์ {file?.name}
+              {result.data ? ` · ${result.data.company.name}` : ''}
+              {result.data?.company.lockedThrough
+                ? ` · ปิดงวดถึง ${formatThaiDate(result.data.company.lockedThrough)}`
+                : ''}
+            </Typography>
+
+            {result.migratedFrom !== undefined && (
+              <Alert severity="info" variant="outlined">
+                ไฟล์เป็นข้อมูลเวอร์ชัน {result.migratedFrom} —
+                ระบบจะย้ายขึ้นเวอร์ชันปัจจุบันให้ตอนกู้คืน
+              </Alert>
+            )}
+
+            {blocked ? (
+              <Alert severity={otherCompany ? 'warning' : 'error'}>
+                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                  {otherCompany ? 'กู้คืนทับข้อมูลปัจจุบันโดยตรงไม่ได้' : `กู้คืนไม่ได้ — ไฟล์ไม่ผ่านการตรวจ ${problems.length} ข้อ`}
+                </Typography>
+                <Stack component="ul" sx={{ m: 0, pl: 2.5 }}>
+                  {problems.slice(0, 20).map((p) => (
+                    <li key={p}>
+                      <Typography variant="body2">{p}</Typography>
+                    </li>
+                  ))}
+                  {problems.length > 20 && (
+                    <li>
+                      <Typography variant="body2">และอีก {problems.length - 20} ข้อ</Typography>
+                    </li>
+                  )}
+                </Stack>
+              </Alert>
+            ) : null}
+            {otherCompany && (
+              <Alert severity="warning" variant="outlined">
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  ถ้าต้องการใช้ไฟล์ของบริษัท {result.data?.company.name} แทนข้อมูลปัจจุบัน ระบบจะดาวน์โหลดไฟล์สำรองข้อมูลปัจจุบันให้
+                  ล้างข้อมูลในเบราว์เซอร์นี้ แล้วกู้คืนไฟล์นี้ในขั้นตอนเดียว
+                </Typography>
+                <FormControlLabel
+                  control={<Checkbox size="small" checked={acceptWipe} onChange={(e) => setAcceptWipe(e.target.checked)} />}
+                  label={`เข้าใจแล้วว่าข้อมูลของ ${data.company.name} ในเบราว์เซอร์นี้จะถูกแทนที่`}
+                />
+              </Alert>
+            )}
+            {!blocked && (
+              <Alert severity="warning" variant="outlined">
+                ข้อมูลปัจจุบันในเบราว์เซอร์นี้ทั้งหมดจะถูกแทนที่ด้วยข้อมูลในไฟล์ ย้อนกลับไม่ได้ —
+                สำรองข้อมูลปัจจุบันไว้ก่อน
+              </Alert>
+            )}
+
+            {incoming.length > 0 && (
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>รายการ</TableCell>
+                    <TableCell align="right">ในไฟล์</TableCell>
+                    <TableCell align="right">ปัจจุบัน</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {incoming.map((row, i) => (
+                    <TableRow key={row.key}>
+                      <TableCell>{row.label}</TableCell>
+                      <TableCell align="right">{row.count.toLocaleString('th-TH')}</TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{
+                          color: current[i].count > row.count ? 'warning.main' : 'text.secondary',
+                        }}
+                      >
+                        {current[i].count.toLocaleString('th-TH')}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+
+            <Button
+              variant="outlined"
+              color="inherit"
+              startIcon={<Iconify icon="solar:download-bold" />}
+              onClick={() => downloadBackup(data, '-before-restore')}
+              sx={{ alignSelf: 'flex-start' }}
+            >
+              สำรองข้อมูลปัจจุบันก่อน
+            </Button>
+          </Stack>
+        )
+      }
+      action={
+        otherCompany ? (
+          <Button variant="contained" color="error" onClick={wipeAndRestore} disabled={!acceptWipe}>
+            สำรอง ล้างข้อมูล แล้วกู้คืน
+          </Button>
+        ) : (
+          <Button variant="contained" color="error" onClick={restore} disabled={blocked}>
+            แทนที่ด้วยข้อมูลในไฟล์
+          </Button>
+        )
+      }
+    />
+  );
+}

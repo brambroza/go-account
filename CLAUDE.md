@@ -6,7 +6,8 @@
 
 - UI: อ่าน `docs/design-system.md` หัวข้อ 1–2 (ห้าม hex, ใช้ `varAlpha`, `Label variant="soft"` สำหรับสถานะ, ฟอร์มใช้ RHF + zod + `Field.*`)
 - ตรรกะบัญชี/ภาษี อยู่ที่ `src/domain` เท่านั้น — หน้าจอห้ามคำนวณภาษีเอง ให้เรียก `calcDocument`, `pp30Summary`, `buildRdWhtFile` ฯลฯ
-- การเปลี่ยนข้อมูลทุกอย่างผ่าน pure action ใน `src/store/actions.ts` แล้วเรียกด้วย `useAccounting().run(...)`
+- การเปลี่ยนข้อมูลทุกอย่างผ่านคำสั่ง `cmd.*` ใน `src/store/commands.ts` (local = pure action ใน `actions.ts`, remote = API) แล้ว `await useAccounting().run(cmd.x(input))` — ปุ่มบันทึกปิดด้วย `busy`, ปุ่มที่เปลี่ยนข้อมูลครอบ `CanWrite`/`OwnerOnly` (`src/auth`)
+- โหมดข้อมูล `VITE_DATA_MODE=local|api` (ค่าเริ่มต้น local) — ดู README “โหมด API”
 - เงิน: ใช้ฟังก์ชันใน `src/domain/money.ts` (สตางค์ integer, half-up) ห้ามบวกลบ float ตรง ๆ
 
 ## กติกาธุรกิจที่ห้ามทำลาย

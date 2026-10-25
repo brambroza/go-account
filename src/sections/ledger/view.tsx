@@ -1,4 +1,5 @@
 import type { JournalSource } from 'src/domain';
+import type { BalanceSheetDto, TrialBalanceDto, ProfitAndLossDto } from 'src/sections/shared/server-reports';
 
 import { useMemo, useState } from 'react';
 
@@ -7,26 +8,28 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
 import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
 import { paths } from 'src/routes/paths';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
+import { CanWrite, OwnerOnly } from 'src/auth';
 import { useAccounting, useAccountLookup } from 'src/store';
 import {
-  sumBaht,
   todayISO,
   entryTotals,
+  balanceSheet,
   trialBalance,
   profitAndLoss,
   formatThaiDate,
+  trialBalanceTotals,
   ACCOUNT_TYPE_LABEL,
 } from 'src/domain';
 
@@ -38,26 +41,39 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { useTable, rowInPage, TablePaginationCustom } from 'src/components/table';
 
 import { Money } from 'src/sections/shared';
+import { IsoDatePicker } from 'src/sections/shared/iso-date-picker';
+import { toBalanceSheet, toTrialBalance, useServerReport, toProfitAndLoss } from 'src/sections/shared/server-reports';
 
+import { CloseYearDialog } from './close-year-dialog';
 import { ManualEntryDialog } from './manual-entry-dialog';
+import { BalanceSheetReport } from './balance-sheet-report';
 
 // ----------------------------------------------------------------------
 
-type TabValue = 'journal' | 'tb' | 'pl' | 'accounts';
+type TabValue = 'journal' | 'tb' | 'pl' | 'bs' | 'accounts';
 
 const SOURCE_LABEL: Record<JournalSource, string> = {
   sales: 'ขาย',
   'credit-note': 'ลดหนี้',
+  'debit-note': 'เพิ่มหนี้',
   receipt: 'รับชำระ',
   purchase: 'ซื้อ',
   payment: 'จ่ายชำระ',
+  refund: 'คืนเงินลูกค้า',
+  'supplier-refund': 'รับเงินคืนจากผู้ขาย',
+  'vat-close': 'ปิดภาษีเดือน',
+  'purchase-credit-note': 'ลดหนี้จากผู้ขาย',
+  'year-close': 'ปิดบัญชีสิ้นปี',
+  opening: 'ยอดยกมา',
+  transfer: 'โอนเงิน',
   manual: 'ปรับปรุง',
 };
 
 export function LedgerView() {
-  const { data } = useAccounting();
+  const { data, mode } = useAccounting();
   const accounts = useAccountLookup();
   const manual = useBoolean();
+  const closeYearDialog = useBoolean();
   const [tab, setTab] = useState<TabValue>('journal');
   const today = todayISO();
   const [from, setFrom] = useState(`${today.slice(0, 4)}-01-01`);
@@ -68,15 +84,31 @@ export function LedgerView() {
     () => data.journal.slice().sort((a, b) => (b.date + b.docNo).localeCompare(a.date + a.docNo)),
     [data.journal]
   );
-  const tb = useMemo(() => trialBalance(data.accounts, data.journal, to), [data.accounts, data.journal, to]);
-  const pl = useMemo(() => profitAndLoss(data.accounts, data.journal, from, to), [data.accounts, data.journal, from, to]);
+  // โหมด api: งบจากเซิร์ฟเวอร์ (/reports/trial-balance, profit-and-loss, balance-sheet) เฉพาะแท็บที่เปิด; ระหว่างโหลดใช้ค่าที่คำนวณจากสมุด
+  const api = mode === 'api';
+  const serverTb = useServerReport<TrialBalanceDto>(api && tab === 'tb' ? `/reports/trial-balance?asOf=${to}` : null);
+  const serverPl = useServerReport<ProfitAndLossDto>(api && tab === 'pl' ? `/reports/profit-and-loss?from=${from}&to=${to}` : null);
+  const serverBs = useServerReport<BalanceSheetDto>(api && tab === 'bs' ? `/reports/balance-sheet?asOf=${to}` : null);
+  const serverError = serverTb.error ?? serverPl.error ?? serverBs.error;
+
+  const tb = useMemo(
+    () => (serverTb.data ? toTrialBalance(serverTb.data, data.accounts) : trialBalance(data.accounts, data.journal, to)),
+    [serverTb.data, data.accounts, data.journal, to]
+  );
+  const tbTotals = useMemo(() => trialBalanceTotals(tb), [tb]);
+  const pl = useMemo(
+    () => (serverPl.data ? toProfitAndLoss(serverPl.data, data.accounts) : profitAndLoss(data.accounts, data.journal, from, to)),
+    [serverPl.data, data.accounts, data.journal, from, to]
+  );
+  const bs = useMemo(
+    () => (serverBs.data ? toBalanceSheet(serverBs.data, data.accounts) : balanceSheet(data.accounts, data.journal, to)),
+    [serverBs.data, data.accounts, data.journal, to]
+  );
 
   const dateRange = (
     <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-      {tab === 'pl' && (
-        <TextField type="date" size="small" label="ตั้งแต่" value={from} onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
-      )}
-      <TextField type="date" size="small" label={tab === 'pl' ? 'ถึง' : 'ณ วันที่'} value={to} onChange={(e) => setTo(e.target.value)} InputLabelProps={{ shrink: true }} />
+      {tab === 'pl' && <IsoDatePicker label="ตั้งแต่" value={from} onChange={setFrom} />}
+      <IsoDatePicker label={tab === 'pl' ? 'ถึง' : 'ณ วันที่'} value={to} onChange={setTo} />
     </Stack>
   );
 
@@ -86,9 +118,18 @@ export function LedgerView() {
         heading="สมุดบัญชี / งบ"
         links={[{ name: 'หน้าแรก', href: paths.dashboard }, { name: 'สมุดบัญชี' }]}
         action={
-          <Button variant="contained" startIcon={<Iconify icon="mingcute:add-line" />} onClick={manual.onTrue}>
-            รายการปรับปรุง
-          </Button>
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <OwnerOnly>
+              <Button variant="outlined" color="warning" startIcon={<Iconify icon="solar:lock-keyhole-bold" />} onClick={closeYearDialog.onTrue}>
+                ปิดบัญชีสิ้นปี
+              </Button>
+            </OwnerOnly>
+            <CanWrite>
+              <Button variant="contained" startIcon={<Iconify icon="mingcute:add-line" />} onClick={manual.onTrue}>
+                รายการปรับปรุง
+              </Button>
+            </CanWrite>
+          </Stack>
         }
         sx={{ mb: { xs: 3, md: 4 } }}
       />
@@ -98,10 +139,16 @@ export function LedgerView() {
           <Tab value="journal" label="สมุดรายวัน" />
           <Tab value="tb" label="งบทดลอง" />
           <Tab value="pl" label="กำไรขาดทุน" />
+          <Tab value="bs" label="งบแสดงฐานะการเงิน" />
           <Tab value="accounts" label="ผังบัญชี" />
         </CustomTabs>
 
         <Box sx={{ p: 3 }}>
+          {serverError && tab !== 'journal' && tab !== 'accounts' && (
+            <Alert severity="error" variant="outlined" sx={{ mb: 2 }}>
+              โหลดงบจากเซิร์ฟเวอร์ไม่สำเร็จ: {serverError} — แสดงตัวเลขที่คำนวณจากข้อมูลที่โหลดไว้
+            </Alert>
+          )}
           {tab === 'journal' && (
             <>
               <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
@@ -194,10 +241,10 @@ export function LedgerView() {
                         <Typography variant="subtitle2">รวม</Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Money value={sumBaht(tb.map((r) => Math.max(r.debit - r.credit, 0)))} sx={{ fontWeight: 600 }} />
+                        <Money value={tbTotals.debit} sx={{ fontWeight: 600, ...(!tbTotals.balanced && { color: 'error.main' }) }} />
                       </TableCell>
                       <TableCell align="right">
-                        <Money value={sumBaht(tb.map((r) => Math.max(r.credit - r.debit, 0)))} sx={{ fontWeight: 600 }} />
+                        <Money value={tbTotals.credit} sx={{ fontWeight: 600, ...(!tbTotals.balanced && { color: 'error.main' }) }} />
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -246,6 +293,19 @@ export function LedgerView() {
             </>
           )}
 
+          {tab === 'bs' && (
+            <>
+              <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+                <IsoDatePicker label="ณ วันที่" value={to} onChange={setTo} />
+                <Box sx={{ flexGrow: 1 }} />
+                <Button variant="outlined" startIcon={<Iconify icon="solar:printer-minimalistic-bold" />} onClick={() => window.print()}>
+                  พิมพ์
+                </Button>
+              </Stack>
+              <BalanceSheetReport report={bs} companyName={data.company.name} />
+            </>
+          )}
+
           {tab === 'accounts' && (
             <Scrollbar>
               <Table size="small" sx={{ minWidth: 560 }}>
@@ -279,6 +339,7 @@ export function LedgerView() {
       </Card>
 
       <ManualEntryDialog open={manual.value} onClose={manual.onFalse} />
+      <CloseYearDialog open={closeYearDialog.value} onClose={closeYearDialog.onFalse} />
     </>
   );
 }

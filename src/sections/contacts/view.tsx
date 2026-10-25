@@ -20,8 +20,9 @@ import { useSearchParams } from 'src/routes/hooks';
 
 import { useBoolean } from 'src/hooks/use-boolean';
 
+import { CanWrite } from 'src/auth';
 import { useAccounting, useContactLookup } from 'src/store';
-import { formatTaxId, branchLabel, isValidThaiTaxId } from 'src/domain';
+import { toSatang, formatTaxId, branchLabel, isValidThaiTaxId, customerCreditOf, supplierRefundDueOf } from 'src/domain';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -30,6 +31,10 @@ import { CustomTabs } from 'src/components/custom-tabs';
 import { EmptyContent } from 'src/components/empty-content';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { useTable, rowInPage, TableHeadCustom, TablePaginationCustom } from 'src/components/table';
+
+import { Money } from 'src/sections/shared';
+import { RefundDialog } from 'src/sections/sales/refund-dialog';
+import { SupplierRefundDialog } from 'src/sections/purchases/supplier-refund-dialog';
 
 import { ContactDialog } from './contact-dialog';
 import { ImportContactsDialog } from './import-dialog';
@@ -42,11 +47,13 @@ const TABLE_HEAD = [
   { id: 'taxId', label: 'เลขผู้เสียภาษี' },
   { id: 'kind', label: 'ประเภท' },
   { id: 'province', label: 'จังหวัด' },
+  { id: 'credit', label: 'เงินรอคืน / เงินคืนค้างรับ', align: 'right' },
   { id: '' },
 ];
 
 const KIND_LABEL = { customer: 'ลูกค้า', vendor: 'ผู้ขาย', both: 'ลูกค้า + ผู้ขาย' } as const;
 
+/** ทะเบียนลูกค้า/ผู้ขาย — แสดงเงินรอคืนลูกค้า (จากใบลดหนี้หลังรับเงิน) และบันทึกคืนเงินได้ */
 export function ContactsView() {
   const { data } = useAccounting();
   const contacts = useContactLookup();
@@ -57,8 +64,8 @@ export function ContactsView() {
   const [editing, setEditing] = useState<Contact | null>(null);
   const dialog = useBoolean();
   const importDialog = useBoolean();
-
-  const nextCode = useMemo(() => `C${String(data.contacts.length + 1).padStart(4, '0')}`, [data.contacts.length]);
+  const [refundFor, setRefundFor] = useState<string | null>(null);
+  const [supplierRefundFor, setSupplierRefundFor] = useState<string | null>(null);
 
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -79,14 +86,16 @@ export function ContactsView() {
         heading="ลูกค้า / ผู้ขาย"
         links={[{ name: 'หน้าแรก', href: paths.dashboard }, { name: 'ลูกค้า / ผู้ขาย' }]}
         action={
-          <Stack direction="row" spacing={1}>
-            <Button variant="outlined" startIcon={<Iconify icon="solar:import-bold" />} onClick={importDialog.onTrue}>
-              นำเข้า CSV
-            </Button>
-            <Button variant="contained" startIcon={<Iconify icon="mingcute:add-line" />} onClick={openNew}>
-              เพิ่ม
-            </Button>
-          </Stack>
+          <CanWrite>
+            <Stack direction="row" spacing={1}>
+              <Button variant="outlined" startIcon={<Iconify icon="solar:import-bold" />} onClick={importDialog.onTrue}>
+                นำเข้า CSV
+              </Button>
+              <Button variant="contained" startIcon={<Iconify icon="mingcute:add-line" />} onClick={openNew}>
+                เพิ่ม
+              </Button>
+            </Stack>
+          </CanWrite>
         }
         sx={{ mb: { xs: 3, md: 4 } }}
       />
@@ -125,6 +134,8 @@ export function ContactsView() {
             <TableBody>
               {rowInPage(rows, table.page, table.rowsPerPage).map((c) => {
                 const badTaxId = !!c.taxId && !isValidThaiTaxId(c.taxId);
+                const credit = customerCreditOf(data, c.id);
+                const supplierDue = supplierRefundDueOf(data, c.id);
                 return (
                   <TableRow key={c.id} hover>
                     <TableCell>{c.code}</TableCell>
@@ -135,9 +146,9 @@ export function ContactsView() {
                       </Typography>
                     </TableCell>
                     <TableCell sx={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {c.taxId ? formatTaxId(c.taxId) : <Label color="warning">ยังไม่มี</Label>}
+                      {c.taxId ? formatTaxId(c.taxId) : <Label variant="soft" color="warning">ยังไม่มี</Label>}
                       {badTaxId && (
-                        <Label color="error" sx={{ ml: 1 }}>
+                        <Label variant="soft" color="error" sx={{ ml: 1 }}>
                           เลขไม่ถูกต้อง
                         </Label>
                       )}
@@ -145,22 +156,46 @@ export function ContactsView() {
                     <TableCell>{KIND_LABEL[c.kind]}</TableCell>
                     <TableCell>{c.address.province ?? '-'}</TableCell>
                     <TableCell align="right">
-                      <IconButton
-                        aria-label={`แก้ไข ${c.code}`}
-                        onClick={() => {
-                          setEditing(c);
-                          dialog.onTrue();
-                        }}
-                      >
-                        <Iconify icon="solar:pen-bold" />
-                      </IconButton>
+                      {toSatang(credit) > 0 && (
+                        <Stack alignItems="flex-end" spacing={0.5}>
+                          <Money value={credit} sx={{ color: 'warning.main' }} />
+                          <CanWrite>
+                            <Button size="small" variant="soft" color="warning" onClick={() => setRefundFor(c.id)}>
+                              คืนเงินลูกค้า
+                            </Button>
+                          </CanWrite>
+                        </Stack>
+                      )}
+                      {toSatang(supplierDue) > 0 && (
+                        <Stack alignItems="flex-end" spacing={0.5} sx={{ mt: toSatang(credit) > 0 ? 1 : 0 }}>
+                          <Money value={supplierDue} sx={{ color: 'info.main' }} />
+                          <CanWrite>
+                            <Button size="small" variant="soft" color="info" onClick={() => setSupplierRefundFor(c.id)}>
+                              รับเงินคืนจากผู้ขาย
+                            </Button>
+                          </CanWrite>
+                        </Stack>
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
+                      <CanWrite>
+                        <IconButton
+                          aria-label={`แก้ไข ${c.code}`}
+                          onClick={() => {
+                            setEditing(c);
+                            dialog.onTrue();
+                          }}
+                        >
+                          <Iconify icon="solar:pen-bold" />
+                        </IconButton>
+                      </CanWrite>
                     </TableCell>
                   </TableRow>
                 );
               })}
               {!rows.length && (
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={7}>
                     <EmptyContent filled title="ไม่พบผู้ติดต่อ" sx={{ py: 8 }} />
                   </TableCell>
                 </TableRow>
@@ -180,8 +215,12 @@ export function ContactsView() {
         />
       </Card>
 
-      <ContactDialog open={dialog.value} onClose={dialog.onFalse} contact={editing} nextCode={nextCode} />
+      <ContactDialog open={dialog.value} onClose={dialog.onFalse} contact={editing} defaultKind={kind === 'vendor' ? 'vendor' : 'customer'} />
       <ImportContactsDialog open={importDialog.value} onClose={importDialog.onFalse} />
+      {refundFor && <RefundDialog open={!!refundFor} onClose={() => setRefundFor(null)} contactId={refundFor} />}
+      {supplierRefundFor && (
+        <SupplierRefundDialog open={!!supplierRefundFor} onClose={() => setSupplierRefundFor(null)} contactId={supplierRefundFor} />
+      )}
     </>
   );
 }

@@ -17,9 +17,18 @@ import type { WhtForm, WhtItem, WhtPayee } from './wht';
 // ห้ามใช้อักขระ * + / \ ! $ % # & @ , ' "  และไม่เติมช่องว่างให้ครบความยาว
 // ----------------------------------------------------------------------
 
-const PROHIBITED = /[*+\\!$%#&@,'"]/g;
+/** อักขระต้องห้าม + เครื่องหมายคำพูดโค้ง ‘ ’ “ ” (ข้อความที่คัดลอกจาก Word/LINE — เทียบเท่า ' " ที่ห้ามใช้) */
+const PROHIBITED = /[*+\\!$%#&@,'"\u2018\u2019\u201C\u201D]/g;
 
-/** ทำความสะอาดข้อความตามกฎ Format กลาง: '/' (เช่นบ้านเลขที่ 918/288) แปลงเป็น '-' ที่เหลือตัดทิ้ง */
+/**
+ * BRANCH_TYPE (header ฟิลด์ 16): V = จด VAT (รวมจดทั้ง VAT และ SBT), S = จด SBT อย่างเดียว, ว่าง = ไม่ได้จด (Format กลาง V2.0 Header #16)
+ */
+export function rdBranchType(company: Pick<Company, 'vatRegistered' | 'sbtRegistered'>): 'V' | 'S' | '' {
+  if (company.vatRegistered) return 'V';
+  return company.sbtRegistered ? 'S' : '';
+}
+
+/** ทำความสะอาดข้อความตามกฎ Format กลาง: '/' (เช่นบ้านเลขที่ 918/288) แปลงเป็น '-' ที่เหลือแปลงเป็นช่องว่าง */
 export function sanitizeRdText(value: string | undefined, maxLength: number): string {
   return (value ?? '')
     .replace(/\//g, '-')
@@ -77,6 +86,24 @@ function incomeSlot(item: WhtItem | undefined): string[] {
   ];
 }
 
+export type WhtDetailRow = { seq: number; payee: WhtPayee; items: WhtItem[] };
+
+/**
+ * แถว D ของแบบ ภ.ง.ด. ตามลำดับ: ผู้รับเงินแต่ละราย → ใบสำคัญจ่ายแต่ละใบ (วันที่จ่ายของตัวเอง)
+ * → 1 แถวรองรับ 3 ประเภทเงินได้ เกินขึ้นแถวใหม่ — ลำดับที่ (`seq`) พิมพ์ในหนังสือรับรอง 50 ทวิ
+ */
+export function whtDetailRows(payees: WhtPayee[]): WhtDetailRow[] {
+  const rows: WhtDetailRow[] = [];
+  payees.forEach((payee) => {
+    const byPayment = new Map<string, WhtItem[]>();
+    payee.items.forEach((item) => byPayment.set(item.paymentId, [...(byPayment.get(item.paymentId) ?? []), item]));
+    byPayment.forEach((items) => {
+      chunk(items, 3).forEach((slots) => rows.push({ seq: rows.length + 1, payee, items: slots }));
+    });
+  });
+  return rows;
+}
+
 export function buildRdWhtFile(options: RdWhtFileOptions): RdWhtFileResult {
   const {
     form,
@@ -121,8 +148,11 @@ export function buildRdWhtFile(options: RdWhtFileOptions): RdWhtFileResult {
     '0', // LTO
     month,
     yearBE,
-    company.vatRegistered ? 'V' : '',
+    rdBranchType(company),
     formType,
+    // TOT_NUM (Header #18) "รวมจำนวนรายของใบแนบ" — ⚠️ ข้อกำหนดกำกวม: ใช้จำนวนผู้รับเงิน (ราย) ตามเดิม
+    // แต่ข้อ 16 ของ Format กลางอาจหมายถึงจำนวนแถว D (ผู้รับเงิน 1 รายที่มี 2 ใบสำคัญจ่าย = 2 แถว) — รอทดสอบกับ RD Prep
+    // (TODO ใน docs/research-etda-rd-2026-10.md ข้อ 4) แก้ทั้ง TS และ C# (RdWhtFile.cs) พร้อมกัน
     String(totals.payees),
     rdNumber(totals.amount),
     rdNumber(totals.tax),
@@ -134,10 +164,7 @@ export function buildRdWhtFile(options: RdWhtFileOptions): RdWhtFileResult {
   ];
 
   // ---------------- DETAIL (38 ฟิลด์) ----------------
-  const details: string[][] = [];
-  let seq = 0;
-
-  payees.forEach(({ contact, items }) => {
+  payees.forEach(({ contact }) => {
     const payeeId = normalizeTaxId(contact.taxId);
     const who = `${contact.title ?? ''}${contact.name}`;
     if (!isValidThaiTaxId(payeeId)) {
@@ -147,36 +174,36 @@ export function buildRdWhtFile(options: RdWhtFileOptions): RdWhtFileResult {
     if (form === 'PND3' && (!a.district || !a.province || !/^\d{5}$/.test(a.postalCode ?? ''))) {
       errors.push(`${who}: ภ.ง.ด.3 บังคับ อำเภอ/เขต, จังหวัด และรหัสไปรษณีย์ 5 หลัก`);
     }
+  });
 
-    // 1 ลำดับรองรับได้ 3 ประเภทเงินได้ — เกินให้ขึ้นลำดับใหม่
-    chunk(items, 3).forEach((slots) => {
-      seq += 1;
-      details.push([
-        'D',
-        String(seq),
-        branch6,
-        payeeId,
-        '0000000000',
-        sanitizeRdText(contact.title || '-', 100),
-        sanitizeRdText(contact.name, 100),
-        sanitizeRdText(contact.lastName, 80),
-        ...incomeSlot(slots[0]),
-        ...incomeSlot(slots[1]),
-        ...incomeSlot(slots[2]),
-        sanitizeRdText(a.buildingName, 40),
-        sanitizeRdText(a.roomNo, 20),
-        sanitizeRdText(a.floorNo, 20),
-        sanitizeRdText(a.village, 100),
-        sanitizeRdText(a.addressNo, 20),
-        sanitizeRdText(a.moo, 20),
-        sanitizeRdText(a.soi, 100),
-        sanitizeRdText(a.street, 100),
-        sanitizeRdText(a.subDistrict, 50),
-        sanitizeRdText(a.district, 50),
-        sanitizeRdText(a.province, 50),
-        sanitizeRdText(a.postalCode, 5),
-      ]);
-    });
+  // ใบสำคัญจ่ายแต่ละใบเป็นแถวของตัวเอง (วันที่จ่ายต่างกัน / ตรงกับลำดับที่ใน 50 ทวิ)
+  const details: string[][] = whtDetailRows(payees).map(({ seq, payee: { contact }, items: slots }) => {
+    const a = contact.address ?? {};
+    return [
+      'D',
+      String(seq),
+      branch6,
+      normalizeTaxId(contact.taxId),
+      '0000000000',
+      sanitizeRdText(contact.title || '-', 100),
+      sanitizeRdText(contact.name, 100),
+      sanitizeRdText(contact.lastName, 80),
+      ...incomeSlot(slots[0]),
+      ...incomeSlot(slots[1]),
+      ...incomeSlot(slots[2]),
+      sanitizeRdText(a.buildingName, 40),
+      sanitizeRdText(a.roomNo, 20),
+      sanitizeRdText(a.floorNo, 20),
+      sanitizeRdText(a.village, 100),
+      sanitizeRdText(a.addressNo, 20),
+      sanitizeRdText(a.moo, 20),
+      sanitizeRdText(a.soi, 100),
+      sanitizeRdText(a.street, 100),
+      sanitizeRdText(a.subDistrict, 50),
+      sanitizeRdText(a.district, 50),
+      sanitizeRdText(a.province, 50),
+      sanitizeRdText(a.postalCode, 5),
+    ];
   });
 
   if (!payees.length) warnings.push('ไม่มีรายการหัก ณ ที่จ่ายในงวดนี้');

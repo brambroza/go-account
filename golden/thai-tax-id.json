@@ -1,0 +1,553 @@
+{
+  "file": "thai-tax-id.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 78,
+  "vectors": [
+    {
+      "name": "isValidThaiTaxId/0:\"0105565012341\"",
+      "input": {
+        "value": "0105565012341"
+      },
+      "output": true
+    },
+    {
+      "name": "normalizeTaxId/0:\"0105565012341\"",
+      "input": {
+        "value": "0105565012341"
+      },
+      "output": "0105565012341"
+    },
+    {
+      "name": "formatTaxId/0:\"0105565012341\"",
+      "input": {
+        "value": "0105565012341"
+      },
+      "output": "0-1055-65012-34-1"
+    },
+    {
+      "name": "isValidThaiTaxId/1:\"3101001234565\"",
+      "input": {
+        "value": "3101001234565"
+      },
+      "output": true
+    },
+    {
+      "name": "normalizeTaxId/1:\"3101001234565\"",
+      "input": {
+        "value": "3101001234565"
+      },
+      "output": "3101001234565"
+    },
+    {
+      "name": "formatTaxId/1:\"3101001234565\"",
+      "input": {
+        "value": "3101001234565"
+      },
+      "output": "3-1010-01234-56-5"
+    },
+    {
+      "name": "isValidThaiTaxId/2:\"0999999999991\"",
+      "input": {
+        "value": "0999999999991"
+      },
+      "output": true
+    },
+    {
+      "name": "normalizeTaxId/2:\"0999999999991\"",
+      "input": {
+        "value": "0999999999991"
+      },
+      "output": "0999999999991"
+    },
+    {
+      "name": "formatTaxId/2:\"0999999999991\"",
+      "input": {
+        "value": "0999999999991"
+      },
+      "output": "0-9999-99999-99-1"
+    },
+    {
+      "name": "isValidThaiTaxId/3:\"0105565012342\"",
+      "input": {
+        "value": "0105565012342"
+      },
+      "output": false
+    },
+    {
+      "name": "normalizeTaxId/3:\"0105565012342\"",
+      "input": {
+        "value": "0105565012342"
+      },
+      "output": "0105565012342"
+    },
+    {
+      "name": "formatTaxId/3:\"0105565012342\"",
+      "input": {
+        "value": "0105565012342"
+      },
+      "output": "0-1055-65012-34-2"
+    },
+    {
+      "name": "isValidThaiTaxId/4:\"0-1055-65012-34-1\"",
+      "input": {
+        "value": "0-1055-65012-34-1"
+      },
+      "output": true
+    },
+    {
+      "name": "normalizeTaxId/4:\"0-1055-65012-34-1\"",
+      "input": {
+        "value": "0-1055-65012-34-1"
+      },
+      "output": "0105565012341"
+    },
+    {
+      "name": "formatTaxId/4:\"0-1055-65012-34-1\"",
+      "input": {
+        "value": "0-1055-65012-34-1"
+      },
+      "output": "0-1055-65012-34-1"
+    },
+    {
+      "name": "isValidThaiTaxId/5:\" 310100 1234565 \"",
+      "input": {
+        "value": " 310100 1234565 "
+      },
+      "output": true
+    },
+    {
+      "name": "normalizeTaxId/5:\" 310100 1234565 \"",
+      "input": {
+        "value": " 310100 1234565 "
+      },
+      "output": "3101001234565"
+    },
+    {
+      "name": "formatTaxId/5:\" 310100 1234565 \"",
+      "input": {
+        "value": " 310100 1234565 "
+      },
+      "output": "3-1010-01234-56-5"
+    },
+    {
+      "name": "isValidThaiTaxId/6:\"0999999999991\\t\"",
+      "input": {
+        "value": "0999999999991\t"
+      },
+      "output": true
+    },
+    {
+      "name": "normalizeTaxId/6:\"0999999999991\\t\"",
+      "input": {
+        "value": "0999999999991\t"
+      },
+      "output": "0999999999991"
+    },
+    {
+      "name": "formatTaxId/6:\"0999999999991\\t\"",
+      "input": {
+        "value": "0999999999991\t"
+      },
+      "output": "0-9999-99999-99-1"
+    },
+    {
+      "name": "isValidThaiTaxId/7:\"\"",
+      "input": {
+        "value": ""
+      },
+      "output": false
+    },
+    {
+      "name": "normalizeTaxId/7:\"\"",
+      "input": {
+        "value": ""
+      },
+      "output": ""
+    },
+    {
+      "name": "formatTaxId/7:\"\"",
+      "input": {
+        "value": ""
+      },
+      "output": ""
+    },
+    {
+      "name": "isValidThaiTaxId/8:null",
+      "input": {
+        "value": null
+      },
+      "output": false
+    },
+    {
+      "name": "normalizeTaxId/8:null",
+      "input": {
+        "value": null
+      },
+      "output": ""
+    },
+    {
+      "name": "formatTaxId/8:null",
+      "input": {
+        "value": null
+      },
+      "output": ""
+    },
+    {
+      "name": "isValidThaiTaxId/9:\"123456789012\"",
+      "input": {
+        "value": "123456789012"
+      },
+      "output": false
+    },
+    {
+      "name": "normalizeTaxId/9:\"123456789012\"",
+      "input": {
+        "value": "123456789012"
+      },
+      "output": "123456789012"
+    },
+    {
+      "name": "formatTaxId/9:\"123456789012\"",
+      "input": {
+        "value": "123456789012"
+      },
+      "output": "123456789012"
+    },
+    {
+      "name": "isValidThaiTaxId/10:\"12345678901234\"",
+      "input": {
+        "value": "12345678901234"
+      },
+      "output": false
+    },
+    {
+      "name": "normalizeTaxId/10:\"12345678901234\"",
+      "input": {
+        "value": "12345678901234"
+      },
+      "output": "12345678901234"
+    },
+    {
+      "name": "formatTaxId/10:\"12345678901234\"",
+      "input": {
+        "value": "12345678901234"
+      },
+      "output": "12345678901234"
+    },
+    {
+      "name": "isValidThaiTaxId/11:\"01055650123AB\"",
+      "input": {
+        "value": "01055650123AB"
+      },
+      "output": false
+    },
+    {
+      "name": "normalizeTaxId/11:\"01055650123AB\"",
+      "input": {
+        "value": "01055650123AB"
+      },
+      "output": "01055650123AB"
+    },
+    {
+      "name": "formatTaxId/11:\"01055650123AB\"",
+      "input": {
+        "value": "01055650123AB"
+      },
+      "output": "0-1055-65012-3A-B"
+    },
+    {
+      "name": "isValidThaiTaxId/12:\"๐๑๐๕๕๖๕๐๑๒๓๔๕\"",
+      "input": {
+        "value": "๐๑๐๕๕๖๕๐๑๒๓๔๕"
+      },
+      "output": false
+    },
+    {
+      "name": "normalizeTaxId/12:\"๐๑๐๕๕๖๕๐๑๒๓๔๕\"",
+      "input": {
+        "value": "๐๑๐๕๕๖๕๐๑๒๓๔๕"
+      },
+      "output": "๐๑๐๕๕๖๕๐๑๒๓๔๕"
+    },
+    {
+      "name": "formatTaxId/12:\"๐๑๐๕๕๖๕๐๑๒๓๔๕\"",
+      "input": {
+        "value": "๐๑๐๕๕๖๕๐๑๒๓๔๕"
+      },
+      "output": "๐-๑๐๕๕-๖๕๐๑๒-๓๔-๕"
+    },
+    {
+      "name": "isValidThaiTaxId/13:\"0000000000000\"",
+      "input": {
+        "value": "0000000000000"
+      },
+      "output": false
+    },
+    {
+      "name": "normalizeTaxId/13:\"0000000000000\"",
+      "input": {
+        "value": "0000000000000"
+      },
+      "output": "0000000000000"
+    },
+    {
+      "name": "formatTaxId/13:\"0000000000000\"",
+      "input": {
+        "value": "0000000000000"
+      },
+      "output": "0-0000-00000-00-0"
+    },
+    {
+      "name": "isValidThaiTaxId/14:\"1111111111119\"",
+      "input": {
+        "value": "1111111111119"
+      },
+      "output": true
+    },
+    {
+      "name": "normalizeTaxId/14:\"1111111111119\"",
+      "input": {
+        "value": "1111111111119"
+      },
+      "output": "1111111111119"
+    },
+    {
+      "name": "formatTaxId/14:\"1111111111119\"",
+      "input": {
+        "value": "1111111111119"
+      },
+      "output": "1-1111-11111-11-9"
+    },
+    {
+      "name": "normalizeBranch5/0:\"\"",
+      "input": {
+        "value": ""
+      },
+      "output": "00000"
+    },
+    {
+      "name": "toBranch6/0:\"\"",
+      "input": {
+        "value": ""
+      },
+      "output": "000000"
+    },
+    {
+      "name": "branchLabel/0:\"\"",
+      "input": {
+        "value": ""
+      },
+      "output": "สำนักงานใหญ่"
+    },
+    {
+      "name": "normalizeBranch5/1:null",
+      "input": {
+        "value": null
+      },
+      "output": "00000"
+    },
+    {
+      "name": "toBranch6/1:null",
+      "input": {
+        "value": null
+      },
+      "output": "000000"
+    },
+    {
+      "name": "branchLabel/1:null",
+      "input": {
+        "value": null
+      },
+      "output": "สำนักงานใหญ่"
+    },
+    {
+      "name": "normalizeBranch5/2:\"0\"",
+      "input": {
+        "value": "0"
+      },
+      "output": "00000"
+    },
+    {
+      "name": "toBranch6/2:\"0\"",
+      "input": {
+        "value": "0"
+      },
+      "output": "000000"
+    },
+    {
+      "name": "branchLabel/2:\"0\"",
+      "input": {
+        "value": "0"
+      },
+      "output": "สำนักงานใหญ่"
+    },
+    {
+      "name": "normalizeBranch5/3:\"1\"",
+      "input": {
+        "value": "1"
+      },
+      "output": "00001"
+    },
+    {
+      "name": "toBranch6/3:\"1\"",
+      "input": {
+        "value": "1"
+      },
+      "output": "000001"
+    },
+    {
+      "name": "branchLabel/3:\"1\"",
+      "input": {
+        "value": "1"
+      },
+      "output": "สาขาที่ 00001"
+    },
+    {
+      "name": "normalizeBranch5/4:\"00001\"",
+      "input": {
+        "value": "00001"
+      },
+      "output": "00001"
+    },
+    {
+      "name": "toBranch6/4:\"00001\"",
+      "input": {
+        "value": "00001"
+      },
+      "output": "000001"
+    },
+    {
+      "name": "branchLabel/4:\"00001\"",
+      "input": {
+        "value": "00001"
+      },
+      "output": "สาขาที่ 00001"
+    },
+    {
+      "name": "normalizeBranch5/5:\"12\"",
+      "input": {
+        "value": "12"
+      },
+      "output": "00012"
+    },
+    {
+      "name": "toBranch6/5:\"12\"",
+      "input": {
+        "value": "12"
+      },
+      "output": "000012"
+    },
+    {
+      "name": "branchLabel/5:\"12\"",
+      "input": {
+        "value": "12"
+      },
+      "output": "สาขาที่ 00012"
+    },
+    {
+      "name": "normalizeBranch5/6:\"123456\"",
+      "input": {
+        "value": "123456"
+      },
+      "output": "23456"
+    },
+    {
+      "name": "toBranch6/6:\"123456\"",
+      "input": {
+        "value": "123456"
+      },
+      "output": "123456"
+    },
+    {
+      "name": "branchLabel/6:\"123456\"",
+      "input": {
+        "value": "123456"
+      },
+      "output": "สาขาที่ 23456"
+    },
+    {
+      "name": "normalizeBranch5/7:\"สาขา 2\"",
+      "input": {
+        "value": "สาขา 2"
+      },
+      "output": "00002"
+    },
+    {
+      "name": "toBranch6/7:\"สาขา 2\"",
+      "input": {
+        "value": "สาขา 2"
+      },
+      "output": "000002"
+    },
+    {
+      "name": "branchLabel/7:\"สาขา 2\"",
+      "input": {
+        "value": "สาขา 2"
+      },
+      "output": "สาขาที่ 00002"
+    },
+    {
+      "name": "normalizeBranch5/8:\"00-002\"",
+      "input": {
+        "value": "00-002"
+      },
+      "output": "00002"
+    },
+    {
+      "name": "toBranch6/8:\"00-002\"",
+      "input": {
+        "value": "00-002"
+      },
+      "output": "000002"
+    },
+    {
+      "name": "branchLabel/8:\"00-002\"",
+      "input": {
+        "value": "00-002"
+      },
+      "output": "สาขาที่ 00002"
+    },
+    {
+      "name": "normalizeBranch5/9:\"๐๐๐๐๑\"",
+      "input": {
+        "value": "๐๐๐๐๑"
+      },
+      "output": "00000"
+    },
+    {
+      "name": "toBranch6/9:\"๐๐๐๐๑\"",
+      "input": {
+        "value": "๐๐๐๐๑"
+      },
+      "output": "000000"
+    },
+    {
+      "name": "branchLabel/9:\"๐๐๐๐๑\"",
+      "input": {
+        "value": "๐๐๐๐๑"
+      },
+      "output": "สำนักงานใหญ่"
+    },
+    {
+      "name": "normalizeBranch5/10:\"  7 \"",
+      "input": {
+        "value": "  7 "
+      },
+      "output": "00007"
+    },
+    {
+      "name": "toBranch6/10:\"  7 \"",
+      "input": {
+        "value": "  7 "
+      },
+      "output": "000007"
+    },
+    {
+      "name": "branchLabel/10:\"  7 \"",
+      "input": {
+        "value": "  7 "
+      },
+      "output": "สาขาที่ 00007"
+    }
+  ]
+}

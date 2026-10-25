@@ -4,6 +4,9 @@ import type { DocLine, VatMode, DocTotals } from './types';
 
 // ----------------------------------------------------------------------
 
+/** อัตราภาษีมูลค่าเพิ่มที่ใช้ทั้งระบบ (%) — เปลี่ยนอัตราต้องแก้ที่นี่ที่เดียว */
+export const VAT_RATE = 7;
+
 export type CalcInput = {
   lines: Pick<DocLine, 'qty' | 'unitPrice' | 'discount' | 'accountCode'>[];
   vatMode: VatMode;
@@ -14,6 +17,30 @@ export type CalcInput = {
 
 export function lineAmount(line: Pick<DocLine, 'qty' | 'unitPrice' | 'discount'>): number {
   return round2(mulBaht(line.qty || 0, line.unitPrice || 0) - (line.discount || 0));
+}
+
+/**
+ * แบ่งมูลค่าก่อน VAT (`net`) ให้แต่ละบรรทัดตามสัดส่วนจำนวนเงิน — บรรทัดสุดท้ายรับเศษ ผลรวมเท่ากับ net พอดี
+ * (gross = 0 คืนศูนย์ทุกบรรทัด)
+ */
+function allocateNet(amounts: number[], gross: number, net: number): number[] {
+  if (gross === 0) return amounts.map(() => 0);
+  const netSatang = toSatang(net);
+  const grossSatang = toSatang(gross);
+  let allocated = 0;
+  return amounts.map((amount, index) => {
+    const share =
+      index === amounts.length - 1 ? netSatang - allocated : Math.round((toSatang(amount) * netSatang) / grossSatang);
+    allocated += share;
+    return fromSatang(share);
+  });
+}
+
+/** มูลค่าก่อน VAT ของแต่ละบรรทัด (ใช้เป็นฐานหัก ณ ที่จ่ายระดับบรรทัด) — ผลรวม = `calcDocument(input).net` */
+export function lineNetAmounts(input: Pick<CalcInput, 'lines' | 'vatMode' | 'vatRate'>): number[] {
+  const amounts = input.lines.map(lineAmount);
+  const t = calcDocument({ ...input, whtRate: 0 });
+  return allocateNet(amounts, t.gross, t.net);
 }
 
 /**
@@ -45,16 +72,9 @@ export function calcDocument(input: CalcInput): DocTotals {
   // แบ่งมูลค่าก่อน VAT ตามบัญชี (inclusive ต้องถอด VAT ออกตามสัดส่วน ให้ผลรวมเท่ากับ net พอดี)
   const netByAccount: Record<string, number> = {};
   if (gross !== 0) {
-    let allocated = 0;
-    const netSatang = toSatang(net);
-    const grossSatang = toSatang(gross);
-    input.lines.forEach((line, index) => {
-      const share =
-        index === input.lines.length - 1
-          ? netSatang - allocated
-          : Math.round((toSatang(amounts[index]) * netSatang) / grossSatang);
-      allocated += share;
-      netByAccount[line.accountCode] = round2((netByAccount[line.accountCode] ?? 0) + fromSatang(share));
+    allocateNet(amounts, gross, net).forEach((share, index) => {
+      const code = input.lines[index].accountCode;
+      netByAccount[code] = round2((netByAccount[code] ?? 0) + share);
     });
   }
 

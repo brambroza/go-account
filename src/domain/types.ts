@@ -29,6 +29,13 @@ export type Address = {
   district?: string;
   province?: string;
   postalCode?: string;
+  /**
+   * รหัส TIS 1099 (เลือกจากรายการ `thai-address.ts`) — XML e-Tax ใช้รหัส ไม่ใช่ชื่อ (ขมธอ.3-2560 §8.8–8.10)
+   * จังหวัด 2 หลัก / อำเภอ-เขต 4 หลัก / ตำบล-แขวง 6 หลัก; ไม่มีค่า = ที่อยู่เก่าที่มีแต่ชื่อ (จับคู่ชื่อตอนออก XML)
+   */
+  provinceCode?: string;
+  districtCode?: string;
+  subDistrictCode?: string;
 };
 
 export type Company = {
@@ -42,6 +49,32 @@ export type Company = {
   /** รหัสผู้ใช้ e-Filing — ใช้ใน header ของไฟล์ ภ.ง.ด. */
   rdUserId?: string;
   vatRegistered: boolean;
+  /**
+   * จดทะเบียนภาษีธุรกิจเฉพาะ (SBT) — header ไฟล์ ภ.ง.ด. ฟิลด์ 16 BRANCH_TYPE: จด VAT (หรือทั้งสอง) = V, SBT อย่างเดียว = S, ไม่จด = ว่าง
+   * ไม่มีค่า = ไม่ได้จด
+   */
+  sbtRegistered?: boolean;
+  /** ปิดงวดถึงวันที่นี้ (รวมวันนั้น) — ห้ามลงรายการที่วันที่ ≤ ค่านี้ เลื่อนได้ทางเดียว (`lockPeriod`) */
+  lockedThrough?: ISODate;
+};
+
+/** ข้อมูลผู้ขาย (บริษัทเรา) ณ วันที่ออกเอกสาร — แก้ข้อมูลบริษัทภายหลังแล้วเอกสารเดิมไม่เปลี่ยน */
+export type CompanySnapshot = Pick<Company, 'name' | 'taxId' | 'branchNo' | 'address' | 'email' | 'phone' | 'vatRegistered'>;
+
+/**
+ * ข้อมูลคู่ค้า ณ วันที่ออกเอกสาร (ชื่อ/เลขผู้เสียภาษี/สาขา/ที่อยู่/ประเภทบุคคล)
+ * รายงาน ภ.พ.30, ภ.ง.ด.3/53 และ XML อ่านจากที่นี่ ไม่อ่านจากผู้ติดต่อปัจจุบัน
+ */
+export type PartySnapshot = {
+  title: string;
+  name: string;
+  lastName?: string;
+  taxId: string;
+  /** 5 หลัก */
+  branchNo: string;
+  address: Address;
+  legalForm: LegalForm;
+  email?: string;
 };
 
 export type ContactKind = 'customer' | 'vendor' | 'both';
@@ -98,13 +131,36 @@ export type DocTotals = {
 
 export type ETaxStatus = 'not-required' | 'pending-sign' | 'signed' | 'uploaded';
 
-export type SalesDocKind = 'tax-invoice' | 'credit-note';
+/** ใบกำกับภาษี / ใบลดหนี้ (ม.86/10) / ใบเพิ่มหนี้ (ม.86/9) */
+export type SalesDocKind = 'tax-invoice' | 'credit-note' | 'debit-note';
 
 export type SalesDocStatus = 'issued' | 'partial' | 'paid' | 'cancelled';
+
+/**
+ * ประเภทการขาย — ขายสินค้า: ภาษีขายเกิดเมื่อออกใบกำกับ (ม.78)
+ * งานบริการ (ม.78/1): ออกใบแจ้งหนี้ก่อน ภาษีขายเกิดเมื่อรับชำระ — ออกใบเสร็จรับเงิน/ใบกำกับภาษีทุกครั้งที่รับเงิน
+ */
+export type SaleType = 'goods' | 'service';
 
 export type SalesDoc = {
   id: string;
   kind: SalesDocKind;
+  /**
+   * true = ใบกำกับภาษี / ใบลดหนี้ตาม ม.86/10 (ผู้จด VAT เท่านั้น)
+   * false = ใบแจ้งหนี้ / ใบลดหนี้ธรรมดา (บริษัทไม่จด VAT — ห้ามพิมพ์คำว่า "ใบกำกับภาษี")
+   * ไม่มีค่า = ข้อมูลเก่า ถือว่า true เมื่อ vatMode ≠ none
+   */
+  isTaxInvoice?: boolean;
+  /**
+   * ไม่มีค่า = ขายสินค้า (ข้อมูลเดิมทั้งหมด) — 'service' + บริษัทจด VAT = ใบแจ้งหนี้ (ไม่ใช่ใบกำกับภาษี)
+   * ภาษีขายพักไว้ที่ 2151 จนรับชำระ (ใบลดหนี้ของใบแจ้งหนี้งานบริการได้ค่าเดียวกัน)
+   */
+  saleType?: SaleType;
+  /**
+   * ยอดยกมาจากระบบเดิม (เช่น Express) — ใบแจ้งหนี้/ใบกำกับที่ยังค้างชำระ ณ วันยกยอด
+   * เลขที่เป็นเลขของระบบเดิม ภาษีขายยื่นในระบบเดิมแล้ว ไม่มีรายการบัญชีของตัวเอง (ผูกกับรายการยอดยกมา)
+   */
+  opening?: boolean;
   docNo: string;
   date: ISODate;
   dueDate: ISODate;
@@ -112,13 +168,40 @@ export type SalesDoc = {
   lines: DocLine[];
   vatMode: VatMode;
   vatRate: number;
-  /** ใบลดหนี้: อ้างถึงใบกำกับเดิม */
+  /** ใบลดหนี้/ใบเพิ่มหนี้: อ้างถึงใบกำกับเดิม */
   refDocId?: string;
+  /** ใบลดหนี้ของงานบริการหลังรับเงินครบ: อ้างใบเสร็จรับเงิน/ใบกำกับภาษีใบล่าสุดของใบแจ้งหนี้ */
+  refReceiptId?: string;
+  /**
+   * ใบลดหนี้ของใบแจ้งหนี้งานบริการที่ปิดยอดค้างทั้งหมด: เศษปัดระหว่างภาษีขายรอตัดที่เหลือกับ VAT ของใบลดหนี้
+   * (บวก = ภาษีรอตัดเหลือมากกว่า) — ลงบัญชี Dr 2151 / Cr รายได้ เพื่อให้ 2151 ของใบนี้เป็นศูนย์
+   */
+  deferredVatRounding?: number;
   reason?: string;
+  /**
+   * ใบลดหนี้/ใบเพิ่มหนี้: รหัสเหตุผล ETDA (ขมธอ.3-2560 ภาคผนวก B.3) เช่น CDNG01 — ดู `adjustment-reason.ts`
+   * ไม่มีค่า = เหตุอื่น (…99, ข้อมูลก่อน v8) ซึ่งต้องมี `reason`
+   */
+  reasonCode?: string;
+  /**
+   * ใบลดหนี้/ใบเพิ่มหนี้ (ม.86/9, ม.86/10): มูลค่าตามใบกำกับเดิม ณ วันออก (หลังลด/เพิ่มหนี้ครั้งก่อน ๆ) ก่อน VAT
+   * และมูลค่าที่ถูกต้องหลังเอกสารนี้ — ผลต่าง = มูลค่าของเอกสารนี้ (`calcDocument(doc).net`)
+   */
+  originalNet?: number;
+  correctNet?: number;
+  /** ใบลดหนี้: ส่วนที่เกินยอดค้างชำระ (ลูกค้าจ่ายแล้ว) ตั้งเป็นเงินรอคืนลูกค้า — 0 ถ้าลดลูกหนี้ทั้งหมด */
+  creditToCustomer?: number;
   note?: string;
   status: SalesDocStatus;
   paidAmount: number;
   etax: ETaxStatus;
+  /** วันเวลาที่บันทึกว่านำส่ง e-Tax แล้ว (ISO) */
+  etaxUploadedAt?: string;
+  /** เลขอ้างอิงการนำส่งจากระบบสรรพากร */
+  etaxReference?: string;
+  /** snapshot ผู้ขาย/ผู้ซื้อ ณ วันที่ออก (ข้อมูลเก่าได้ค่าจาก migration) */
+  seller?: CompanySnapshot;
+  buyer?: PartySnapshot;
   journalId: string;
   createdAt: string;
 };
@@ -134,38 +217,204 @@ export type Receipt = {
   /** ลูกค้าหักภาษี ณ ที่จ่ายไว้ */
   whtAmount: number;
   depositAccountCode: string;
+  /**
+   * true = ใบเสร็จรับเงิน/ใบกำกับภาษี (prefix RT) ของงานบริการ (ม.78/1) — ภาษีขายเกิดในเดือนที่รับเงิน
+   * ไม่มีค่า/false = ใบเสร็จรับเงินธรรมดา (RE)
+   */
+  isTaxInvoice?: boolean;
+  /** ภาษีขายของเงินที่รับครั้งนี้ (ย้ายจาก 2151 เข้า 2150) — มูลค่าก่อนภาษี = amount − vat */
+  vat?: number;
+  /** สถานะ e-Tax ของใบเสร็จรับเงิน/ใบกำกับภาษี (ไม่มีค่า = ไม่ต้องออก) */
+  etax?: ETaxStatus;
+  etaxUploadedAt?: string;
+  etaxReference?: string;
+  seller?: CompanySnapshot;
+  buyer?: PartySnapshot;
   journalId: string;
 };
 
 export type WhtCondition = '1' | '2' | '3';
 
+/** บรรทัดเอกสารซื้อ — หัก ณ ที่จ่ายระดับบรรทัด (สินค้า = ไม่หัก: rate 0, incomeType '') */
+export type PurchaseLine = DocLine & {
+  /** ประเภทเงินได้ เช่น ค่าบริการ / ค่าเช่า ('' = ไม่หัก) */
+  whtIncomeType: string;
+  /** อัตราหัก ณ ที่จ่าย (%) ของบรรทัดนี้ — 0 = ไม่หัก */
+  whtRate: number;
+};
+
 export type PurchaseDoc = {
   id: string;
-  /** เลขที่ภายในของเรา */
+  /** เลขที่ภายในของเรา (ยอดยกมา = เลขที่ของระบบเดิม) */
   docNo: string;
+  /** ยอดยกมาจากระบบเดิม — เจ้าหนี้คงค้าง ณ วันยกยอด (ภาษีซื้อใช้สิทธิในระบบเดิมแล้ว) ผูกกับรายการยอดยกมา */
+  opening?: boolean;
   /** เลขที่ใบกำกับภาษีของผู้ขาย */
   supplierInvoiceNo: string;
+  /** วันที่ในใบกำกับภาษีของผู้ขาย — บังคับเมื่อขอคืนภาษีซื้อ (เริ่มนับสิทธิ 6 เดือนตาม ม.82/3) */
+  supplierInvoiceDate?: ISODate;
+  /** วันที่บันทึก (วันที่ลงบัญชี) — เลขที่ PI เรียงตามวันที่นี้ */
   date: ISODate;
   contactId: string;
-  lines: DocLine[];
+  lines: PurchaseLine[];
   vatMode: VatMode;
   vatRate: number;
-  /** ภาษีซื้อขอคืนได้ในงวดนี้หรือไม่ (มีใบกำกับเต็มรูป) */
+  /** ภาษีซื้อขอคืนได้หรือไม่ (มีใบกำกับเต็มรูป + ผู้ขายมีเลขผู้เสียภาษี/สาขาถูกต้อง ม.82/5) */
   claimVat: boolean;
-  whtRate: number;
-  whtIncomeType: string;
+  /** เดือนภาษีที่ใช้สิทธิภาษีซื้อ `YYYY-MM` — มีเฉพาะเมื่อ claimVat (เดือนในใบกำกับ ถึง +6 เดือน) */
+  vatClaimPeriod?: string;
+  /** เงื่อนไขการหัก ณ ที่จ่าย (ทั้งเอกสาร) */
   whtCondition: WhtCondition;
+  /** จ่ายครบแล้ว (ยอดใบสำคัญจ่ายรวม = ยอดเอกสาร) — แบ่งจ่ายหลายครั้งได้ ดู `state.payments` */
   paid: boolean;
-  paidDate?: ISODate;
-  paymentAccountCode?: string;
-  whtCertNo?: string;
   note?: string;
+  /** snapshot ผู้ขาย ณ วันที่บันทึก */
+  supplier?: PartySnapshot;
   journalId: string;
-  paymentJournalId?: string;
   createdAt: string;
 };
 
-export type JournalSource = 'sales' | 'credit-note' | 'receipt' | 'purchase' | 'payment' | 'manual';
+/** ภาษีหัก ณ ที่จ่ายต่อประเภทเงินได้ (ทั้งเอกสาร หรือของการจ่ายแต่ละครั้ง) */
+export type WhtLineItem = {
+  incomeType: string;
+  rate: number;
+  /** เงินได้ (มูลค่าก่อน VAT) */
+  base: number;
+  tax: number;
+};
+
+/** ใบสำคัญจ่าย (PV) — จ่ายชำระเจ้าหนี้ 1 ครั้ง (เอกสารซื้อ 1 ใบแบ่งจ่ายได้หลายใบ) */
+export type Payment = {
+  id: string;
+  docNo: string;
+  date: ISODate;
+  purchaseId: string;
+  contactId: string;
+  /** ยอดตัดเจ้าหนี้ครั้งนี้ (รวม VAT) */
+  amount: number;
+  /** ภาษีหัก ณ ที่จ่ายครั้งนี้ = ผลรวม `whtItems.tax` */
+  whtAmount: number;
+  /** เงินที่จ่ายออกจริง = amount − whtAmount */
+  netPaid: number;
+  /** หัก ณ ที่จ่ายตามสัดส่วนของการจ่ายครั้งนี้ แยกตามประเภทเงินได้ (ครั้งสุดท้ายรับเศษ ให้รวมทุกครั้ง = ของทั้งเอกสาร) */
+  whtItems: WhtLineItem[];
+  accountCode: string;
+  /** เลขที่หนังสือรับรอง 50 ทวิ (prefix WT) — ออกเฉพาะเมื่อมีหัก */
+  whtCertNo?: string;
+  payer?: CompanySnapshot;
+  payee?: PartySnapshot;
+  journalId: string;
+};
+
+/**
+ * บรรทัดใบลดหนี้จากผู้ขาย — `purchaseLineId` = บรรทัดของเอกสารซื้อที่ลด (ฐานหัก ณ ที่จ่ายลดเฉพาะบรรทัดนั้น)
+ * ไม่ระบุ = จับคู่ตามบัญชีของบรรทัด (ดู `purchaseCreditAllocation`)
+ */
+export type PurchaseCreditLine = DocLine & { purchaseLineId?: string };
+
+/**
+ * ใบลดหนี้จากผู้ขาย (ม.82/12) — ลดเจ้าหนี้ของเอกสารซื้อเดิม และลดภาษีซื้อในเดือนที่ได้รับ (`vatClaimPeriod`)
+ * ลดได้ไม่เกินยอดเอกสาร − ใบลดหนี้ก่อนหน้า (แม้จ่ายแล้ว) — ส่วนที่เกินยอดค้างจ่าย (`refundDue`)
+ * ตั้งเป็นลูกหนี้-เงินคืนจากผู้ขาย (1150) แล้วรับคืนด้วย `receiveSupplierRefund`
+ */
+export type PurchaseCreditNote = {
+  id: string;
+  /** เลขที่ภายใน (prefix PC เรียงตามวันที่บันทึก) */
+  docNo: string;
+  /** เลขที่ใบลดหนี้ของผู้ขาย */
+  supplierCreditNoteNo: string;
+  /** วันที่ในใบลดหนี้ของผู้ขาย */
+  supplierCreditNoteDate: ISODate;
+  /** วันที่ได้รับ/บันทึก — ภาษีซื้อลดในเดือนนี้ */
+  date: ISODate;
+  purchaseId: string;
+  contactId: string;
+  lines: PurchaseCreditLine[];
+  vatMode: VatMode;
+  vatRate: number;
+  /** ส่วนที่เกินยอดค้างจ่าย ณ วันบันทึก (จ่ายไปแล้ว) ตั้งเป็นลูกหนี้-เงินคืนจากผู้ขาย 1150 — 0/ไม่มี = ลดเจ้าหนี้ทั้งหมด */
+  refundDue?: number;
+  /** ตามเอกสารซื้อเดิม — ขอคืนภาษีซื้อไว้ = ต้องลดภาษีซื้อ */
+  claimVat: boolean;
+  /** เดือนภาษีที่ลดภาษีซื้อ `YYYY-MM` (= เดือนของ `date`) — มีเฉพาะเมื่อ claimVat */
+  vatClaimPeriod?: string;
+  reason: string;
+  supplier?: PartySnapshot;
+  journalId: string;
+  createdAt: string;
+};
+
+/** รับเงินคืนจากผู้ขาย (prefix SR) — ตัดลูกหนี้-เงินคืนจากผู้ขาย 1150 ที่เกิดจากใบลดหนี้หลังจ่ายเงินแล้ว */
+export type SupplierRefund = {
+  id: string;
+  docNo: string;
+  date: ISODate;
+  contactId: string;
+  amount: number;
+  /** บัญชีเงินสด/ธนาคารที่รับเงิน */
+  accountCode: string;
+  note?: string;
+  supplier?: PartySnapshot;
+  journalId: string;
+  createdAt: string;
+};
+
+/** ปิดบัญชีสิ้นปี — โอนรายได้/ค่าใช้จ่ายสะสมถึงวันสิ้นปีเข้า 3200 กำไรสะสม (ปีละ 1 รายการ) */
+export type YearClose = {
+  id: string;
+  /** วันสิ้นรอบบัญชี (สิ้นเดือน) */
+  fiscalYearEnd: ISODate;
+  /** กำไร (ขาดทุน) สุทธิที่โอนเข้ากำไรสะสม */
+  netProfit: number;
+  /** ไม่มีค่า = ไม่มียอดรายได้/ค่าใช้จ่าย ไม่ต้องลงบัญชี */
+  journalId?: string;
+};
+
+/**
+ * ยอดยกมาจากระบบเดิม (ย้ายจาก Express) — บันทึกได้ครั้งเดียวก่อนมีรายการอื่น
+ * รายการบัญชี: `lines` (บัญชีที่ไม่ใช่บัญชีคุม) + Dr ลูกหนี้ (รวมใบค้างรับ) + Cr เจ้าหนี้ (รวมใบค้างจ่าย)
+ * + Dr ภาษีชำระเกินยกมา + Dr ภาษีถูกหัก ณ ที่จ่าย — ใบค้างรับ/ค้างจ่ายอยู่ใน sales/purchases (`opening: true`)
+ */
+export type OpeningBalance = {
+  /** ยอดยกมา ณ สิ้นวันนี้ — รายการใหม่ต้องลงวันที่หลังวันนี้ */
+  date: ISODate;
+  journalId: string;
+  /** ยอดคงเหลือบัญชีแยกประเภทอื่น (เงินสด ธนาคาร สินทรัพย์ ทุน กำไรสะสม รายได้/ค่าใช้จ่ายสะสมของปี ฯลฯ) */
+  lines: JournalLine[];
+  /** ภาษีชำระเกินยกมาจาก ภ.พ.30 เดือนสุดท้ายในระบบเดิม (1180) */
+  vatCredit: number;
+  /** ภาษีถูกหัก ณ ที่จ่ายที่ยังไม่ได้ใช้เครดิต (1160) */
+  whtReceivable: number;
+};
+
+/** คืนเงินลูกค้าจากยอดเงินรอคืน (เกิดจากใบลดหนี้หลังรับเงินแล้ว) */
+export type CustomerRefund = {
+  id: string;
+  docNo: string;
+  date: ISODate;
+  contactId: string;
+  amount: number;
+  accountCode: string;
+  note?: string;
+  buyer?: PartySnapshot;
+  journalId: string;
+};
+
+export type JournalSource =
+  | 'sales'
+  | 'credit-note'
+  | 'debit-note'
+  | 'receipt'
+  | 'purchase'
+  | 'payment'
+  | 'refund'
+  | 'supplier-refund'
+  | 'vat-close'
+  | 'purchase-credit-note'
+  | 'year-close'
+  | 'opening'
+  | 'transfer'
+  | 'manual';
 
 export type JournalLine = {
   accountCode: string;
@@ -185,15 +434,156 @@ export type JournalEntry = {
   lines: JournalLine[];
 };
 
+/**
+ * ปิดภาษีเดือน (ภ.พ.30) — สร้างพร้อมการปิดงวด (`lockPeriod`) เดือนละ 1 รายการต่อเนื่องกัน
+ * รายการบัญชี: Dr ภาษีขาย / Cr ภาษีซื้อ / Cr ภาษีชำระเกินยกมา → Cr VAT ค้างจ่าย หรือ Dr ภาษีชำระเกินยกไป
+ */
+export type VatClose = {
+  id: string;
+  /** เดือนภาษี `YYYY-MM` */
+  period: string;
+  /** วันสิ้นเดือนของงวด (วันที่ของรายการบัญชี) */
+  date: ISODate;
+  outputVat: number;
+  inputVat: number;
+  /** ภาษีชำระเกินยกมาจากเดือนก่อน (ช่อง 10) */
+  broughtForward: number;
+  /** ภาษีที่ต้องชำระสุทธิ (ช่อง 11) */
+  payable: number;
+  /** ภาษีชำระเกินสุทธิ ยกไปเดือนถัดไป (ช่อง 12 — ระบบเลือกยกไปเสมอ ไม่ขอคืนเป็นเงินสด) */
+  carriedForward: number;
+  /** ไม่มีค่า = ทุกยอดเป็นศูนย์ ไม่ต้องลงบัญชี */
+  journalId?: string;
+};
+
+// ---------------- ธนาคาร / เงินสดย่อย / กระทบยอด (B9) ----------------
+
+/** bank = เงินฝากธนาคาร (บัญชี 112x), petty-cash = เงินสดย่อย (บัญชี 111x) */
+export type BankAccountKind = 'bank' | 'petty-cash';
+
+/**
+ * ทะเบียนบัญชีธนาคาร/เงินสดย่อย — 1 รายการต่อ 1 บัญชีแยกประเภท (`accountCode` ในผังบัญชี)
+ * เป็นข้อมูลประกอบ (ชื่อธนาคาร เลขที่บัญชี) แก้ไขได้ ไม่กระทบรายการบัญชี
+ */
+export type BankAccount = {
+  accountCode: string;
+  kind: BankAccountKind;
+  /** ชื่อธนาคาร (เงินสดย่อย = ชื่อผู้ถือเงิน/แผนก) */
+  bankName: string;
+  accountNo: string;
+  branch?: string;
+  /** กระทบยอดตั้งแต่วันที่นี้ — รายการบัญชีก่อนวันนี้ถือว่ากระทบยอดแล้ว (ไม่แสดงเป็นรายการค้าง) */
+  reconcileFrom?: ISODate;
+};
+
+/** โอนเงินระหว่างบัญชีของบริษัท (รวมเบิกชดเชยเงินสดย่อยจากธนาคาร) — Dr ปลายทาง / Cr ต้นทาง เลขที่ TR */
+export type BankTransfer = {
+  id: string;
+  docNo: string;
+  date: ISODate;
+  fromAccountCode: string;
+  toAccountCode: string;
+  amount: number;
+  note?: string;
+  journalId: string;
+  createdAt: string;
+};
+
+/** รายการใน statement ธนาคาร (นำเข้าจาก CSV หรือคีย์เอง) — บวก = เงินเข้า, ลบ = เงินออก */
+export type BankStatementLine = {
+  id: string;
+  accountCode: string;
+  date: ISODate;
+  description: string;
+  amount: number;
+  /** ยอดคงเหลือตาม statement หลังรายการนี้ (ถ้าไฟล์มี) */
+  balance?: number;
+  /** ชุดที่นำเข้าพร้อมกัน (ไม่มี = คีย์เอง) */
+  batchId?: string;
+  createdAt: string;
+};
+
+/**
+ * จับคู่กระทบยอด: รายการ statement ≥ 1 รายการ กับรายการเคลื่อนไหวในบัญชีแยกประเภท ≥ 1 รายการ (ยอดรวมเท่ากัน)
+ * `journalIds` = รายการบัญชีที่ลงบัญชี `accountCode` (ยอดเคลื่อนไหว = เดบิต − เครดิตของบัญชีนี้ในรายการนั้น)
+ */
+export type BankMatch = {
+  id: string;
+  accountCode: string;
+  statementLineIds: string[];
+  journalIds: string[];
+  /** จับคู่อัตโนมัติ (ยอดเท่ากัน + วันที่ใกล้กัน) */
+  auto: boolean;
+  matchedAt: string;
+};
+
+// ---------------- ใบเสนอราคา ----------------
+
+export type QuotationStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired';
+
+/**
+ * ใบเสนอราคา (prefix QT) — ไม่ใช่เอกสารภาษีและไม่ลงบัญชี
+ * ข้อยกเว้นของกติกา "เอกสารที่ออกแล้วแก้ไม่ได้": แก้ไขได้จนกว่าจะแปลงเป็นเอกสารขาย (`convertedSalesId`)
+ */
+export type Quotation = {
+  id: string;
+  docNo: string;
+  date: ISODate;
+  /** ยืนราคา (วัน) นับจากวันที่ */
+  validDays: number;
+  contactId: string;
+  lines: DocLine[];
+  vatMode: VatMode;
+  vatRate: number;
+  /** ประเภทการขายเมื่อแปลงเป็นเอกสารขาย (ไม่มีค่า = ขายสินค้า) */
+  saleType?: SaleType;
+  note?: string;
+  status: QuotationStatus;
+  /** เอกสารขายที่แปลงจากใบเสนอราคานี้ (มีแล้วแก้ไข/เปลี่ยนสถานะไม่ได้) */
+  convertedSalesId?: string;
+  buyer?: PartySnapshot;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** เวอร์ชันโครงข้อมูลปัจจุบัน — เปลี่ยนเมื่อไรต้องเพิ่ม migration ใน `store/migrations.ts` */
+export const DATA_VERSION = 8;
+
 export type AccountingData = {
-  version: 1;
+  version: typeof DATA_VERSION;
   company: Company;
   accounts: Account[];
   contacts: Contact[];
   sales: SalesDoc[];
   receipts: Receipt[];
   purchases: PurchaseDoc[];
+  payments: Payment[];
+  refunds: CustomerRefund[];
+  vatCloses: VatClose[];
+  /** ใบลดหนี้จากผู้ขาย */
+  purchaseCredits: PurchaseCreditNote[];
+  /** รับเงินคืนจากผู้ขาย (ใบลดหนี้หลังจ่ายแล้ว) */
+  supplierRefunds: SupplierRefund[];
+  /** ปิดบัญชีสิ้นปี (เรียงตามวันสิ้นปี) */
+  yearCloses: YearClose[];
+  /** ยอดยกมาจากระบบเดิม (มีได้ครั้งเดียว) */
+  openingBalance?: OpeningBalance;
+  /** ทะเบียนบัญชีธนาคาร/เงินสดย่อย */
+  bankAccounts: BankAccount[];
+  /** โอนเงินระหว่างบัญชี */
+  transfers: BankTransfer[];
+  /** รายการ statement ธนาคารสำหรับกระทบยอด */
+  bankStatements: BankStatementLine[];
+  /** ผลการจับคู่กระทบยอด */
+  bankMatches: BankMatch[];
+  /** ใบเสนอราคา (ไม่ลงบัญชี) */
+  quotations: Quotation[];
   journal: JournalEntry[];
   /** เลขที่ล่าสุดต่อ prefix+งวด เช่น { 'IV6910': 43 } */
   sequences: Record<string, number>;
+  /**
+   * เอกสารที่ลงวันที่ไม่เกินวันนี้ออกเลขก่อนระบบบังคับ "เลขที่เรียงตามวันที่" (ข้อมูล v1)
+   * การตรวจลำดับเลขที่ยกเว้นคู่ที่ใบก่อนหน้าลงวันที่ ≤ ค่านี้ — ตั้งโดย migration เท่านั้น
+   */
+  legacyOrderThrough?: ISODate;
 };

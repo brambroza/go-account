@@ -1,0 +1,6106 @@
+{
+  "file": "wht.json",
+  "generator": "go-account/scripts/export-golden.ts (yarn golden)",
+  "count": 88,
+  "vectors": [
+    {
+      "name": "constants/rates",
+      "input": {},
+      "output": {
+        "PURCHASE_WHT_MAX_RATE": 15,
+        "RECEIPT_WHT_MAX_RATE": 5
+      }
+    },
+    {
+      "name": "receiptWhtAmount/full-3",
+      "input": {
+        "amount": 10700,
+        "rate": 3,
+        "totals": {
+          "net": 10000,
+          "total": 10700
+        }
+      },
+      "output": 300
+    },
+    {
+      "name": "receiptWhtAmount/partial-3",
+      "input": {
+        "amount": 5000,
+        "rate": 3,
+        "totals": {
+          "net": 10000,
+          "total": 10700
+        }
+      },
+      "output": 140.19
+    },
+    {
+      "name": "receiptWhtAmount/partial-odd",
+      "input": {
+        "amount": 3333.33,
+        "rate": 3,
+        "totals": {
+          "net": 9345.79,
+          "total": 10000
+        }
+      },
+      "output": 93.46
+    },
+    {
+      "name": "receiptWhtAmount/rate-5",
+      "input": {
+        "amount": 1070,
+        "rate": 5,
+        "totals": {
+          "net": 1000,
+          "total": 1070
+        }
+      },
+      "output": 50
+    },
+    {
+      "name": "receiptWhtAmount/rate-0",
+      "input": {
+        "amount": 1070,
+        "rate": 0,
+        "totals": {
+          "net": 1000,
+          "total": 1070
+        }
+      },
+      "output": 0
+    },
+    {
+      "name": "receiptWhtAmount/amount-0",
+      "input": {
+        "amount": 0,
+        "rate": 3,
+        "totals": {
+          "net": 1000,
+          "total": 1070
+        }
+      },
+      "output": 0
+    },
+    {
+      "name": "receiptWhtAmount/amount-negative",
+      "input": {
+        "amount": -10,
+        "rate": 3,
+        "totals": {
+          "net": 1000,
+          "total": 1070
+        }
+      },
+      "output": 0
+    },
+    {
+      "name": "receiptWhtAmount/no-vat",
+      "input": {
+        "amount": 999.99,
+        "rate": 1,
+        "totals": {
+          "net": 1000,
+          "total": 1000
+        }
+      },
+      "output": 10
+    },
+    {
+      "name": "receiptWhtAmount/rate-1.5",
+      "input": {
+        "amount": 13209.87,
+        "rate": 1.5,
+        "totals": {
+          "net": 12345.67,
+          "total": 13209.87
+        }
+      },
+      "output": 185.19
+    },
+    {
+      "name": "receiptWhtAmount/total-0",
+      "input": {
+        "amount": 100,
+        "rate": 3,
+        "totals": {
+          "net": 0,
+          "total": 0
+        }
+      },
+      "output": 0
+    },
+    {
+      "name": "purchaseWhtGroups/service-goods-exclusive",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        }
+      },
+      "output": [
+        {
+          "base": 10000,
+          "incomeType": "ค่าบริการ",
+          "rate": 3,
+          "tax": 300
+        },
+        {
+          "base": 1500,
+          "incomeType": "ค่าขนส่ง",
+          "rate": 1,
+          "tax": 15
+        }
+      ]
+    },
+    {
+      "name": "purchaseTotals/service-goods-exclusive",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        }
+      },
+      "output": {
+        "gross": 12500,
+        "net": 12500,
+        "netByAccount": {
+          "1200": 1000,
+          "5300": 10000,
+          "5310": 1500
+        },
+        "payable": 13060,
+        "total": 13375,
+        "vat": 875,
+        "wht": 315
+      }
+    },
+    {
+      "name": "purchaseWhtGroups/two-service-lines-same-group",
+      "input": {
+        "doc": {
+          "id": "P2",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L4",
+              "qty": 1,
+              "unitPrice": 3333.33,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5301",
+              "description": "",
+              "discount": 0,
+              "id": "L5",
+              "qty": 1,
+              "unitPrice": 6666.67,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5302",
+              "description": "",
+              "discount": 0,
+              "id": "L6",
+              "qty": 1,
+              "unitPrice": 0.01,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        }
+      },
+      "output": [
+        {
+          "base": 9345.8,
+          "incomeType": "ค่าบริการ",
+          "rate": 3,
+          "tax": 280.37
+        }
+      ]
+    },
+    {
+      "name": "purchaseTotals/two-service-lines-same-group",
+      "input": {
+        "doc": {
+          "id": "P2",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L4",
+              "qty": 1,
+              "unitPrice": 3333.33,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5301",
+              "description": "",
+              "discount": 0,
+              "id": "L5",
+              "qty": 1,
+              "unitPrice": 6666.67,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5302",
+              "description": "",
+              "discount": 0,
+              "id": "L6",
+              "qty": 1,
+              "unitPrice": 0.01,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        }
+      },
+      "output": {
+        "gross": 10000.01,
+        "net": 9345.8,
+        "netByAccount": {
+          "5300": 3115.26,
+          "5301": 6230.53,
+          "5302": 0.01
+        },
+        "payable": 9719.64,
+        "total": 10000.01,
+        "vat": 654.21,
+        "wht": 280.37
+      }
+    },
+    {
+      "name": "purchaseWhtGroups/rent-none-vat",
+      "input": {
+        "doc": {
+          "id": "P3",
+          "lines": [
+            {
+              "accountCode": "5400",
+              "description": "",
+              "discount": 0,
+              "id": "L7",
+              "qty": 1,
+              "unitPrice": 25000,
+              "whtIncomeType": "ค่าเช่า",
+              "whtRate": 5
+            }
+          ],
+          "vatMode": "none",
+          "vatRate": 7
+        }
+      },
+      "output": [
+        {
+          "base": 25000,
+          "incomeType": "ค่าเช่า",
+          "rate": 5,
+          "tax": 1250
+        }
+      ]
+    },
+    {
+      "name": "purchaseTotals/rent-none-vat",
+      "input": {
+        "doc": {
+          "id": "P3",
+          "lines": [
+            {
+              "accountCode": "5400",
+              "description": "",
+              "discount": 0,
+              "id": "L7",
+              "qty": 1,
+              "unitPrice": 25000,
+              "whtIncomeType": "ค่าเช่า",
+              "whtRate": 5
+            }
+          ],
+          "vatMode": "none",
+          "vatRate": 7
+        }
+      },
+      "output": {
+        "gross": 25000,
+        "net": 25000,
+        "netByAccount": {
+          "5400": 25000
+        },
+        "payable": 23750,
+        "total": 25000,
+        "vat": 0,
+        "wht": 1250
+      }
+    },
+    {
+      "name": "purchaseWhtGroups/no-wht-goods",
+      "input": {
+        "doc": {
+          "id": "P4",
+          "lines": [
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L8",
+              "qty": 10,
+              "unitPrice": 99.99,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L9",
+              "qty": 1,
+              "unitPrice": 50,
+              "whtIncomeType": "",
+              "whtRate": 0
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        }
+      },
+      "output": []
+    },
+    {
+      "name": "purchaseTotals/no-wht-goods",
+      "input": {
+        "doc": {
+          "id": "P4",
+          "lines": [
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L8",
+              "qty": 10,
+              "unitPrice": 99.99,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L9",
+              "qty": 1,
+              "unitPrice": 50,
+              "whtIncomeType": "",
+              "whtRate": 0
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        }
+      },
+      "output": {
+        "gross": 1049.9,
+        "net": 1049.9,
+        "netByAccount": {
+          "1200": 1049.9
+        },
+        "payable": 1123.39,
+        "total": 1123.39,
+        "vat": 73.49,
+        "wht": 0
+      }
+    },
+    {
+      "name": "purchaseWhtGroups/mixed-rates-odd",
+      "input": {
+        "doc": {
+          "id": "P5",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L10",
+              "qty": 3,
+              "unitPrice": 0.335,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5500",
+              "description": "",
+              "discount": 0,
+              "id": "L11",
+              "qty": 1,
+              "unitPrice": 1234.57,
+              "whtIncomeType": "ค่าโฆษณา",
+              "whtRate": 2
+            },
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0.77,
+              "id": "L12",
+              "qty": 2,
+              "unitPrice": 777.77,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L13",
+              "qty": 1,
+              "unitPrice": 99.99,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        }
+      },
+      "output": [
+        {
+          "base": 1453.99,
+          "incomeType": "ค่าบริการ",
+          "rate": 3,
+          "tax": 43.62
+        },
+        {
+          "base": 1153.8,
+          "incomeType": "ค่าโฆษณา",
+          "rate": 2,
+          "tax": 23.08
+        },
+        {
+          "base": 93.46,
+          "incomeType": "ค่าขนส่ง",
+          "rate": 1,
+          "tax": 0.93
+        }
+      ]
+    },
+    {
+      "name": "purchaseTotals/mixed-rates-odd",
+      "input": {
+        "doc": {
+          "id": "P5",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L10",
+              "qty": 3,
+              "unitPrice": 0.335,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5500",
+              "description": "",
+              "discount": 0,
+              "id": "L11",
+              "qty": 1,
+              "unitPrice": 1234.57,
+              "whtIncomeType": "ค่าโฆษณา",
+              "whtRate": 2
+            },
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0.77,
+              "id": "L12",
+              "qty": 2,
+              "unitPrice": 777.77,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L13",
+              "qty": 1,
+              "unitPrice": 99.99,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        }
+      },
+      "output": {
+        "gross": 2890.34,
+        "net": 2701.25,
+        "netByAccount": {
+          "5300": 1453.99,
+          "5310": 93.46,
+          "5500": 1153.8
+        },
+        "payable": 2822.71,
+        "total": 2890.34,
+        "vat": 189.09,
+        "wht": 67.63
+      }
+    },
+    {
+      "name": "planPurchasePayment/single-full#1",
+      "input": {
+        "amount": 13375,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": true,
+        "netPaid": 13060,
+        "whtAmount": 315,
+        "whtBase": 11500,
+        "whtItems": [
+          {
+            "base": 10000,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 300
+          },
+          {
+            "base": 1500,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 15
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/single-full#1",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": 13375
+    },
+    {
+      "name": "planPurchasePayment/three-parts#1",
+      "input": {
+        "amount": 4000,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 3905.79,
+        "whtAmount": 94.21,
+        "whtBase": 3439.25,
+        "whtItems": [
+          {
+            "base": 2990.65,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 89.72
+          },
+          {
+            "base": 448.6,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 4.49
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/three-parts#1",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": 13375
+    },
+    {
+      "name": "planPurchasePayment/three-parts#2",
+      "input": {
+        "amount": 3333.33,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 4000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 2990.65,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 89.72
+                },
+                {
+                  "base": 448.6,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 4.49
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 3254.82,
+        "whtAmount": 78.51,
+        "whtBase": 2866.04,
+        "whtItems": [
+          {
+            "base": 2492.21,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 74.77
+          },
+          {
+            "base": 373.83,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 3.74
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/three-parts#2",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 4000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 2990.65,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 89.72
+                },
+                {
+                  "base": 448.6,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 4.49
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": 9375
+    },
+    {
+      "name": "planPurchasePayment/three-parts#3",
+      "input": {
+        "amount": 6041.67,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 4000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 2990.65,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 89.72
+                },
+                {
+                  "base": 448.6,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 4.49
+                }
+              ]
+            },
+            {
+              "amount": 3333.33,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 2492.21,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 74.77
+                },
+                {
+                  "base": 373.83,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 3.74
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": true,
+        "netPaid": 5899.39,
+        "whtAmount": 142.28,
+        "whtBase": 5194.71,
+        "whtItems": [
+          {
+            "base": 4517.14,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 135.51
+          },
+          {
+            "base": 677.57,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 6.77
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/three-parts#3",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 4000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 2990.65,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 89.72
+                },
+                {
+                  "base": 448.6,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 4.49
+                }
+              ]
+            },
+            {
+              "amount": 3333.33,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 2492.21,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 74.77
+                },
+                {
+                  "base": 373.83,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 3.74
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": 6041.67
+    },
+    {
+      "name": "planPurchasePayment/thirds-inclusive#1",
+      "input": {
+        "amount": 3333.33,
+        "doc": {
+          "id": "P2",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L4",
+              "qty": 1,
+              "unitPrice": 3333.33,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5301",
+              "description": "",
+              "discount": 0,
+              "id": "L5",
+              "qty": 1,
+              "unitPrice": 6666.67,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5302",
+              "description": "",
+              "discount": 0,
+              "id": "L6",
+              "qty": 1,
+              "unitPrice": 0.01,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 3239.87,
+        "whtAmount": 93.46,
+        "whtBase": 3115.26,
+        "whtItems": [
+          {
+            "base": 3115.26,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 93.46
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/thirds-inclusive#1",
+      "input": {
+        "doc": {
+          "id": "P2",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L4",
+              "qty": 1,
+              "unitPrice": 3333.33,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5301",
+              "description": "",
+              "discount": 0,
+              "id": "L5",
+              "qty": 1,
+              "unitPrice": 6666.67,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5302",
+              "description": "",
+              "discount": 0,
+              "id": "L6",
+              "qty": 1,
+              "unitPrice": 0.01,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": 10000.01
+    },
+    {
+      "name": "planPurchasePayment/thirds-inclusive#2",
+      "input": {
+        "amount": 3333.33,
+        "doc": {
+          "id": "P2",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L4",
+              "qty": 1,
+              "unitPrice": 3333.33,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5301",
+              "description": "",
+              "discount": 0,
+              "id": "L5",
+              "qty": 1,
+              "unitPrice": 6666.67,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5302",
+              "description": "",
+              "discount": 0,
+              "id": "L6",
+              "qty": 1,
+              "unitPrice": 0.01,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 3333.33,
+              "purchaseId": "P2",
+              "whtItems": [
+                {
+                  "base": 3115.26,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 93.46
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 3239.87,
+        "whtAmount": 93.46,
+        "whtBase": 3115.26,
+        "whtItems": [
+          {
+            "base": 3115.26,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 93.46
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/thirds-inclusive#2",
+      "input": {
+        "doc": {
+          "id": "P2",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L4",
+              "qty": 1,
+              "unitPrice": 3333.33,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5301",
+              "description": "",
+              "discount": 0,
+              "id": "L5",
+              "qty": 1,
+              "unitPrice": 6666.67,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5302",
+              "description": "",
+              "discount": 0,
+              "id": "L6",
+              "qty": 1,
+              "unitPrice": 0.01,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 3333.33,
+              "purchaseId": "P2",
+              "whtItems": [
+                {
+                  "base": 3115.26,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 93.46
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": 6666.68
+    },
+    {
+      "name": "planPurchasePayment/thirds-inclusive#3",
+      "input": {
+        "amount": 3333.35,
+        "doc": {
+          "id": "P2",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L4",
+              "qty": 1,
+              "unitPrice": 3333.33,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5301",
+              "description": "",
+              "discount": 0,
+              "id": "L5",
+              "qty": 1,
+              "unitPrice": 6666.67,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5302",
+              "description": "",
+              "discount": 0,
+              "id": "L6",
+              "qty": 1,
+              "unitPrice": 0.01,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 3333.33,
+              "purchaseId": "P2",
+              "whtItems": [
+                {
+                  "base": 3115.26,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 93.46
+                }
+              ]
+            },
+            {
+              "amount": 3333.33,
+              "purchaseId": "P2",
+              "whtItems": [
+                {
+                  "base": 3115.26,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 93.46
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": true,
+        "netPaid": 3239.9,
+        "whtAmount": 93.45,
+        "whtBase": 3115.28,
+        "whtItems": [
+          {
+            "base": 3115.28,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 93.45
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/thirds-inclusive#3",
+      "input": {
+        "doc": {
+          "id": "P2",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L4",
+              "qty": 1,
+              "unitPrice": 3333.33,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5301",
+              "description": "",
+              "discount": 0,
+              "id": "L5",
+              "qty": 1,
+              "unitPrice": 6666.67,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5302",
+              "description": "",
+              "discount": 0,
+              "id": "L6",
+              "qty": 1,
+              "unitPrice": 0.01,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 3333.33,
+              "purchaseId": "P2",
+              "whtItems": [
+                {
+                  "base": 3115.26,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 93.46
+                }
+              ]
+            },
+            {
+              "amount": 3333.33,
+              "purchaseId": "P2",
+              "whtItems": [
+                {
+                  "base": 3115.26,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 93.46
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": 3333.35
+    },
+    {
+      "name": "planPurchasePayment/rent-two-parts#1",
+      "input": {
+        "amount": 12500,
+        "doc": {
+          "id": "P3",
+          "lines": [
+            {
+              "accountCode": "5400",
+              "description": "",
+              "discount": 0,
+              "id": "L7",
+              "qty": 1,
+              "unitPrice": 25000,
+              "whtIncomeType": "ค่าเช่า",
+              "whtRate": 5
+            }
+          ],
+          "vatMode": "none",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 11875,
+        "whtAmount": 625,
+        "whtBase": 12500,
+        "whtItems": [
+          {
+            "base": 12500,
+            "incomeType": "ค่าเช่า",
+            "rate": 5,
+            "tax": 625
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/rent-two-parts#1",
+      "input": {
+        "doc": {
+          "id": "P3",
+          "lines": [
+            {
+              "accountCode": "5400",
+              "description": "",
+              "discount": 0,
+              "id": "L7",
+              "qty": 1,
+              "unitPrice": 25000,
+              "whtIncomeType": "ค่าเช่า",
+              "whtRate": 5
+            }
+          ],
+          "vatMode": "none",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": 25000
+    },
+    {
+      "name": "planPurchasePayment/rent-two-parts#2",
+      "input": {
+        "amount": 12500,
+        "doc": {
+          "id": "P3",
+          "lines": [
+            {
+              "accountCode": "5400",
+              "description": "",
+              "discount": 0,
+              "id": "L7",
+              "qty": 1,
+              "unitPrice": 25000,
+              "whtIncomeType": "ค่าเช่า",
+              "whtRate": 5
+            }
+          ],
+          "vatMode": "none",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 12500,
+              "purchaseId": "P3",
+              "whtItems": [
+                {
+                  "base": 12500,
+                  "incomeType": "ค่าเช่า",
+                  "rate": 5,
+                  "tax": 625
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": true,
+        "netPaid": 11875,
+        "whtAmount": 625,
+        "whtBase": 12500,
+        "whtItems": [
+          {
+            "base": 12500,
+            "incomeType": "ค่าเช่า",
+            "rate": 5,
+            "tax": 625
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/rent-two-parts#2",
+      "input": {
+        "doc": {
+          "id": "P3",
+          "lines": [
+            {
+              "accountCode": "5400",
+              "description": "",
+              "discount": 0,
+              "id": "L7",
+              "qty": 1,
+              "unitPrice": 25000,
+              "whtIncomeType": "ค่าเช่า",
+              "whtRate": 5
+            }
+          ],
+          "vatMode": "none",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 12500,
+              "purchaseId": "P3",
+              "whtItems": [
+                {
+                  "base": 12500,
+                  "incomeType": "ค่าเช่า",
+                  "rate": 5,
+                  "tax": 625
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": 12500
+    },
+    {
+      "name": "planPurchasePayment/mixed-many#1",
+      "input": {
+        "amount": 100,
+        "doc": {
+          "id": "P5",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L10",
+              "qty": 3,
+              "unitPrice": 0.335,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5500",
+              "description": "",
+              "discount": 0,
+              "id": "L11",
+              "qty": 1,
+              "unitPrice": 1234.57,
+              "whtIncomeType": "ค่าโฆษณา",
+              "whtRate": 2
+            },
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0.77,
+              "id": "L12",
+              "qty": 2,
+              "unitPrice": 777.77,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L13",
+              "qty": 1,
+              "unitPrice": 99.99,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 97.66,
+        "whtAmount": 2.34,
+        "whtBase": 93.46,
+        "whtItems": [
+          {
+            "base": 50.31,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 1.51
+          },
+          {
+            "base": 39.92,
+            "incomeType": "ค่าโฆษณา",
+            "rate": 2,
+            "tax": 0.8
+          },
+          {
+            "base": 3.23,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 0.03
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/mixed-many#1",
+      "input": {
+        "doc": {
+          "id": "P5",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L10",
+              "qty": 3,
+              "unitPrice": 0.335,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5500",
+              "description": "",
+              "discount": 0,
+              "id": "L11",
+              "qty": 1,
+              "unitPrice": 1234.57,
+              "whtIncomeType": "ค่าโฆษณา",
+              "whtRate": 2
+            },
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0.77,
+              "id": "L12",
+              "qty": 2,
+              "unitPrice": 777.77,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L13",
+              "qty": 1,
+              "unitPrice": 99.99,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": 2890.34
+    },
+    {
+      "name": "planPurchasePayment/mixed-many#2",
+      "input": {
+        "amount": 0.01,
+        "doc": {
+          "id": "P5",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L10",
+              "qty": 3,
+              "unitPrice": 0.335,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5500",
+              "description": "",
+              "discount": 0,
+              "id": "L11",
+              "qty": 1,
+              "unitPrice": 1234.57,
+              "whtIncomeType": "ค่าโฆษณา",
+              "whtRate": 2
+            },
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0.77,
+              "id": "L12",
+              "qty": 2,
+              "unitPrice": 777.77,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L13",
+              "qty": 1,
+              "unitPrice": 99.99,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 100,
+              "purchaseId": "P5",
+              "whtItems": [
+                {
+                  "base": 50.31,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 1.51
+                },
+                {
+                  "base": 39.92,
+                  "incomeType": "ค่าโฆษณา",
+                  "rate": 2,
+                  "tax": 0.8
+                },
+                {
+                  "base": 3.23,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 0.03
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 0.01,
+        "whtAmount": 0,
+        "whtBase": 0.01,
+        "whtItems": [
+          {
+            "base": 0.01,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 0
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/mixed-many#2",
+      "input": {
+        "doc": {
+          "id": "P5",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L10",
+              "qty": 3,
+              "unitPrice": 0.335,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5500",
+              "description": "",
+              "discount": 0,
+              "id": "L11",
+              "qty": 1,
+              "unitPrice": 1234.57,
+              "whtIncomeType": "ค่าโฆษณา",
+              "whtRate": 2
+            },
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0.77,
+              "id": "L12",
+              "qty": 2,
+              "unitPrice": 777.77,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L13",
+              "qty": 1,
+              "unitPrice": 99.99,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 100,
+              "purchaseId": "P5",
+              "whtItems": [
+                {
+                  "base": 50.31,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 1.51
+                },
+                {
+                  "base": 39.92,
+                  "incomeType": "ค่าโฆษณา",
+                  "rate": 2,
+                  "tax": 0.8
+                },
+                {
+                  "base": 3.23,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 0.03
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": 2790.34
+    },
+    {
+      "name": "planPurchasePayment/mixed-many#3",
+      "input": {
+        "amount": 999.99,
+        "doc": {
+          "id": "P5",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L10",
+              "qty": 3,
+              "unitPrice": 0.335,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5500",
+              "description": "",
+              "discount": 0,
+              "id": "L11",
+              "qty": 1,
+              "unitPrice": 1234.57,
+              "whtIncomeType": "ค่าโฆษณา",
+              "whtRate": 2
+            },
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0.77,
+              "id": "L12",
+              "qty": 2,
+              "unitPrice": 777.77,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L13",
+              "qty": 1,
+              "unitPrice": 99.99,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 100,
+              "purchaseId": "P5",
+              "whtItems": [
+                {
+                  "base": 50.31,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 1.51
+                },
+                {
+                  "base": 39.92,
+                  "incomeType": "ค่าโฆษณา",
+                  "rate": 2,
+                  "tax": 0.8
+                },
+                {
+                  "base": 3.23,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 0.03
+                }
+              ]
+            },
+            {
+              "amount": 0.01,
+              "purchaseId": "P5",
+              "whtItems": [
+                {
+                  "base": 0.01,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 0
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 976.6,
+        "whtAmount": 23.39,
+        "whtBase": 934.57,
+        "whtItems": [
+          {
+            "base": 503.05,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 15.09
+          },
+          {
+            "base": 399.19,
+            "incomeType": "ค่าโฆษณา",
+            "rate": 2,
+            "tax": 7.98
+          },
+          {
+            "base": 32.33,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 0.32
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/mixed-many#3",
+      "input": {
+        "doc": {
+          "id": "P5",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L10",
+              "qty": 3,
+              "unitPrice": 0.335,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5500",
+              "description": "",
+              "discount": 0,
+              "id": "L11",
+              "qty": 1,
+              "unitPrice": 1234.57,
+              "whtIncomeType": "ค่าโฆษณา",
+              "whtRate": 2
+            },
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0.77,
+              "id": "L12",
+              "qty": 2,
+              "unitPrice": 777.77,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L13",
+              "qty": 1,
+              "unitPrice": 99.99,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 100,
+              "purchaseId": "P5",
+              "whtItems": [
+                {
+                  "base": 50.31,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 1.51
+                },
+                {
+                  "base": 39.92,
+                  "incomeType": "ค่าโฆษณา",
+                  "rate": 2,
+                  "tax": 0.8
+                },
+                {
+                  "base": 3.23,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 0.03
+                }
+              ]
+            },
+            {
+              "amount": 0.01,
+              "purchaseId": "P5",
+              "whtItems": [
+                {
+                  "base": 0.01,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 0
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": 2790.33
+    },
+    {
+      "name": "planPurchasePayment/mixed-many#4",
+      "input": {
+        "amount": 1790.34,
+        "doc": {
+          "id": "P5",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L10",
+              "qty": 3,
+              "unitPrice": 0.335,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5500",
+              "description": "",
+              "discount": 0,
+              "id": "L11",
+              "qty": 1,
+              "unitPrice": 1234.57,
+              "whtIncomeType": "ค่าโฆษณา",
+              "whtRate": 2
+            },
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0.77,
+              "id": "L12",
+              "qty": 2,
+              "unitPrice": 777.77,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L13",
+              "qty": 1,
+              "unitPrice": 99.99,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 100,
+              "purchaseId": "P5",
+              "whtItems": [
+                {
+                  "base": 50.31,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 1.51
+                },
+                {
+                  "base": 39.92,
+                  "incomeType": "ค่าโฆษณา",
+                  "rate": 2,
+                  "tax": 0.8
+                },
+                {
+                  "base": 3.23,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 0.03
+                }
+              ]
+            },
+            {
+              "amount": 0.01,
+              "purchaseId": "P5",
+              "whtItems": [
+                {
+                  "base": 0.01,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 0
+                }
+              ]
+            },
+            {
+              "amount": 999.99,
+              "purchaseId": "P5",
+              "whtItems": [
+                {
+                  "base": 503.05,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 15.09
+                },
+                {
+                  "base": 399.19,
+                  "incomeType": "ค่าโฆษณา",
+                  "rate": 2,
+                  "tax": 7.98
+                },
+                {
+                  "base": 32.33,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 0.32
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": true,
+        "netPaid": 1748.44,
+        "whtAmount": 41.9,
+        "whtBase": 1673.21,
+        "whtItems": [
+          {
+            "base": 900.62,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 27.02
+          },
+          {
+            "base": 714.69,
+            "incomeType": "ค่าโฆษณา",
+            "rate": 2,
+            "tax": 14.3
+          },
+          {
+            "base": 57.9,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 0.58
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/mixed-many#4",
+      "input": {
+        "doc": {
+          "id": "P5",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L10",
+              "qty": 3,
+              "unitPrice": 0.335,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5500",
+              "description": "",
+              "discount": 0,
+              "id": "L11",
+              "qty": 1,
+              "unitPrice": 1234.57,
+              "whtIncomeType": "ค่าโฆษณา",
+              "whtRate": 2
+            },
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0.77,
+              "id": "L12",
+              "qty": 2,
+              "unitPrice": 777.77,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L13",
+              "qty": 1,
+              "unitPrice": 99.99,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "inclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 100,
+              "purchaseId": "P5",
+              "whtItems": [
+                {
+                  "base": 50.31,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 1.51
+                },
+                {
+                  "base": 39.92,
+                  "incomeType": "ค่าโฆษณา",
+                  "rate": 2,
+                  "tax": 0.8
+                },
+                {
+                  "base": 3.23,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 0.03
+                }
+              ]
+            },
+            {
+              "amount": 0.01,
+              "purchaseId": "P5",
+              "whtItems": [
+                {
+                  "base": 0.01,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 0
+                }
+              ]
+            },
+            {
+              "amount": 999.99,
+              "purchaseId": "P5",
+              "whtItems": [
+                {
+                  "base": 503.05,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 15.09
+                },
+                {
+                  "base": 399.19,
+                  "incomeType": "ค่าโฆษณา",
+                  "rate": 2,
+                  "tax": 7.98
+                },
+                {
+                  "base": 32.33,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 0.32
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": 1790.34
+    },
+    {
+      "name": "planPurchasePayment/overpay#1",
+      "input": {
+        "amount": 999999,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": true,
+        "netPaid": 999684,
+        "whtAmount": 315,
+        "whtBase": 11500,
+        "whtItems": [
+          {
+            "base": 10000,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 300
+          },
+          {
+            "base": 1500,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 15
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/overpay#1",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": 13375
+    },
+    {
+      "name": "planPurchasePayment/zero-payment#1",
+      "input": {
+        "amount": 0,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 0,
+        "whtAmount": 0,
+        "whtBase": 0,
+        "whtItems": []
+      }
+    },
+    {
+      "name": "purchaseOutstanding/zero-payment#1",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": []
+        }
+      },
+      "output": 13375
+    },
+    {
+      "name": "planPurchasePayment/zero-payment#2",
+      "input": {
+        "amount": 13375,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 0,
+              "purchaseId": "P1",
+              "whtItems": []
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": {
+        "final": true,
+        "netPaid": 13060,
+        "whtAmount": 315,
+        "whtBase": 11500,
+        "whtItems": [
+          {
+            "base": 10000,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 300
+          },
+          {
+            "base": 1500,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 15
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/zero-payment#2",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 0,
+              "purchaseId": "P1",
+              "whtItems": []
+            }
+          ],
+          "purchaseCredits": []
+        }
+      },
+      "output": 13375
+    },
+    {
+      "name": "purchaseCreditAllocation/by-line-ref",
+      "input": {
+        "credits": [
+          {
+            "docNo": "PC6910-0001",
+            "lines": [
+              {
+                "accountCode": "5300",
+                "description": "",
+                "discount": 0,
+                "id": "L14",
+                "purchaseLineId": "L1",
+                "qty": 1,
+                "unitPrice": 2000,
+                "whtIncomeType": "",
+                "whtRate": 0
+              }
+            ],
+            "purchaseId": "P1",
+            "vatMode": "exclusive",
+            "vatRate": 7
+          }
+        ],
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        }
+      },
+      "output": {
+        "lineNets": [
+          10000,
+          1000,
+          1500
+        ],
+        "problems": [],
+        "reduced": [
+          2000,
+          0,
+          0
+        ],
+        "remaining": [
+          8000,
+          1000,
+          1500
+        ]
+      }
+    },
+    {
+      "name": "purchaseAdjustedWhtGroups/by-line-ref",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": [
+        {
+          "base": 8000,
+          "incomeType": "ค่าบริการ",
+          "rate": 3,
+          "tax": 240
+        },
+        {
+          "base": 1500,
+          "incomeType": "ค่าขนส่ง",
+          "rate": 1,
+          "tax": 15
+        }
+      ]
+    },
+    {
+      "name": "purchaseAdjustedTotal/by-line-ref",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": 11235
+    },
+    {
+      "name": "purchaseCreditAllocation/by-account",
+      "input": {
+        "credits": [
+          {
+            "docNo": "PC6910-0002",
+            "lines": [
+              {
+                "accountCode": "1200",
+                "description": "",
+                "discount": 0,
+                "id": "L15",
+                "qty": 2,
+                "unitPrice": 200,
+                "whtIncomeType": "",
+                "whtRate": 0
+              }
+            ],
+            "purchaseId": "P1",
+            "vatMode": "exclusive",
+            "vatRate": 7
+          }
+        ],
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        }
+      },
+      "output": {
+        "lineNets": [
+          10000,
+          1000,
+          1500
+        ],
+        "problems": [],
+        "reduced": [
+          0,
+          400,
+          0
+        ],
+        "remaining": [
+          10000,
+          600,
+          1500
+        ]
+      }
+    },
+    {
+      "name": "purchaseAdjustedWhtGroups/by-account",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0002",
+              "lines": [
+                {
+                  "accountCode": "1200",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L15",
+                  "qty": 2,
+                  "unitPrice": 200,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": [
+        {
+          "base": 10000,
+          "incomeType": "ค่าบริการ",
+          "rate": 3,
+          "tax": 300
+        },
+        {
+          "base": 1500,
+          "incomeType": "ค่าขนส่ง",
+          "rate": 1,
+          "tax": 15
+        }
+      ]
+    },
+    {
+      "name": "purchaseAdjustedTotal/by-account",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0002",
+              "lines": [
+                {
+                  "accountCode": "1200",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L15",
+                  "qty": 2,
+                  "unitPrice": 200,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": 12947
+    },
+    {
+      "name": "purchaseCreditAllocation/unmatched-average",
+      "input": {
+        "credits": [
+          {
+            "docNo": "PC6910-0003",
+            "lines": [
+              {
+                "accountCode": "9999",
+                "description": "",
+                "discount": 0,
+                "id": "L16",
+                "qty": 1,
+                "unitPrice": 1000,
+                "whtIncomeType": "",
+                "whtRate": 0
+              }
+            ],
+            "purchaseId": "P1",
+            "vatMode": "exclusive",
+            "vatRate": 7
+          }
+        ],
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        }
+      },
+      "output": {
+        "lineNets": [
+          10000,
+          1000,
+          1500
+        ],
+        "problems": [],
+        "reduced": [
+          800,
+          80,
+          120
+        ],
+        "remaining": [
+          9200,
+          920,
+          1380
+        ]
+      }
+    },
+    {
+      "name": "purchaseAdjustedWhtGroups/unmatched-average",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0003",
+              "lines": [
+                {
+                  "accountCode": "9999",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L16",
+                  "qty": 1,
+                  "unitPrice": 1000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": [
+        {
+          "base": 9200,
+          "incomeType": "ค่าบริการ",
+          "rate": 3,
+          "tax": 276
+        },
+        {
+          "base": 1380,
+          "incomeType": "ค่าขนส่ง",
+          "rate": 1,
+          "tax": 13.8
+        }
+      ]
+    },
+    {
+      "name": "purchaseAdjustedTotal/unmatched-average",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0003",
+              "lines": [
+                {
+                  "accountCode": "9999",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L16",
+                  "qty": 1,
+                  "unitPrice": 1000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": 12305
+    },
+    {
+      "name": "purchaseCreditAllocation/over-line",
+      "input": {
+        "credits": [
+          {
+            "docNo": "PC6910-0004",
+            "lines": [
+              {
+                "accountCode": "5310",
+                "description": "",
+                "discount": 0,
+                "id": "L17",
+                "purchaseLineId": "L3",
+                "qty": 1,
+                "unitPrice": 20000,
+                "whtIncomeType": "",
+                "whtRate": 0
+              }
+            ],
+            "purchaseId": "P1",
+            "vatMode": "exclusive",
+            "vatRate": 7
+          }
+        ],
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        }
+      },
+      "output": {
+        "lineNets": [
+          10000,
+          1000,
+          1500
+        ],
+        "problems": [
+          "PC6910-0004 รายการที่ 1: ลดเกินมูลค่าของบรรทัดที่อ้างถึง"
+        ],
+        "reduced": [
+          0,
+          0,
+          1500
+        ],
+        "remaining": [
+          10000,
+          1000,
+          0
+        ]
+      }
+    },
+    {
+      "name": "purchaseAdjustedWhtGroups/over-line",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0004",
+              "lines": [
+                {
+                  "accountCode": "5310",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L17",
+                  "purchaseLineId": "L3",
+                  "qty": 1,
+                  "unitPrice": 20000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": [
+        {
+          "base": 10000,
+          "incomeType": "ค่าบริการ",
+          "rate": 3,
+          "tax": 300
+        },
+        {
+          "base": 0,
+          "incomeType": "ค่าขนส่ง",
+          "rate": 1,
+          "tax": 0
+        }
+      ]
+    },
+    {
+      "name": "purchaseAdjustedTotal/over-line",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0004",
+              "lines": [
+                {
+                  "accountCode": "5310",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L17",
+                  "purchaseLineId": "L3",
+                  "qty": 1,
+                  "unitPrice": 20000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": -8025
+    },
+    {
+      "name": "purchaseCreditAllocation/bad-ref",
+      "input": {
+        "credits": [
+          {
+            "docNo": "",
+            "lines": [
+              {
+                "accountCode": "5300",
+                "description": "",
+                "discount": 0,
+                "id": "L18",
+                "purchaseLineId": "NOPE",
+                "qty": 1,
+                "unitPrice": 10,
+                "whtIncomeType": "",
+                "whtRate": 0
+              }
+            ],
+            "purchaseId": "P1",
+            "vatMode": "exclusive",
+            "vatRate": 7
+          }
+        ],
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        }
+      },
+      "output": {
+        "lineNets": [
+          10000,
+          1000,
+          1500
+        ],
+        "problems": [
+          "รายการที่ 1: ไม่พบบรรทัดของเอกสารซื้อที่อ้างถึง"
+        ],
+        "reduced": [
+          0,
+          0,
+          0
+        ],
+        "remaining": [
+          10000,
+          1000,
+          1500
+        ]
+      }
+    },
+    {
+      "name": "purchaseAdjustedWhtGroups/bad-ref",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L18",
+                  "purchaseLineId": "NOPE",
+                  "qty": 1,
+                  "unitPrice": 10,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": [
+        {
+          "base": 10000,
+          "incomeType": "ค่าบริการ",
+          "rate": 3,
+          "tax": 300
+        },
+        {
+          "base": 1500,
+          "incomeType": "ค่าขนส่ง",
+          "rate": 1,
+          "tax": 15
+        }
+      ]
+    },
+    {
+      "name": "purchaseAdjustedTotal/bad-ref",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L18",
+                  "purchaseLineId": "NOPE",
+                  "qty": 1,
+                  "unitPrice": 10,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": 13364.3
+    },
+    {
+      "name": "purchaseCreditAllocation/combined",
+      "input": {
+        "credits": [
+          {
+            "docNo": "PC6910-0001",
+            "lines": [
+              {
+                "accountCode": "5300",
+                "description": "",
+                "discount": 0,
+                "id": "L14",
+                "purchaseLineId": "L1",
+                "qty": 1,
+                "unitPrice": 2000,
+                "whtIncomeType": "",
+                "whtRate": 0
+              }
+            ],
+            "purchaseId": "P1",
+            "vatMode": "exclusive",
+            "vatRate": 7
+          },
+          {
+            "docNo": "PC6910-0002",
+            "lines": [
+              {
+                "accountCode": "1200",
+                "description": "",
+                "discount": 0,
+                "id": "L15",
+                "qty": 2,
+                "unitPrice": 200,
+                "whtIncomeType": "",
+                "whtRate": 0
+              }
+            ],
+            "purchaseId": "P1",
+            "vatMode": "exclusive",
+            "vatRate": 7
+          },
+          {
+            "docNo": "PC6910-0003",
+            "lines": [
+              {
+                "accountCode": "9999",
+                "description": "",
+                "discount": 0,
+                "id": "L16",
+                "qty": 1,
+                "unitPrice": 1000,
+                "whtIncomeType": "",
+                "whtRate": 0
+              }
+            ],
+            "purchaseId": "P1",
+            "vatMode": "exclusive",
+            "vatRate": 7
+          }
+        ],
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        }
+      },
+      "output": {
+        "lineNets": [
+          10000,
+          1000,
+          1500
+        ],
+        "problems": [],
+        "reduced": [
+          2792.08,
+          459.41,
+          148.51
+        ],
+        "remaining": [
+          7207.92,
+          540.59,
+          1351.49
+        ]
+      }
+    },
+    {
+      "name": "purchaseAdjustedWhtGroups/combined",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            },
+            {
+              "docNo": "PC6910-0002",
+              "lines": [
+                {
+                  "accountCode": "1200",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L15",
+                  "qty": 2,
+                  "unitPrice": 200,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            },
+            {
+              "docNo": "PC6910-0003",
+              "lines": [
+                {
+                  "accountCode": "9999",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L16",
+                  "qty": 1,
+                  "unitPrice": 1000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": [
+        {
+          "base": 7207.92,
+          "incomeType": "ค่าบริการ",
+          "rate": 3,
+          "tax": 216.24
+        },
+        {
+          "base": 1351.49,
+          "incomeType": "ค่าขนส่ง",
+          "rate": 1,
+          "tax": 13.51
+        }
+      ]
+    },
+    {
+      "name": "purchaseAdjustedTotal/combined",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            },
+            {
+              "docNo": "PC6910-0002",
+              "lines": [
+                {
+                  "accountCode": "1200",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L15",
+                  "qty": 2,
+                  "unitPrice": 200,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            },
+            {
+              "docNo": "PC6910-0003",
+              "lines": [
+                {
+                  "accountCode": "9999",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L16",
+                  "qty": 1,
+                  "unitPrice": 1000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": 9737
+    },
+    {
+      "name": "planPurchasePayment/credit-then-pay#1",
+      "input": {
+        "amount": 5000,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 4886.51,
+        "whtAmount": 113.49,
+        "whtBase": 4227.86,
+        "whtItems": [
+          {
+            "base": 3560.3,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 106.81
+          },
+          {
+            "base": 667.56,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 6.68
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/credit-then-pay#1",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": 11235
+    },
+    {
+      "name": "planPurchasePayment/credit-then-pay#2",
+      "input": {
+        "amount": 6235,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 5000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 3560.3,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 106.81
+                },
+                {
+                  "base": 667.56,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 6.68
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": {
+        "final": true,
+        "netPaid": 6093.49,
+        "whtAmount": 141.51,
+        "whtBase": 5272.14,
+        "whtItems": [
+          {
+            "base": 4439.7,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 133.19
+          },
+          {
+            "base": 832.44,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 8.32
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/credit-then-pay#2",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 5000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 3560.3,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 106.81
+                },
+                {
+                  "base": 667.56,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 6.68
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": 6235
+    },
+    {
+      "name": "planPurchasePayment/credit-goods-then-pay#1",
+      "input": {
+        "amount": 2000,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0002",
+              "lines": [
+                {
+                  "accountCode": "1200",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L15",
+                  "qty": 2,
+                  "unitPrice": 200,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            },
+            {
+              "docNo": "PC6910-0003",
+              "lines": [
+                {
+                  "accountCode": "9999",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L16",
+                  "qty": 1,
+                  "unitPrice": 1000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 1951.34,
+        "whtAmount": 48.66,
+        "whtBase": 1776.48,
+        "whtItems": [
+          {
+            "base": 1544.76,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 46.34
+          },
+          {
+            "base": 231.72,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 2.32
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/credit-goods-then-pay#1",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0002",
+              "lines": [
+                {
+                  "accountCode": "1200",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L15",
+                  "qty": 2,
+                  "unitPrice": 200,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            },
+            {
+              "docNo": "PC6910-0003",
+              "lines": [
+                {
+                  "accountCode": "9999",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L16",
+                  "qty": 1,
+                  "unitPrice": 1000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": 11877
+    },
+    {
+      "name": "planPurchasePayment/credit-goods-then-pay#2",
+      "input": {
+        "amount": 2000,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 2000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 1544.76,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 46.34
+                },
+                {
+                  "base": 231.72,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 2.32
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0002",
+              "lines": [
+                {
+                  "accountCode": "1200",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L15",
+                  "qty": 2,
+                  "unitPrice": 200,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            },
+            {
+              "docNo": "PC6910-0003",
+              "lines": [
+                {
+                  "accountCode": "9999",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L16",
+                  "qty": 1,
+                  "unitPrice": 1000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 1951.34,
+        "whtAmount": 48.66,
+        "whtBase": 1776.47,
+        "whtItems": [
+          {
+            "base": 1544.76,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 46.34
+          },
+          {
+            "base": 231.71,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 2.32
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/credit-goods-then-pay#2",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 2000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 1544.76,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 46.34
+                },
+                {
+                  "base": 231.72,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 2.32
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0002",
+              "lines": [
+                {
+                  "accountCode": "1200",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L15",
+                  "qty": 2,
+                  "unitPrice": 200,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            },
+            {
+              "docNo": "PC6910-0003",
+              "lines": [
+                {
+                  "accountCode": "9999",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L16",
+                  "qty": 1,
+                  "unitPrice": 1000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": 9877
+    },
+    {
+      "name": "planPurchasePayment/credit-goods-then-pay#3",
+      "input": {
+        "amount": 7877,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 2000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 1544.76,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 46.34
+                },
+                {
+                  "base": 231.72,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 2.32
+                }
+              ]
+            },
+            {
+              "amount": 2000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 1544.76,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 46.34
+                },
+                {
+                  "base": 231.71,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 2.32
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0002",
+              "lines": [
+                {
+                  "accountCode": "1200",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L15",
+                  "qty": 2,
+                  "unitPrice": 200,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            },
+            {
+              "docNo": "PC6910-0003",
+              "lines": [
+                {
+                  "accountCode": "9999",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L16",
+                  "qty": 1,
+                  "unitPrice": 1000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": {
+        "final": true,
+        "netPaid": 7685.35,
+        "whtAmount": 191.65,
+        "whtBase": 6996.64,
+        "whtItems": [
+          {
+            "base": 6084.03,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 182.53
+          },
+          {
+            "base": 912.61,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 9.12
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/credit-goods-then-pay#3",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 2000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 1544.76,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 46.34
+                },
+                {
+                  "base": 231.72,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 2.32
+                }
+              ]
+            },
+            {
+              "amount": 2000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 1544.76,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 46.34
+                },
+                {
+                  "base": 231.71,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 2.32
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0002",
+              "lines": [
+                {
+                  "accountCode": "1200",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L15",
+                  "qty": 2,
+                  "unitPrice": 200,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            },
+            {
+              "docNo": "PC6910-0003",
+              "lines": [
+                {
+                  "accountCode": "9999",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L16",
+                  "qty": 1,
+                  "unitPrice": 1000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": 7877
+    },
+    {
+      "name": "planPurchasePayment/credit-refund-due#1",
+      "input": {
+        "amount": 3000,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6911-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "refundDue": 535,
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 2935.01,
+        "whtAmount": 64.99,
+        "whtBase": 2421.41,
+        "whtItems": [
+          {
+            "base": 2039.08,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 61.17
+          },
+          {
+            "base": 382.33,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 3.82
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/credit-refund-due#1",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6911-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "refundDue": 535,
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": 11770
+    },
+    {
+      "name": "planPurchasePayment/credit-refund-due#2",
+      "input": {
+        "amount": 8770,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 3000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 2039.08,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 61.17
+                },
+                {
+                  "base": 382.33,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 3.82
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6911-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "refundDue": 535,
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": {
+        "final": true,
+        "netPaid": 8579.99,
+        "whtAmount": 190.01,
+        "whtBase": 7078.59,
+        "whtItems": [
+          {
+            "base": 5960.92,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 178.83
+          },
+          {
+            "base": 1117.67,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 11.18
+          }
+        ]
+      }
+    },
+    {
+      "name": "purchaseOutstanding/credit-refund-due#2",
+      "input": {
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 3000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 2039.08,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 61.17
+                },
+                {
+                  "base": 382.33,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 3.82
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6911-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "refundDue": 535,
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": 8770
+    },
+    {
+      "name": "planPurchasePayment/credit-after-partial#1",
+      "input": {
+        "amount": 1000,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 5000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 3738.32,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 112.15
+                },
+                {
+                  "base": 560.75,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 5.61
+                }
+              ]
+            },
+            {
+              "amount": 3000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 2242.99,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 67.29
+                },
+                {
+                  "base": 336.45,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 3.36
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "refundDue": 0,
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": {
+        "final": false,
+        "netPaid": 979.42,
+        "whtAmount": 20.58,
+        "whtBase": 810.36,
+        "whtItems": [
+          {
+            "base": 624.02,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 18.72
+          },
+          {
+            "base": 186.34,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 1.86
+          }
+        ]
+      }
+    },
+    {
+      "name": "planPurchasePayment/credit-after-partial#2",
+      "input": {
+        "amount": 2235,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 5000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 3738.32,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 112.15
+                },
+                {
+                  "base": 560.75,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 5.61
+                }
+              ]
+            },
+            {
+              "amount": 3000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 2242.99,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 67.29
+                },
+                {
+                  "base": 336.45,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 3.36
+                }
+              ]
+            },
+            {
+              "amount": 1000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 624.02,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 18.72
+                },
+                {
+                  "base": 186.34,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 1.86
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0001",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L14",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 2000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "refundDue": 0,
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": {
+        "final": true,
+        "netPaid": 2188.99,
+        "whtAmount": 46.01,
+        "whtBase": 1811.13,
+        "whtItems": [
+          {
+            "base": 1394.67,
+            "incomeType": "ค่าบริการ",
+            "rate": 3,
+            "tax": 41.84
+          },
+          {
+            "base": 416.46,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 4.17
+          }
+        ]
+      }
+    },
+    {
+      "name": "planPurchasePayment/credit-below-withheld#1",
+      "input": {
+        "amount": -6255,
+        "doc": {
+          "id": "P1",
+          "lines": [
+            {
+              "accountCode": "5300",
+              "description": "",
+              "discount": 0,
+              "id": "L1",
+              "qty": 1,
+              "unitPrice": 10000,
+              "whtIncomeType": "ค่าบริการ",
+              "whtRate": 3
+            },
+            {
+              "accountCode": "1200",
+              "description": "",
+              "discount": 0,
+              "id": "L2",
+              "qty": 5,
+              "unitPrice": 200,
+              "whtIncomeType": "",
+              "whtRate": 0
+            },
+            {
+              "accountCode": "5310",
+              "description": "",
+              "discount": 0,
+              "id": "L3",
+              "qty": 1,
+              "unitPrice": 1500,
+              "whtIncomeType": "ค่าขนส่ง",
+              "whtRate": 1
+            }
+          ],
+          "vatMode": "exclusive",
+          "vatRate": 7
+        },
+        "state": {
+          "payments": [
+            {
+              "amount": 10000,
+              "purchaseId": "P1",
+              "whtItems": [
+                {
+                  "base": 7476.64,
+                  "incomeType": "ค่าบริการ",
+                  "rate": 3,
+                  "tax": 224.3
+                },
+                {
+                  "base": 1121.5,
+                  "incomeType": "ค่าขนส่ง",
+                  "rate": 1,
+                  "tax": 11.22
+                }
+              ]
+            }
+          ],
+          "purchaseCredits": [
+            {
+              "docNo": "PC6910-0009",
+              "lines": [
+                {
+                  "accountCode": "5300",
+                  "description": "",
+                  "discount": 0,
+                  "id": "L19",
+                  "purchaseLineId": "L1",
+                  "qty": 1,
+                  "unitPrice": 9000,
+                  "whtIncomeType": "",
+                  "whtRate": 0
+                }
+              ],
+              "purchaseId": "P1",
+              "vatMode": "exclusive",
+              "vatRate": 7
+            }
+          ]
+        }
+      },
+      "output": {
+        "final": true,
+        "netPaid": -6258.78,
+        "whtAmount": 3.78,
+        "whtBase": 378.5,
+        "whtItems": [
+          {
+            "base": 378.5,
+            "incomeType": "ค่าขนส่ง",
+            "rate": 1,
+            "tax": 3.78
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -12,70 +12,37 @@ import Typography from '@mui/material/Typography';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
-import { outstandingOf, useAccounting, useContactLookup } from 'src/store';
+import { CanWrite } from 'src/auth';
+import { useAccounting, useContactLookup } from 'src/store';
 import {
-  ACC,
-  arAging,
   sumBaht,
   periodOf,
   todayISO,
-  whtTotals,
-  balanceOf,
+  toSatang,
+  formatBaht,
   periodLabel,
   shiftPeriod,
-  pp30Summary,
-  trialBalance,
-  calcDocument,
-  salesVatReport,
+  dashboardStats,
   filingDueDates,
-  purchaseVatReport,
-  whtPayeesForPeriod,
   formatThaiDateShort,
 } from 'src/domain';
 
 import { Iconify } from 'src/components/iconify';
 
-import { Money } from 'src/sections/shared';
+import { Money, StatutoryDueDateAlert } from 'src/sections/shared';
 
 // ----------------------------------------------------------------------
 
 type Todo = { title: string; caption: string; href: string; cta: string; tone: 'error' | 'warning' | 'info' };
 
+/** หน้าแรก: ตัวเลขสรุป (จาก `dashboardStats`) งานที่ต้องทำ และกำหนดยื่นภาษี */
 export function DashboardView() {
   const { data } = useAccounting();
   const contacts = useContactLookup();
   const today = todayISO();
   const period = periodOf(today);
 
-  const stats = useMemo(() => {
-    const tb = trialBalance(data.accounts, data.journal, today);
-    const aging = arAging(data.sales, (d) => outstandingOf(data, d), today);
-    const overdue = aging.filter((a) => a.daysOverdue > 0);
-    const unpaidPurchases = data.purchases.filter((p) => !p.paid);
-    const pp30 = pp30Summary(
-      salesVatReport(data.sales, data.contacts, period),
-      purchaseVatReport(data.purchases, data.contacts, period)
-    );
-    const prev = shiftPeriod(period, -1);
-    const whtPrev =
-      whtTotals(whtPayeesForPeriod(data.purchases, data.contacts, prev, 'PND3')).tax +
-      whtTotals(whtPayeesForPeriod(data.purchases, data.contacts, prev, 'PND53')).tax;
-    const etaxWaiting = data.sales.filter((s) => s.etax === 'pending-sign' || s.etax === 'signed');
-    const badContacts = data.contacts.filter((c) => c.kind !== 'vendor' && !c.taxId);
-
-    return {
-      cash: balanceOf(tb, ACC.bank) + balanceOf(tb, ACC.cash),
-      receivable: sumBaht(aging.map((a) => a.outstanding)),
-      overdue,
-      payable: sumBaht(unpaidPurchases.map((p) => calcDocument(p).total)),
-      unpaidPurchases,
-      pp30,
-      whtPrev,
-      etaxWaiting,
-      badContacts,
-      aging,
-    };
-  }, [data, today, period]);
+  const stats = useMemo(() => dashboardStats(data, today), [data, today]);
 
   const due = filingDueDates(period);
   const prevDue = filingDueDates(shiftPeriod(period, -1));
@@ -96,7 +63,7 @@ export function DashboardView() {
       ? [
           {
             title: `ลูกหนี้เกินกำหนด ${stats.overdue.length} ใบ`,
-            caption: `รวม ${sumBaht(stats.overdue.map((o) => o.outstanding)).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท · เก่าสุดเกิน ${stats.overdue[0].daysOverdue} วัน`,
+            caption: `รวม ${formatBaht(sumBaht(stats.overdue.map((o) => o.outstanding)))} บาท · เก่าสุดเกิน ${stats.overdue[0].daysOverdue} วัน`,
             href: paths.sales.root,
             cta: 'ดูรายการ',
             tone: 'error' as const,
@@ -110,6 +77,17 @@ export function DashboardView() {
             caption: 'จ่ายแล้วระบบจะออกเลข 50 ทวิ และเข้า ภ.ง.ด. ให้อัตโนมัติ',
             href: paths.purchases.root,
             cta: 'จ่ายชำระ',
+            tone: 'info' as const,
+          },
+        ]
+      : []),
+    ...(toSatang(stats.customerCredits) > 0
+      ? [
+          {
+            title: `เงินรอคืนลูกค้า ${formatBaht(stats.customerCredits)} บาท`,
+            caption: 'เกิดจากใบลดหนี้หลังลูกค้าชำระแล้ว — บันทึกคืนเงินที่หน้าเอกสารหรือหน้าผู้ติดต่อ',
+            href: paths.contacts,
+            cta: 'ดูรายการ',
             tone: 'info' as const,
           },
         ]
@@ -152,14 +130,16 @@ export function DashboardView() {
             {formatThaiDateShort(today)} · {data.company.name}
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1}>
-          <Button component={RouterLink} href={paths.sales.new} variant="contained" startIcon={<Iconify icon="mingcute:add-line" />}>
-            ออกใบกำกับภาษี
-          </Button>
-          <Button component={RouterLink} href={paths.purchases.new} variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />}>
-            บันทึกค่าใช้จ่าย
-          </Button>
-        </Stack>
+        <CanWrite>
+          <Stack direction="row" spacing={1}>
+            <Button component={RouterLink} href={paths.sales.new} variant="contained" startIcon={<Iconify icon="mingcute:add-line" />}>
+              {data.company.vatRegistered ? 'ออกใบกำกับภาษี' : 'ออกใบแจ้งหนี้'}
+            </Button>
+            <Button component={RouterLink} href={paths.purchases.new} variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />}>
+              บันทึกค่าใช้จ่าย
+            </Button>
+          </Stack>
+        </CanWrite>
       </Stack>
 
       <Box sx={{ display: 'grid', gap: 2, mb: 3, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' } }}>
@@ -235,6 +215,7 @@ export function DashboardView() {
           <Card>
             <CardHeader title="กำหนดยื่นภาษี (e-Filing)" />
             <Stack spacing={2} sx={{ p: 3 }}>
+              <StatutoryDueDateAlert source={[prevDue, due].find((d) => d.dueDateSource === 'statutory')?.dueDateSource} />
               {deadlines.map((d) => (
                 <Stack key={`${d.form}-${d.date}`} direction="row" spacing={2} alignItems="center">
                   <Box sx={{ width: 56, py: 0.75, borderRadius: 1.25, textAlign: 'center', bgcolor: 'background.neutral' }}>

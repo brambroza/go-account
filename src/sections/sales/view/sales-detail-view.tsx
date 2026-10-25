@@ -17,31 +17,57 @@ import { useBoolean } from 'src/hooks/use-boolean';
 
 import { downloadText } from 'src/utils/download';
 
-import { todayISO, buildETaxXml, eTaxReadiness, formatThaiDate } from 'src/domain';
-import { outstandingOf, useAccounting, setETaxStatus, useAccountLookup, useContactLookup } from 'src/store';
+import { usePermissions } from 'src/auth';
+import { outstandingOf, useAccounting, useAccountLookup, useContactLookup } from 'src/store';
+import {
+  todayISO,
+  toSatang,
+  salesSign,
+  calcDocument,
+  buildETaxXml,
+  creditableOf,
+  receiptTitle,
+  deferredVatOf,
+  eTaxReadiness,
+  isTaxDocument,
+  salesDocTitle,
+  formatThaiDate,
+  customerCreditOf,
+  isServiceInvoice,
+  adjustmentReasonDisplay,
+} from 'src/domain';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
+import { useServerDownload } from 'src/sections/shared/server-reports';
 import { Money, ETaxLabel, SalesStatusLabel } from 'src/sections/shared';
 
+import { RefundDialog } from '../refund-dialog';
 import { DocumentPreview } from '../document-preview';
 import { ReceivePaymentDialog } from '../receive-payment-dialog';
+import { MarkUploadedDialog } from '../../tax/mark-uploaded-dialog';
 
 // ----------------------------------------------------------------------
 
+/** รายละเอียดเอกสารขาย: ตัวอย่างพิมพ์ (จาก snapshot), รับชำระ, ลดหนี้, คืนเงินลูกค้า, e-Tax */
 export function SalesDetailView() {
   const { id = '' } = useParams();
-  const { data, run } = useAccounting();
+  const { data, mode } = useAccounting();
+  const serverDownload = useServerDownload();
+  const { canWrite } = usePermissions();
   const contacts = useContactLookup();
   const accounts = useAccountLookup();
   const payDialog = useBoolean();
+  const refundDialog = useBoolean();
+  const uploadDialog = useBoolean();
 
   const doc = data.sales.find((s) => s.id === id);
   const buyer = doc ? contacts.get(doc.contactId) : undefined;
   const referenced = doc?.refDocId ? data.sales.find((s) => s.id === doc.refDocId) : undefined;
+  const referencedReceipt = doc?.refReceiptId ? data.receipts.find((r) => r.id === doc.refReceiptId) : undefined;
 
   const related = useMemo(() => {
     if (!doc) return { receipts: [], credits: [], journal: [] };
@@ -68,19 +94,42 @@ export function SalesDetailView() {
   }
 
   const outstanding = outstandingOf(data, doc);
-  const overdue = doc.kind === 'tax-invoice' && outstanding > 0 && doc.dueDate < todayISO();
-  const etaxProblems = eTaxReadiness(data.company, buyer);
+  const creditable = creditableOf(data, doc);
+  const customerCredit = customerCreditOf(data, doc.contactId);
+  const isInvoice = doc.kind === 'tax-invoice';
+  const isTax = isTaxDocument(doc);
+  const title = salesDocTitle(doc);
+  const overdue = isInvoice && outstanding > 0 && doc.dueDate < todayISO();
+  // เอกสารที่ออกแล้ว: XML ใช้ snapshot ผู้ขาย/ผู้ซื้อ ณ วันออก
+  const etaxProblems = eTaxReadiness(doc.seller ?? data.company, buyer, doc.buyer?.address);
+  const showETax = isTax && doc.etax !== 'not-required';
+  const service = isServiceInvoice(doc);
+  const deferredVat = service ? deferredVatOf(data, doc) : 0;
+  // ใบเพิ่มหนี้ไม่รองรับงานบริการ (ออกใบแจ้งหนี้ใหม่) และยอดยกมา (ปรับในระบบเดิม)
+  const canDebit = isInvoice && doc.status !== 'cancelled' && !doc.opening && !(doc.saleType === 'service' && !isTax);
+  const canCredit = isInvoice && toSatang(creditable) > 0 && !doc.opening;
 
-  const downloadXml = () => {
-    if (!buyer) return;
-    const xml = buildETaxXml({ doc, company: data.company, buyer, referenced });
-    downloadText(`${doc.docNo}.xml`, xml, 'application/xml;charset=utf-8');
+  const downloadXml = async () => {
+    if (mode === 'api') {
+      try {
+        await serverDownload(`/files/etax/${encodeURIComponent(doc.docNo)}.xml`);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'ดาวน์โหลด XML ไม่สำเร็จ');
+      }
+      return;
+    }
+    try {
+      const xml = buildETaxXml({ doc, company: data.company, buyer, referenced, referencedReceipt });
+      downloadText(`${doc.docNo}.xml`, xml, 'application/xml;charset=utf-8');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'สร้าง XML ไม่สำเร็จ');
+    }
   };
 
   return (
     <>
       <CustomBreadcrumbs
-        heading={doc.docNo}
+        heading={`${title} ${doc.docNo}`}
         links={[
           { name: 'หน้าแรก', href: paths.dashboard },
           { name: 'ขาย', href: paths.sales.root },
@@ -91,21 +140,31 @@ export function SalesDetailView() {
             <Button variant="outlined" startIcon={<Iconify icon="solar:printer-minimalistic-bold" />} onClick={() => window.print()}>
               พิมพ์
             </Button>
-            {doc.kind === 'tax-invoice' && outstanding > 0 && (
-              <>
-                <Button
-                  component={RouterLink}
-                  href={paths.sales.creditNote(doc.id)}
-                  variant="outlined"
-                  color="error"
-                  startIcon={<Iconify icon="solar:undo-left-round-bold" />}
-                >
-                  ออกใบลดหนี้
-                </Button>
-                <Button variant="contained" startIcon={<Iconify icon="solar:hand-money-bold" />} onClick={payDialog.onTrue}>
-                  รับชำระ
-                </Button>
-              </>
+            {canWrite && canCredit && (
+              <Button
+                component={RouterLink}
+                href={paths.sales.creditNote(doc.id)}
+                variant="outlined"
+                color="error"
+                startIcon={<Iconify icon="solar:undo-left-round-bold" />}
+              >
+                ออกใบลดหนี้
+              </Button>
+            )}
+            {canWrite && canDebit && (
+              <Button component={RouterLink} href={paths.sales.debitNote(doc.id)} variant="outlined" startIcon={<Iconify icon="mingcute:add-line" />}>
+                ออกใบเพิ่มหนี้
+              </Button>
+            )}
+            {canWrite && toSatang(customerCredit) > 0 && (
+              <Button variant="outlined" startIcon={<Iconify icon="solar:wallet-money-bold" />} onClick={refundDialog.onTrue}>
+                คืนเงินลูกค้า
+              </Button>
+            )}
+            {canWrite && isInvoice && toSatang(outstanding) > 0 && (
+              <Button variant="contained" startIcon={<Iconify icon="solar:hand-money-bold" />} onClick={payDialog.onTrue}>
+                รับชำระ
+              </Button>
             )}
           </Stack>
         }
@@ -114,7 +173,13 @@ export function SalesDetailView() {
 
       <Grid container spacing={3}>
         <Grid item xs={12} lg={8}>
-          <DocumentPreview doc={doc} company={data.company} buyer={buyer} referenced={referenced} />
+          <DocumentPreview
+            doc={doc}
+            company={data.company}
+            contact={buyer}
+            referenced={referenced}
+            referencedReceipt={referencedReceipt}
+          />
         </Grid>
 
         <Grid item xs={12} lg={4}>
@@ -137,16 +202,53 @@ export function SalesDetailView() {
                     <Money value={outstanding} variant="subtitle1" />
                   </Stack>
                 )}
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    e-Tax Invoice
+                {isInvoice && (
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      ลดหนี้ได้อีก
+                    </Typography>
+                    <Money value={creditable} />
+                  </Stack>
+                )}
+                {service && (
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      ภาษีขายยังไม่ถึงกำหนด (ออกใบกำกับตอนรับเงิน)
+                    </Typography>
+                    <Money value={deferredVat} />
+                  </Stack>
+                )}
+                {doc.opening && (
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    ยอดยกมาจากระบบเดิม — ภาษีขายยื่นในระบบเดิมแล้ว รับชำระได้ตามปกติ ลดหนี้/เพิ่มหนี้ให้ทำในระบบเดิม
                   </Typography>
-                  <ETaxLabel status={doc.etax} />
-                </Stack>
+                )}
+                {toSatang(customerCredit) > 0 && (
+                  <Stack direction="row" justifyContent="space-between">
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      เงินรอคืนลูกค้า (ทุกเอกสาร)
+                    </Typography>
+                    <Money value={customerCredit} sx={{ color: 'warning.main' }} />
+                  </Stack>
+                )}
+                {isTax && (
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      e-Tax Invoice
+                    </Typography>
+                    <ETaxLabel status={doc.etax} />
+                  </Stack>
+                )}
+                {doc.etax === 'uploaded' && doc.etaxUploadedAt && (
+                  <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'right' }}>
+                    นำส่งเมื่อ {formatThaiDate(doc.etaxUploadedAt.slice(0, 10))}
+                    {doc.etaxReference ? ` · อ้างอิง ${doc.etaxReference}` : ''}
+                  </Typography>
+                )}
               </Stack>
             </Card>
 
-            {doc.etax !== 'not-required' && (
+            {showETax && (
               <Card>
                 <CardHeader title="e-Tax Invoice" subheader="XML ตามโครงสร้าง ETDA ขมธอ.3-2560" />
                 <Stack spacing={2} sx={{ p: 3 }}>
@@ -162,18 +264,11 @@ export function SalesDetailView() {
                     variant="outlined"
                     startIcon={<Iconify icon="solar:file-download-bold" />}
                     onClick={downloadXml}
-                    disabled={!buyer}
                   >
                     ดาวน์โหลด XML
                   </Button>
-                  {doc.etax === 'signed' && (
-                    <Button
-                      color="inherit"
-                      onClick={() => {
-                        run((s) => ({ state: setETaxStatus(s, [doc.id], 'uploaded') }));
-                        toast.success('บันทึกว่านำส่งสรรพากรแล้ว');
-                      }}
-                    >
+                  {canWrite && doc.etax === 'signed' && (
+                    <Button color="inherit" onClick={uploadDialog.onTrue}>
                       ทำเครื่องหมายว่านำส่งแล้ว
                     </Button>
                   )}
@@ -183,14 +278,17 @@ export function SalesDetailView() {
 
             {(related.receipts.length > 0 || related.credits.length > 0) && (
               <Card>
-                <CardHeader title="รับชำระ / ลดหนี้" />
+                <CardHeader title="รับชำระ / ลดหนี้ / เพิ่มหนี้" />
                 <Stack spacing={1.5} sx={{ p: 3 }} divider={<Divider sx={{ borderStyle: 'dashed' }} />}>
                   {related.receipts.map((r) => (
                     <Stack key={r.id} direction="row" justifyContent="space-between">
                       <div>
-                        <Typography variant="subtitle2">{r.docNo}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {formatThaiDate(r.date)}
+                        <Typography variant="subtitle2" component={RouterLink} href={paths.sales.receipt(r.id)} sx={{ color: 'inherit' }}>
+                          {r.docNo}
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
+                          {receiptTitle(r)} · {formatThaiDate(r.date)}
+                          {r.isTaxInvoice ? ` · VAT ${(r.vat ?? 0).toFixed(2)}` : ''}
                           {r.whtAmount ? ` · ถูกหัก ณ ที่จ่าย ${r.whtAmount.toFixed(2)}` : ''}
                         </Typography>
                       </div>
@@ -204,12 +302,11 @@ export function SalesDetailView() {
                           {c.docNo}
                         </Typography>
                         <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                          {formatThaiDate(c.date)} · {c.reason}
+                          {formatThaiDate(c.date)} ·{' '}
+                          {adjustmentReasonDisplay({ kind: c.kind === 'debit-note' ? 'debit-note' : 'credit-note', reasonCode: c.reasonCode, reason: c.reason })}
                         </Typography>
                       </div>
-                      <Typography variant="body2" sx={{ color: 'error.main' }}>
-                        ลดหนี้
-                      </Typography>
+                      <Money value={calcDocument(c).total * salesSign(c)} signed />
                     </Stack>
                   ))}
                 </Stack>
@@ -240,7 +337,9 @@ export function SalesDetailView() {
         </Grid>
       </Grid>
 
-      {doc.kind === 'tax-invoice' && <ReceivePaymentDialog open={payDialog.value} onClose={payDialog.onFalse} invoice={doc} />}
+      {isInvoice && <ReceivePaymentDialog open={payDialog.value} onClose={payDialog.onFalse} invoice={doc} />}
+      <RefundDialog open={refundDialog.value} onClose={refundDialog.onFalse} contactId={doc.contactId} />
+      {showETax && <MarkUploadedDialog open={uploadDialog.value} onClose={uploadDialog.onFalse} docs={[doc]} />}
     </>
   );
 }

@@ -9,16 +9,52 @@ export const paths = {
   sales: {
     root: '/sales',
     new: '/sales/new',
+    /** ออกเอกสารขายจากใบเสนอราคา (คัดลอกรายการ) */
+    fromQuotation: (quotationId: string) => `/sales/new?quotation=${quotationId}`,
     view: (id: string) => `/sales/${id}`,
     creditNote: (invoiceId: string) => `/sales/${invoiceId}/credit-note`,
+    debitNote: (invoiceId: string) => `/sales/${invoiceId}/debit-note`,
+    /** ใบเสร็จรับเงิน / ใบเสร็จรับเงิน/ใบกำกับภาษี (งานบริการ) */
+    receipt: (receiptId: string) => `/sales/receipts/${receiptId}`,
   },
   purchases: {
     root: '/purchases',
     new: '/purchases/new',
+    /** ใบสำคัญจ่าย + 50 ทวิ ของการจ่าย 1 ครั้ง */
+    payment: (paymentId: string) => `/purchases/payments/${paymentId}`,
+    view: (id: string) => `/purchases/${id}`,
+    /** ใบลดหนี้จากผู้ขาย อ้างเอกสารซื้อ */
+    creditNote: (purchaseId: string) => `/purchases/${purchaseId}/credit-note`,
+  },
+  /** ใบเสนอราคา (ไม่ลงบัญชี) */
+  quotations: {
+    root: '/quotations',
+    new: '/quotations/new',
+    view: (id: string) => `/quotations/${id}`,
+    edit: (id: string) => `/quotations/${id}/edit`,
+  },
+  /** ธนาคาร / เงินสดย่อย / กระทบยอด */
+  bank: {
+    root: '/bank',
+    reconcile: (accountCode: string) => `/bank/reconcile/${accountCode}`,
   },
   contacts: '/contacts',
   tax: '/tax',
   ledger: '/ledger',
   settings: '/settings',
+  /** ยอดยกมาจากระบบเดิม (Express) */
+  opening: '/settings/opening',
+  /** ผู้ใช้งานของบริษัท (โหมด api — เจ้าของเท่านั้น) */
+  members: '/settings/members',
+  /** โหมด api: เข้าสู่ระบบ / สมัครบริษัทใหม่ */
+  auth: {
+    login: '/login',
+    signup: '/signup',
+    /** ลิงก์ในอีเมล: `/verify-email#token=…` */
+    verifyEmail: '/verify-email',
+    forgotPassword: '/forgot-password',
+    /** ลิงก์ในอีเมล: `/reset-password#token=…` */
+    resetPassword: '/reset-password',
+  },
   page404: '/404',
 };
